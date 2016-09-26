@@ -80,7 +80,7 @@ public interface ManagementRequestContext<A> {
      * If the executor {@link java.util.concurrent.RejectedExecutionException rejects} the task, or if the task itself
      * throws an exception during execution, the
      * {@link ActiveOperation.ResultHandler#failed(Throwable) failed method} of the
-     * {@code ResultHander} associated with the request will be invoked, and if it returns {@code true} a failure
+     * {@code ResultHandler} associated with the request will be invoked, and if it returns {@code true} a failure
      * message will be sent to the remote client.
      * </p>
      *
@@ -96,7 +96,7 @@ public interface ManagementRequestContext<A> {
      * If the executor {@link java.util.concurrent.RejectedExecutionException rejects} the task, or if the task itself
      * throws an exception during execution, the
      * {@link ActiveOperation.ResultHandler#failed(Throwable) failed method} of the
-     * {@code ResultHander} associated with the request will be invoked, and if it returns {@code true} a failure
+     * {@code ResultHandler} associated with the request will be invoked, and if it returns {@code true} a failure
      * message will be sent to the remote client.
      * </p>
      *
@@ -114,7 +114,7 @@ public interface ManagementRequestContext<A> {
      * If the executor {@link java.util.concurrent.RejectedExecutionException rejects} the task, or if the task itself
      * throws an exception during execution, the
      * {@link ActiveOperation.ResultHandler#failed(Throwable) failed method} of the
-     * {@code ResultHander} associated with the request will be invoked, and if it returns {@code true} a failure
+     * {@code ResultHandler} associated with the request will be invoked, and if it returns {@code true} a failure
      * message will be sent to the remote client.
      * </p>
      *
@@ -132,7 +132,7 @@ public interface ManagementRequestContext<A> {
      * If the executor {@link java.util.concurrent.RejectedExecutionException rejects} the task, or if the task itself
      * throws an exception during execution, the
      * {@link ActiveOperation.ResultHandler#failed(Throwable) failed method} of the
-     * {@code ResultHander} associated with the request will be invoked, and if it returns {@code true} a failure
+     * {@code ResultHandler} associated with the request will be invoked, and if it returns {@code true} a failure
      * message will be sent to the remote client.
      * </p>
      *
@@ -161,7 +161,7 @@ public interface ManagementRequestContext<A> {
          * <p>
          * If the task throws an exception during execution, the
          * {@link ActiveOperation.ResultHandler#failed(Throwable) failed method} of the
-         * {@code ResultHander} associated with the request will be invoked, and if it returns {@code true} a failure
+         * {@code ResultHandler} associated with the request will be invoked, and if it returns {@code true} a failure
          * message will be sent to the remote client.
          * </p>
          *
