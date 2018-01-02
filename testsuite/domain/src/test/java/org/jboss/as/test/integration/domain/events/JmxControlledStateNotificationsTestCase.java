@@ -80,7 +80,14 @@ public class JmxControlledStateNotificationsTestCase {
     public static void setupClass() throws Exception {
         testSupport = DomainTestSupport.create(DomainTestSupport.Configuration
                 .create(JmxControlledStateNotificationsTestCase.class.getSimpleName(),
-                        "domain-configs/domain-standard.xml", "host-configs/host-master.xml", null));
+                        "domain-configs/domain-standard.xml",
+                        "host-configs/host-master.xml",
+                        null,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false));
         testSupport.start();
         domainMasterLifecycleUtil = testSupport.getDomainMasterLifecycleUtil();
         task.setup(domainMasterLifecycleUtil.getDomainClient(), "main-server-group", IS_IBM);
@@ -114,10 +121,14 @@ public class JmxControlledStateNotificationsTestCase {
                         "starting", "ok",
                         "ok", "stopping",
                         "starting", "ok"),
-                createListOf("normal", "stopping",
+                createListOf("normal", "suspending",
+                        "suspending", "suspended",
+                        "suspended","stopping",
                         "starting", "suspended",
                         "suspended", "normal",
-                        "normal", "stopping",
+                        "normal", "suspending",
+                        "suspending", "suspended",
+                        "suspended","stopping",
                         "starting", "suspended",
                         "suspended", "normal")
         );
