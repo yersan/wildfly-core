@@ -1415,4 +1415,8 @@ public interface HostControllerLogger extends BasicLogger {
     @Message(id = 210, value = "A slave host controller may not be added using add(). Please add a host, omitting this parameter, and configure the remote domain controller using write-attribute.")
     OperationFailedException cannotAddSlaveHostAfterBoot();
 
+    @LogMessage(level = Level.ERROR)
+    @Message(id = 211, value = "Failed to restart (%s) in background.")
+    void failedToRestartServer(@Cause Throwable cause, String serverName);
+
 }
