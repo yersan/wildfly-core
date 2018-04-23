@@ -72,6 +72,7 @@ public class ReloadHandler extends BaseOperationCommand {
     private final ArgumentWithValue domainConfig;
     private final ArgumentWithValue hostConfig;
     private final ArgumentWithValue blocking;
+    private final ArgumentWithValue suspendTimeout;
 
     private PerNodeOperationAccess hostReloadPermission;
 
@@ -194,6 +195,15 @@ public class ReloadHandler extends BaseOperationCommand {
                 return super.canAppearNext(ctx);
             }
         };
+
+        suspendTimeout = new ArgumentWithValue(this, "--suspend-timeout") {
+            @Override
+            public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
+                if(ctx.isDomainMode()) {
+                    return false;
+                }
+                return super.canAppearNext(ctx);
+            }};
     }
 
     @Override
@@ -279,7 +289,7 @@ public class ReloadHandler extends BaseOperationCommand {
 
     private void ensureServerRebootComplete(CommandContext ctx, ModelControllerClient client) throws CommandLineException {
         final long start = System.currentTimeMillis();
-        final long timeoutMillis = ctx.getConfig().getConnectionTimeout() + 1000;
+        final long timeoutMillis = getRebootConnectionTimeout(ctx) + 1000;
         final ModelNode getStateOp = new ModelNode();
         if(ctx.isDomainMode()) {
             final ParsedCommandLine args = ctx.getParsedCommandLine();
@@ -338,7 +348,7 @@ public class ReloadHandler extends BaseOperationCommand {
             }
 
             if (System.currentTimeMillis() - start > timeoutMillis) {
-                if (!"starting".equals(serverState))  {
+                if (!("starting".equals(serverState) || "stopping".equals(serverState)))  {
                     ctx.disconnectController();
                     throw new CommandLineException("Failed to establish connection in " + (System.currentTimeMillis() - start)
                             + "ms");
@@ -406,7 +416,7 @@ public class ReloadHandler extends BaseOperationCommand {
             op.get(Util.ADDRESS).setEmptyList();
             setBooleanArgument(args, op, this.useCurrentServerConfig, "use-current-server-config");
             setStringValue(args, op, serverConfig, "server-config");
-
+            setIntArgument(args, op, suspendTimeout, "suspend-timeout");
         }
         op.get(Util.OPERATION).set(Util.RELOAD);
 
@@ -470,5 +480,36 @@ public class ReloadHandler extends BaseOperationCommand {
             throw new CommandFormatException(arg.getFullName() + " is missing value.");
         }
         op.get(paramName).set(value);
+    }
+
+    private void setIntArgument(final ParsedCommandLine args, final ModelNode op, ArgumentWithValue arg, String paramName)
+            throws CommandFormatException {
+        if(!arg.isPresent(args)) {
+            return;
+        }
+        final String value = arg.getValue(args);
+        if(value == null) {
+            throw new CommandFormatException(arg.getFullName() + " is missing value.");
+        }
+        try {
+            Integer i = Integer.parseInt(value);
+            op.get(paramName).set(i);
+        } catch (NumberFormatException nfe) {
+            throw new CommandFormatException("Invalid value for " + arg.getFullName() + ": '" + value + "'");
+        }
+    }
+
+    private int getRebootConnectionTimeout(CommandContext ctx){
+        final ParsedCommandLine args = ctx.getParsedCommandLine();
+        final int connectionTimeout = ctx.getConfig().getConnectionTimeout();
+        try {
+            if (suspendTimeout.isPresent(args)) {
+                int timeout = Integer.parseInt(this.suspendTimeout.getValue(args))*1000;
+                return connectionTimeout + (timeout > 0 ? timeout : 0);
+            }
+        } catch (Exception e) {
+            //safely ignored
+        }
+        return connectionTimeout;
     }
 }

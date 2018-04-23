@@ -5,6 +5,7 @@ SYNOPSIS
       reload [--start-mode=admin-only|normal|suspend]
              [--use-current-server-config=true|false]
              [--server-config=new_server_config_file_name]
+             [--suspend-timeout=seconds]
 
    Domain mode:
 
@@ -127,3 +128,14 @@ ARGUMENTS
                  effect if --restart-servers is true. In that case, if --blocking
                  is set to true, the operation blocks and waits until the servers
                  are stopped. If not present, true value is assumed.
+
+--suspend-timeout  - optional, timeout for suspending the server(s) prior to a
+                 subsequent action. In standalone mode the subsequent action is
+                 reloading the server. In domain mode the subsequent action on
+                 each server is a shutdown and the timeout is only relevant if
+                 the --restart-servers param is not set or is set to true.
+                 If timeout for suspending is zero (the default) then the server(s)
+                 will shutdown/reload immediately. A value larger than zero means
+                 the server(s) will wait up to this many seconds for all active
+                 requests to finish. A value smaller than zero means that the
+                 server will wait indefinitely for all active requests to finish.

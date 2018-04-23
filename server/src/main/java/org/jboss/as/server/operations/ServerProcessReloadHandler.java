@@ -29,6 +29,7 @@ import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.RunningMode;
 import org.jboss.as.controller.RunningModeControl;
@@ -37,12 +38,18 @@ import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.operations.common.ProcessReloadHandler;
 import org.jboss.as.controller.operations.validation.EnumValidator;
+import org.jboss.as.controller.remote.EarlyResponseSendListener;
 import org.jboss.as.server.ServerEnvironment;
 import org.jboss.as.server.controller.descriptions.ServerDescriptions;
 import org.jboss.as.server.logging.ServerLogger;
+import org.jboss.as.server.suspend.OperationListener;
+import org.jboss.as.server.suspend.SuspendController;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
+import org.jboss.msc.service.AbstractServiceListener;
+import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.service.ServiceRegistry;
 
 /**
  *
@@ -68,7 +75,11 @@ public class ServerProcessReloadHandler extends ProcessReloadHandler<RunningMode
             .setValidator(new EnumValidator<>(StartMode.class, true, false))
             .setAlternatives(ModelDescriptionConstants.ADMIN_ONLY)
             .setDefaultValue(new ModelNode(StartMode.NORMAL.toString())).build();
-    private static final AttributeDefinition[] ATTRIBUTES = new AttributeDefinition[] {ADMIN_ONLY, USE_CURRENT_SERVER_CONFIG, SERVER_CONFIG, START_MODE};
+
+    protected static final AttributeDefinition SUSPEND_TIMEOUT = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.SUSPEND_TIMEOUT, ModelType.INT, true)
+            .setDefaultValue(new ModelNode(0)).build();
+
+    private static final AttributeDefinition[] ATTRIBUTES = new AttributeDefinition[] {ADMIN_ONLY, USE_CURRENT_SERVER_CONFIG, SERVER_CONFIG, START_MODE, SUSPEND_TIMEOUT};
 
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, ServerDescriptions.getResourceDescriptionResolver("server"))
                                                                 .setParameters(ATTRIBUTES)
@@ -80,6 +91,95 @@ public class ServerProcessReloadHandler extends ProcessReloadHandler<RunningMode
             ControlledProcessState processState, ServerEnvironment environment) {
         super(rootService, runningModeControl, processState);
         this.environment = environment;
+    }
+
+    @Override
+    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        final int timeoutInSeconds = SUSPEND_TIMEOUT.resolveModelAttribute(context, operation).asInt();
+        context.addStep(new OperationStepHandler() {
+            @Override
+            public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
+                final ReloadContext<RunningModeControl> reloadContext = initializeReloadContext(context, operation);
+                final ServiceController<?> service = context.getServiceRegistry(true).getRequiredService(rootService);
+                context.completeStep(new OperationContext.ResultHandler() {
+                    @Override
+                    public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
+                        final EarlyResponseSendListener sendListener = context.getAttachment(EarlyResponseSendListener.ATTACHMENT_KEY);
+                        try {
+                            if (resultAction == OperationContext.ResultAction.KEEP) {
+                                service.addListener(new AbstractServiceListener<Object>() {
+                                    @Override
+                                    public void listenerAdded(final ServiceController<?> controller) {
+                                        reloadContext.reloadInitiated(runningModeControl);
+                                        processState.setStopping();
+
+                                        // If we were interrupted during setStopping (i.e. while calling process state listeners)
+                                        // we want to clear that so we don't disrupt the reload of MSC services.
+                                        // Once we set STOPPING state we proceed. And we don't want this thread
+                                        // to have interrupted status as that will just mess up checking for
+                                        // container stability
+                                        Thread.interrupted();
+                                        // Now that we're in STOPPING state we can send the response to the caller
+                                        if (sendListener != null) {
+                                            sendListener.sendEarlyResponse(resultAction);
+                                        }
+                                    }
+
+                                    @Override
+                                    public void transition(final ServiceController<? extends Object> controller, final ServiceController.Transition transition) {
+                                        if (transition == ServiceController.Transition.STOPPING_to_DOWN) {
+                                            controller.removeListener(this);
+                                            reloadContext.doReload(runningModeControl);
+                                            controller.setMode(ServiceController.Mode.ACTIVE);
+                                        }
+                                    }
+                                });
+
+                                final ServiceRegistry registry = context.getServiceRegistry(false);
+                                ServiceController<SuspendController> suspendControllerServiceController = (ServiceController<SuspendController>) registry.getRequiredService(SuspendController.SERVICE_NAME);
+                                final SuspendController suspendController = suspendControllerServiceController.getValue();
+
+                                if (timeoutInSeconds != 0 && suspendController.getState() != SuspendController.State.SUSPENDED) {
+                                    OperationListener operationListener = new OperationListener() {
+                                        @Override
+                                        public void suspendStarted() {
+                                        }
+
+                                        @Override
+                                        public void complete() {
+                                            suspendController.removeListener(this);
+                                            service.setMode(ServiceController.Mode.NEVER);
+                                        }
+
+                                        @Override
+                                        public void cancelled() {
+                                            //@TODO: Cancellation of this operation should be avoided, problem: there are listeners attached to process state
+//                                            suspendController.removeListener(this);
+//                                            processState.setRunning();
+                                        }
+
+                                        @Override
+                                        public void timeout() {
+                                            suspendController.removeListener(this);
+                                            service.setMode(ServiceController.Mode.NEVER);
+                                        }
+                                    };
+                                    suspendController.addListener(operationListener);
+                                    suspendController.suspend(timeoutInSeconds > 0 ?  timeoutInSeconds * 1000 : timeoutInSeconds);
+                                } else {
+                                    service.setMode(ServiceController.Mode.NEVER);
+                                }
+                            }
+                        } finally {
+                            if (sendListener != null) {
+                                // even if we called this in the try block, it's ok to call it again.
+                                sendListener.sendEarlyResponse(resultAction);
+                            }
+                        }
+                    }
+                });
+            }
+        }, OperationContext.Stage.RUNTIME);
     }
 
     @Override

@@ -33,6 +33,7 @@ public class ClientConstants {
     public static final String ARCHIVE = "archive";
     public static final String ATTACHED_STREAMS = "attached-streams";
     public static final String AUTO_START = "auto-start";
+    public static final String BLOCKING = "blocking";
     public static final String CHILD_TYPE = "child-type";
     public static final String COMPOSITE = "composite";
     public static final String CONTENT = "content";
@@ -68,6 +69,7 @@ public class ClientConstants {
     public static final String READ_RESOURCE_OPERATION = "read-resource";
     public static final String RECURSIVE = "recursive";
     public static final String RECURSIVE_DEPTH = "recursive-depth";
+    public static final String RELOAD = "reload";
     public static final String REMOVE_CONTENT = "remove-content";
     public static final String REMOVE_OPERATION = "remove";
     public static final String RESPONSE_HEADERS = "response-headers";
@@ -85,6 +87,7 @@ public class ClientConstants {
     public static final String STEPS = "steps";
     public static final String SUBSYSTEM = "subsystem";
     public static final String SUCCESS = "success";
+    public static final String SUSPEND_TIMEOUT = "suspend-timeout";
     public static final String TARGET_PATH = "target-path";
     public static final String TO_REPLACE = "to-replace";
     public static final String UNDEFINE_ATTRIBUTE_OPERATION = "undefine-attribute";
