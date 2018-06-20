@@ -51,5 +51,7 @@
         <module name="org.jboss.staxmapper"/>
         <module name="org.jboss.threads"/>
         <module name="org.projectodd.vdx"/>
+
+        <module name="org.codehaus.woodstox" services="import"/>
     </dependencies>
 </module>

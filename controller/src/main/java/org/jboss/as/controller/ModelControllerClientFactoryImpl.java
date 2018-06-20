@@ -27,6 +27,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.USE
 import static org.jboss.as.controller.logging.ControllerLogger.ROOT_LOGGER;
 
 import java.io.IOException;
+import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -148,12 +149,28 @@ final class ModelControllerClientFactoryImpl implements ModelControllerClientFac
                     @Override
                     public OperationResponse run() {
                         SecurityActions.currentAccessAuditContext().setAccessMechanism(AccessMechanism.IN_VM_USER);
-                        return modelController.execute(toExecute, messageHandler, ModelController.OperationTransactionControl.COMMIT);
+
+                        ClassLoader classLoader = modelController.getClass().getClassLoader();
+                        final ClassLoader tccl = getTccl();
+
+                        try {
+                            setTccl(classLoader);
+                            return modelController.execute(toExecute, messageHandler, ModelController.OperationTransactionControl.COMMIT);
+                        } finally {
+                            setTccl(tccl);
+                        }
                     }
                 });
 
             }  else {
-                response = modelController.execute(toExecute, messageHandler, ModelController.OperationTransactionControl.COMMIT);
+                ClassLoader classLoader = modelController.getClass().getClassLoader();
+                final ClassLoader tccl = getTccl();
+                try {
+                    setTccl(classLoader);
+                    response = modelController.execute(toExecute, messageHandler, ModelController.OperationTransactionControl.COMMIT);
+                } finally {
+                    setTccl(tccl);
+                }
             }
             return response;
         }
@@ -245,9 +262,23 @@ final class ModelControllerClientFactoryImpl implements ModelControllerClientFac
             Operation op = attachments == null ? Operation.Factory.create(operation) : Operation.Factory.create(operation, attachments.getInputStreams(),
                     attachments.isAutoCloseStreams());
             if (inVmCall) {
-                return SecurityActions.runInVm(() -> modelController.execute(op, messageHandler, ModelController.OperationTransactionControl.COMMIT));
+                ClassLoader classLoader = modelController.getClass().getClassLoader();
+                final ClassLoader tccl = getTccl();
+                try {
+                    setTccl(classLoader);
+                    return SecurityActions.runInVm(() -> modelController.execute(op, messageHandler, ModelController.OperationTransactionControl.COMMIT));
+                } finally {
+                    setTccl(tccl);
+                }
             } else {
-                return modelController.execute(op, messageHandler, ModelController.OperationTransactionControl.COMMIT);
+                ClassLoader classLoader = modelController.getClass().getClassLoader();
+                final ClassLoader tccl = getTccl();
+                try {
+                    setTccl(classLoader);
+                    return modelController.execute(op, messageHandler, ModelController.OperationTransactionControl.COMMIT);
+                } finally {
+                    setTccl(tccl);
+                }
             }
         }
     }
@@ -344,6 +375,32 @@ final class ModelControllerClientFactoryImpl implements ModelControllerClientFac
                 // Not really possible as BiFunction doesn't throw checked exceptions
                 throw new RuntimeException(cause);
             }
+        }
+    }
+
+    private static ClassLoader getTccl() {
+        if (System.getSecurityManager() == null) {
+            return Thread.currentThread().getContextClassLoader();
+        }
+        return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+            @Override
+            public ClassLoader run() {
+                return Thread.currentThread().getContextClassLoader();
+            }
+        }, null, new RuntimePermission("getClassLoader"));
+    }
+
+    private static void setTccl(final ClassLoader cl) {
+        if (System.getSecurityManager() == null) {
+            Thread.currentThread().setContextClassLoader(cl);
+        } else {
+            AccessController.doPrivileged(new PrivilegedAction<Object>() {
+                @Override
+                public Object run() {
+                    Thread.currentThread().setContextClassLoader(cl);
+                    return null;
+                }
+            }, null, new RuntimePermission("setContextClassLoader"));
         }
     }
 }
