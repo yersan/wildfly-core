@@ -240,6 +240,9 @@ class ModelControllerImpl implements ModelController {
     @Override
     public OperationResponse execute(Operation operation, OperationMessageHandler handler, OperationTransactionControl control) {
         SecurityIdentity securityIdentity = securityIdentitySupplier.get();
+        final boolean inVmCall = SecurityActions.isInVmCall();
+        ROOT_LOGGER.info("ModelControllerImpl ---------------> InVmAccess.isInVmCall()=" + inVmCall + " Operation=" + operation);
+
         return securityIdentity.runAs((PrivilegedAction<OperationResponse>) () -> internalExecute(operation.getOperation(),
                 handler, control, operation, prepareStep, false, partialModelIndicator.isModelPartial()));
     }

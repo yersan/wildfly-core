@@ -209,4 +209,20 @@ public class ProtocolConnectionConfiguration {
         return target;
     }
 
+    @Override
+    public String toString() {
+        return "ProtocolConnectionConfiguration{" +
+                "uri=" + uri +
+                ", endpoint=" + endpoint +
+                ", optionMap=" + optionMap +
+                ", connectionTimeout=" + connectionTimeout +
+                ", callbackHandler=" + callbackHandler +
+                ", saslOptions=" + saslOptions +
+                ", sslContext=" + sslContext +
+                ", clientBindAddress='" + clientBindAddress + '\'' +
+                ", timeoutHandler=" + timeoutHandler +
+                ", sslEnabled=" + sslEnabled +
+                ", useStartTLS=" + useStartTLS +
+                '}';
+    }
 }

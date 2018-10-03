@@ -30,9 +30,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.jboss.as.controller.access.InVmAccess;
 import org.jboss.as.controller.client.OperationAttachments;
 import org.jboss.as.controller.client.OperationMessageHandler;
 import org.jboss.as.controller.client.OperationResponse;
+import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.remote.TransactionalProtocolClient;
 import org.jboss.as.controller.remote.TransactionalProtocolHandlers;
 import org.jboss.as.host.controller.logging.HostControllerLogger;
@@ -95,10 +97,20 @@ class ManagedServerProxy implements TransactionalProtocolClient {
                 server.requireReload();
             }
         }
+        ControllerLogger.ROOT_LOGGER.info(" -----------------------> Executing in the client " + InVmAccess.isInVmCall());
+
         AsyncFuture<OperationResponse> future = remoteClient.execute(listener, operation);
         registerFuture(remoteClient, future);
         return future;
     }
+
+//    Function<DomainModelControllerService, OperationResponse> function = new Function<DomainModelControllerService, OperationResponse>() {
+//        @Override
+//        public OperationResponse apply(DomainModelControllerService controllerService) {
+//            return InVmAccess.runInVm((PrivilegedAction<OperationResponse>) () -> controllerService.internalExecute(operation, OperationMessageHandler.logging, OperationTransactionControl.COMMIT, stepHandler, false, true));
+//        }
+//    };
+//            return SecurityActions.privilegedExecution(function, DomainModelControllerService.this).getResponseNode();
 
     private synchronized void registerFuture(TransactionalProtocolClient remoteClient, AsyncFuture<OperationResponse> future) {
         if (this.remoteClient != remoteClient) {

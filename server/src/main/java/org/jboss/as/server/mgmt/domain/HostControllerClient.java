@@ -40,6 +40,7 @@ import org.jboss.as.controller.ModelController;
 import org.jboss.as.controller.client.OperationAttachments;
 import org.jboss.as.controller.client.OperationMessageHandler;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
+import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.protocol.mgmt.AbstractManagementRequest;
 import org.jboss.as.protocol.mgmt.ActiveOperation;
 import org.jboss.as.protocol.mgmt.FlushableDataOutput;
@@ -120,6 +121,7 @@ public class HostControllerClient implements AbstractControllerService.Controlle
             @Override
             public void reconnected(boolean inSync) {
                 if (!inSync || mgmtEndpointChanged) {
+                    ControllerLogger.ROOT_LOGGER.info(" -------------------------------> !inSync=" + !inSync +" -- mgmtEndpointChanged=" + mgmtEndpointChanged);
                     privilegedExecution().execute(HostControllerClient::executeRequireReload, controller);
                 }
             }
@@ -128,6 +130,7 @@ public class HostControllerClient implements AbstractControllerService.Controlle
     }
 
     private static ModelNode executeRequireReload(ModelController controller) {
+        ControllerLogger.ROOT_LOGGER.info(" ------------------------------->");
         final ModelNode operation = new ModelNode();
         operation.get(ModelDescriptionConstants.OP).set(ServerProcessStateHandler.REQUIRE_RELOAD_OPERATION);
         operation.get(ModelDescriptionConstants.OP_ADDR).setEmptyList();

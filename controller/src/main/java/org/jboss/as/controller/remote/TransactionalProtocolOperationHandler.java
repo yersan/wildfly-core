@@ -40,6 +40,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.jboss.as.controller.AccessAuditContext;
 import org.jboss.as.controller.ModelController;
+import org.jboss.as.controller.access.InVmAccess;
 import org.jboss.as.controller.client.Operation;
 import org.jboss.as.controller.client.OperationMessageHandler;
 import org.jboss.as.controller.client.OperationResponse;
@@ -155,15 +156,25 @@ public class TransactionalProtocolOperationHandler implements ManagementRequestH
 
                 @Override
                 public void execute(final ManagementRequestContext<ExecuteRequestContext> context) throws Exception {
-                    AccessController.doPrivileged(new PrivilegedAction<Void>() {
-
-                        @Override
-                        public Void run() {
-                            AccessAuditContext.doAs(securityIdentity != null , securityIdentity, remoteAddress, action);
-                            return null;
-                        }
-                    });
-
+                    if ( executableRequest.inVmCall ){
+                        InVmAccess.runInVm(new PrivilegedAction<Void>() {
+                            @Override
+                            public Void run() {
+                                ControllerLogger.ROOT_LOGGER.info("Running in VM: " + securityIdentity);
+                                AccessAuditContext.doAs(securityIdentity != null , securityIdentity, remoteAddress, action);
+                                return null;
+                            }
+                        });
+                    } else {
+                        AccessController.doPrivileged(new PrivilegedAction<Void>() {
+                            @Override
+                            public Void run() {
+                                ControllerLogger.ROOT_LOGGER.info("NOT Running in VM: " + securityIdentity);
+                                AccessAuditContext.doAs(securityIdentity != null , securityIdentity, remoteAddress, action);
+                                return null;
+                            }
+                        });
+                    }
                 }
 
                 @Override
@@ -214,11 +225,13 @@ public class TransactionalProtocolOperationHandler implements ManagementRequestH
         private final ModelNode operation;
         private final int attachmentsLength;
         private final PropagatedIdentity propagatedIdentity;
+        private final boolean inVmCall;
 
-        private ExecutableRequest(ModelNode operation, int attachmentsLength, PropagatedIdentity propagatedIdentity) {
+        private ExecutableRequest(ModelNode operation, int attachmentsLength, PropagatedIdentity propagatedIdentity, boolean inVmCall) {
             this.operation = operation;
             this.attachmentsLength = attachmentsLength;
             this.propagatedIdentity = propagatedIdentity;
+            this.inVmCall = inVmCall;
         }
 
         static ExecutableRequest parse(DataInput input, ManagementChannelAssociation channelAssociation) throws IOException {
@@ -232,7 +245,14 @@ public class TransactionalProtocolOperationHandler implements ManagementRequestH
             final Boolean readIdentity = channelAssociation.getAttachments().getAttachment(TransactionalProtocolClient.SEND_IDENTITY);
             propagatedIdentity = (readIdentity != null && readIdentity) ? read(input) : null;
 
-            return new ExecutableRequest(operation, attachmentsLength, propagatedIdentity);
+            final Boolean readSendInVm = channelAssociation.getAttachments().getAttachment(TransactionalProtocolClient.SEND_IN_VM);
+            boolean inVmCall = false;
+            if (readSendInVm != null && readSendInVm) {
+                ProtocolUtils.expectHeader(input, ModelControllerProtocol.PARAM_IN_VM_CALL);
+                inVmCall = input.readBoolean();
+            }
+
+            return new ExecutableRequest(operation, attachmentsLength, propagatedIdentity, inVmCall);
         }
     }
 

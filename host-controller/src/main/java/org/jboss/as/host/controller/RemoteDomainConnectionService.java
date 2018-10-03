@@ -518,6 +518,7 @@ public class RemoteDomainConnectionService implements MasterDomainControllerClie
             final AuthenticationContext authenticationContext = authenticationContextInjector.getOptionalValue();
             final SecurityRealm realm = securityRealmInjector.getOptionalValue();
             // Create the remote domain channel strategy
+            ControllerLogger.ROOT_LOGGER.info(" ---------------------------> " + configuration);
             connection = new RemoteDomainConnection(localHostInfo.getLocalHostName(), configuration, authenticationContext, realm,
                     localHostInfo.getRemoteDomainControllerUsername(),
                     localHostInfo.getRemoteDomainControllerDiscoveryOptions(), executor, scheduledExecutorService,

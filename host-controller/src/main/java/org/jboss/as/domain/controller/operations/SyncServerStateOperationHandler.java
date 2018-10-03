@@ -32,6 +32,8 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.access.InVmAccess;
+import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
@@ -105,6 +107,7 @@ class SyncServerStateOperationHandler implements OperationStepHandler {
                                 new ManagedServerBootCmdFactory(serverName, endRoot, endHostModel,
                                         parameters.getHostControllerEnvironment(),
                                         parameters.getDomainController().getExpressionResolver(), false).createConfiguration();
+
                         if (startConfig == null || !startConfig.compareServerLaunchCommand(endConfig)) {
                             servers.put(serverName, SyncServerResultAction.RESTART_REQUIRED);
                         }
@@ -116,6 +119,7 @@ class SyncServerStateOperationHandler implements OperationStepHandler {
                             PathAddress.pathAddress(HOST, localHostName).append(SERVER, entry.getKey());
                     final String opName = entry.getValue() == SyncServerResultAction.RESTART_REQUIRED ?
                             ServerProcessStateHandler.REQUIRE_RESTART_OPERATION : ServerProcessStateHandler.REQUIRE_RELOAD_OPERATION;
+                    ControllerLogger.ROOT_LOGGER.info(" HC Sync: ------------------------------->" + opName + "inVmCall=" + InVmAccess.isInVmCall());
                     final OperationStepHandler handler = context.getResourceRegistration().getOperationHandler(serverAddress, opName);
                     final ModelNode op = Util.createEmptyOperation(opName, serverAddress);
                     context.addStep(op, handler, OperationContext.Stage.MODEL);

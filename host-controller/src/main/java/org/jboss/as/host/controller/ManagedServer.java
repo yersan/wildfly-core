@@ -81,7 +81,7 @@ import org.jboss.threads.AsyncFuture;
  */
 class ManagedServer {
 
-    private static final Logger.Level DEBUG_LEVEL = Logger.Level.TRACE;
+    private static final Logger.Level DEBUG_LEVEL = Logger.Level.INFO;
     private static final MarshallerFactory MARSHALLER_FACTORY;
     private static final MarshallingConfiguration CONFIG;
 
@@ -420,6 +420,7 @@ class ManagedServer {
         final InternalState current = this.internalState;
         // Create the remote controller client
         channelAssociation.getAttachments().attach(TransactionalProtocolClient.SEND_IDENTITY, Boolean.TRUE);
+        channelAssociation.getAttachments().attach(TransactionalProtocolClient.SEND_IN_VM, Boolean.TRUE);
         final TransactionalProtocolClient remoteClient = TransactionalProtocolHandlers.createClient(channelAssociation);
         if      (current == InternalState.RELOADING) {
             internalSetState(new TransitionTask() {
