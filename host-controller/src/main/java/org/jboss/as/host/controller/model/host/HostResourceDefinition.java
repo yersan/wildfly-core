@@ -373,8 +373,9 @@ public class HostResourceDefinition extends SimpleResourceDefinition {
                 runningModeControl, processState, environment, hostControllerInfo);
         hostRegistration.registerOperationHandler(HostProcessReloadHandler.getDefinition(hostControllerInfo), reloadHandler);
 
-
         DomainServerLifecycleHandlers.initializeServerInventory(serverInventory);
+
+        DomainServerLifecycleHandlers.registerHostHandlers(hostRegistration);
 
         ValidateOperationHandler validateOperationHandler = hostControllerInfo.isMasterDomainController() ? ValidateOperationHandler.INSTANCE : ValidateOperationHandler.SLAVE_HC_INSTANCE;
         hostRegistration.registerOperationHandler(ValidateOperationHandler.DEFINITION_HIDDEN, validateOperationHandler);

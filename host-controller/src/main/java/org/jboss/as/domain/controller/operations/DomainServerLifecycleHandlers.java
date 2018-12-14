@@ -59,12 +59,14 @@ import org.jboss.as.controller.client.helpers.domain.ServerStatus;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.operations.validation.EnumValidator;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.transform.description.DiscardAttributeChecker;
 import org.jboss.as.controller.transform.description.RejectAttributeChecker;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
 import org.jboss.as.domain.controller.resources.DomainResolver;
 import org.jboss.as.host.controller.ServerInventory;
+import org.jboss.as.host.controller.descriptions.HostResolver;
 import org.jboss.as.host.controller.logging.HostControllerLogger;
 import org.jboss.as.process.ProcessInfo;
 import org.jboss.dmr.ModelNode;
@@ -89,8 +91,14 @@ public class DomainServerLifecycleHandlers {
             .build();
 
     private static final AttributeDefinition TIMEOUT = SimpleAttributeDefinitionBuilder.create(ModelDescriptionConstants.TIMEOUT, ModelType.INT, true)
-            .setMeasurementUnit(MeasurementUnit.SECONDS).setDefaultValue(new ModelNode(0)).build();
+            .setMeasurementUnit(MeasurementUnit.SECONDS)
+            .setDefaultValue(new ModelNode(0))
+            .build();
 
+    private static final AttributeDefinition SUSPEND_TIMEOUT = SimpleAttributeDefinitionBuilder.create(ModelDescriptionConstants.SUSPEND_TIMEOUT, ModelType.INT, true)
+            .setMeasurementUnit(MeasurementUnit.SECONDS)
+            .setDefaultValue(new ModelNode(0))
+            .build();
 
     public static final String RESTART_SERVERS_NAME = RESTART_SERVERS;
     public static final String START_SERVERS_NAME = START_SERVERS;
@@ -109,6 +117,8 @@ public class DomainServerLifecycleHandlers {
         ResumeServersLifecycleHandler.INSTANCE.setServerInventory(serverInventory);
         KillServersLifecycleHandler.INSTANCE.setServerInventory(serverInventory);
         DestroyServersLifecycleHandler.INSTANCE.setServerInventory(serverInventory);
+        HostSuspendServersLifecycleHandler.INSTANCE.setServerInventory(serverInventory);
+        HostResumeServersLifecycleHandler.INSTANCE.setServerInventory(serverInventory);
     }
 
     public static void registerDomainHandlers(ManagementResourceRegistration registration) {
@@ -117,6 +127,11 @@ public class DomainServerLifecycleHandlers {
 
     public static void registerServerGroupHandlers(ManagementResourceRegistration registration) {
         registerHandlers(registration, true);
+    }
+
+    public static void registerHostHandlers(ManagementResourceRegistration registration) {
+        registration.registerOperationHandler(getHostSuspenOperationDefinition(HostSuspendServersLifecycleHandler.OPERATION_NAME), HostSuspendServersLifecycleHandler.INSTANCE);
+        registration.registerOperationHandler(getHostResumeOperationDefinition(HostResumeServersLifecycleHandler.OPERATION_NAME), HostResumeServersLifecycleHandler.INSTANCE);
     }
 
     private static void registerHandlers(ManagementResourceRegistration registration, boolean serverGroup) {
@@ -167,6 +182,24 @@ public class DomainServerLifecycleHandlers {
         }
         return builder.build();
     }
+
+    private static OperationDefinition getHostSuspenOperationDefinition(String operationName) {
+        SimpleOperationDefinitionBuilder builder = new SimpleOperationDefinitionBuilder(operationName, HostResolver.getResolver(HOST))
+                .addParameter(SUSPEND_TIMEOUT)
+                .withFlag(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
+                .setRuntimeOnly();
+
+        return builder.build();
+    }
+
+    private static OperationDefinition getHostResumeOperationDefinition(String operationName) {
+        SimpleOperationDefinitionBuilder builder = new SimpleOperationDefinitionBuilder(operationName, HostResolver.getResolver(HOST))
+                .withFlag(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
+                .setRuntimeOnly();
+
+        return builder.build();
+    }
+
     private abstract static class AbstractHackLifecycleHandler implements OperationStepHandler {
         volatile ServerInventory serverInventory;
 
@@ -206,6 +239,18 @@ public class DomainServerLifecycleHandlers {
             return servers;
         }
 
+        Set<String> getServersForHost(final ModelNode model) {
+            final String hostName = model.get(HOST).keys().iterator().next();
+            final ModelNode serverConfig = model.get(HOST, hostName).get(SERVER_CONFIG);
+            if (!serverConfig.isDefined()) {
+                return Collections.emptySet();
+            }
+            final Set<String> servers = new HashSet<String>();
+            for (Property config : serverConfig.asPropertyList()) {
+                servers.add(config.getName());
+            }
+            return servers;
+        }
     }
 
     private static class StopServersLifecycleHandler extends AbstractHackLifecycleHandler {
@@ -512,6 +557,57 @@ public class DomainServerLifecycleHandlers {
                     });
                 }
             }, Stage.RUNTIME);
+        }
+    }
+
+    private static class HostSuspendServersLifecycleHandler extends AbstractHackLifecycleHandler {
+        static final String OPERATION_NAME = SUSPEND_SERVERS_NAME;
+        static final HostSuspendServersLifecycleHandler INSTANCE = new HostSuspendServersLifecycleHandler();
+
+        @Override
+        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+            context.acquireControllerLock();
+            final ModelNode model = Resource.Tools.readModel(context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS, true));
+            final int suspendTimeout = SUSPEND_TIMEOUT.resolveModelAttribute(context, operation).asInt();
+            final BlockingTimeout blockingTimeout = BlockingTimeout.Factory.getProxyBlockingTimeout(context);
+
+            context.addStep(new OperationStepHandler() {
+                @Override
+                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                    context.getServiceRegistry(true);
+                    Set<String> servers = getServersForHost(model);
+                    final List<ModelNode> errorResponses = serverInventory.suspendServers(servers, suspendTimeout, blockingTimeout);
+                    if (!errorResponses.isEmpty()) {
+                        context.getFailureDescription().set(errorResponses);
+                    }
+                    context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
+                }
+            }, OperationContext.Stage.RUNTIME);
+        }
+    }
+
+    private static class HostResumeServersLifecycleHandler extends AbstractHackLifecycleHandler {
+        static final String OPERATION_NAME = RESUME_SERVERS_NAME;
+        static final HostResumeServersLifecycleHandler INSTANCE = new HostResumeServersLifecycleHandler();
+
+        @Override
+        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+            context.acquireControllerLock();
+            final ModelNode model = Resource.Tools.readModel(context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS, true));
+            final BlockingTimeout blockingTimeout = BlockingTimeout.Factory.getProxyBlockingTimeout(context);
+
+            context.addStep(new OperationStepHandler() {
+                @Override
+                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                    context.getServiceRegistry(true);
+                    Set<String> servers = getServersForHost(model);
+                    final List<ModelNode> errorResponses = serverInventory.resumeServers(servers, blockingTimeout);
+                    if (!errorResponses.isEmpty()) {
+                        context.getFailureDescription().set(errorResponses);
+                    }
+                    context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
+                }
+            }, OperationContext.Stage.RUNTIME);
         }
     }
 
