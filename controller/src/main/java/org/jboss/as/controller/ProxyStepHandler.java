@@ -112,18 +112,21 @@ public class ProxyStepHandler implements OperationStepHandler {
                 final ProxyController.ProxyOperationControl transformingProxyControl = new ProxyController.ProxyOperationControl() {
                     @Override
                     public void operationFailed(final ModelNode response) {
-                        final ModelNode transformed;
-                        // Check if we can provide a better error message
-                        if(result.rejectOperation(response)) {
-                            final ModelNode newResponse = new ModelNode();
-                            newResponse.get(OUTCOME).set(FAILED);
-                            newResponse.get(FAILURE_DESCRIPTION).set(result.getFailureDescription());
-                            transformed = newResponse;
-                        } else {
-                            transformed = response;
-                        }
-                        final ModelNode result = resultTransformer.transformResult(transformed);
-                        proxyControl.operationFailed(result);
+//                        final ModelNode transformed;
+//                        // Check if we can provide a better error message
+//                        if(result.rejectOperation(response)) {
+//                            final ModelNode newResponse = new ModelNode();
+//                            newResponse.get(OUTCOME).set(FAILED);
+//                            newResponse.get(FAILURE_DESCRIPTION).set(result.getFailureDescription());
+//                            transformed = newResponse;
+//                        } else {
+//                            transformed = response;
+//                        }
+//                        final ModelNode result = resultTransformer.transformResult(transformed);
+//                        proxyControl.operationFailed(result);
+
+                        final ModelNode result = resultTransformer.transformResult( new ModelNode());
+                        proxyControl.operationCompleted(OperationResponse.Factory.createSimple(result));
                     }
 
                     @Override
