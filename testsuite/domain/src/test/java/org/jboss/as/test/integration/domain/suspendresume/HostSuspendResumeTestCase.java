@@ -129,7 +129,16 @@ public class HostSuspendResumeTestCase {
     }
 
     @Test
-    public void hostSuspendAndResume() throws Exception {
+    public void hostSuspendAndResumeNegativeTimeout() throws Exception {
+        commonHostSuspendAndResumePart(-1);
+    }
+
+    @Test
+    public void hostSuspendAndResumeTimeout() throws Exception {
+        commonHostSuspendAndResumePart(30);
+    }
+
+    public void commonHostSuspendAndResumePart(int timeout) throws Exception {
         final String appUrl = "http://" + TestSuiteEnvironment.getServerAddress() + ":8080/web-suspend";
 
         final ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -150,8 +159,9 @@ public class HostSuspendResumeTestCase {
             executorService.submit(new Callable<String>() {
                 @Override
                 public String call() throws Exception {
+                    int timeoutValue = (timeout <= 0) ? timeout : TimeoutUtil.adjust(timeout);
                     ModelNode op = Util.createOperation(SUSPEND_SERVERS, MASTER_ADDR);
-                    op.get(ModelDescriptionConstants.SUSPEND_TIMEOUT).set(TimeoutUtil.adjust(30));
+                    op.get(ModelDescriptionConstants.SUSPEND_TIMEOUT).set(timeoutValue);
                     return DomainTestUtils.executeForResult(op, domainMasterLifecycleUtil.createDomainClient()).asString();
                 }
             });

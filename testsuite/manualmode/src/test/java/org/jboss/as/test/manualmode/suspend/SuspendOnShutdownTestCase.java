@@ -20,6 +20,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAM
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_ATTRIBUTE_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SHUTDOWN;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUSPEND;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUSPEND_STATE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUSPEND_TIMEOUT;
 
@@ -113,7 +114,26 @@ public class SuspendOnShutdownTestCase {
     }
 
     @Test
+    public void testGracefulShutdownWithNegativeTimeout() throws Exception {
+        commonTestPart(-1, SHUTDOWN);
+    }
+
+    @Test
     public void testGracefulShutdownWithTimeout() throws Exception {
+        commonTestPart(30, SHUTDOWN);
+    }
+
+    @Test
+    public void testGracefulSuspendWithNegativeTimeout() throws Exception {
+        commonTestPart(-1, SUSPEND);
+    }
+
+    @Test
+    public void testGracefulSuspendWithTimeout() throws Exception {
+        commonTestPart(30, SUSPEND);
+    }
+
+    public void commonTestPart(final int timeout, final String operation) throws Exception {
         final String address = "http://" + TestSuiteEnvironment.getServerAddress() + ":8080/web-suspend";
         final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
@@ -137,9 +157,10 @@ public class SuspendOnShutdownTestCase {
             shutdownResult = executorService.submit(new Callable<ModelNode>() {
                 @Override
                 public ModelNode call() throws Exception {
+                    int timeoutValue = (timeout <= 0) ? timeout : TimeoutUtil.adjust(timeout);
                     ModelNode op = new ModelNode();
-                    op.get(OP).set(SHUTDOWN);
-                    op.get(SUSPEND_TIMEOUT).set(TimeoutUtil.adjust(30));
+                    op.get(OP).set(operation);
+                    op.get(SUSPEND_TIMEOUT).set(timeoutValue);
                     return serverController.getClient().executeForResult(op);
                 }
             });

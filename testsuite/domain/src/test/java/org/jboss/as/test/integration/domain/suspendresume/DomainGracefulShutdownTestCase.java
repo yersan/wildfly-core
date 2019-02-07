@@ -31,6 +31,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_ATTRIBUTE_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SHUTDOWN;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUSPEND;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUSPEND_STATE;
@@ -45,6 +46,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.client.helpers.domain.DeploymentPlan;
@@ -128,7 +130,16 @@ public class DomainGracefulShutdownTestCase {
     }
 
     @Test
-    public void testGracefulShutdownDomainLevel() throws Exception {
+    public void testGracefulShutdownDomainLevelNegativeTimeout() throws Exception {
+        commonGracefulShutdownDomainLevelTestPart(-1);
+    }
+
+    @Test
+    public void testGracefulShutdownDomainLevelTimeout() throws Exception {
+        commonGracefulShutdownDomainLevelTestPart(60);
+    }
+
+    private void commonGracefulShutdownDomainLevelTestPart(int timeout) throws Exception {
         DomainClient client = domainMasterLifecycleUtil.getDomainClient();
 
         final String address = "http://" + TestSuiteEnvironment.getServerAddress() + ":8080/web-suspend";
@@ -143,9 +154,10 @@ public class DomainGracefulShutdownTestCase {
 
             Thread.sleep(1000); //nasty, but we need to make sure the HTTP request has started
 
+            int timeoutValue = (timeout <= 0) ? timeout : TimeoutUtil.adjust(timeout);
             ModelNode op = new ModelNode();
             op.get(ModelDescriptionConstants.OP).set("stop-servers");
-            op.get(ModelDescriptionConstants.TIMEOUT).set(60);
+            op.get(ModelDescriptionConstants.TIMEOUT).set(timeoutValue);
             op.get(ModelDescriptionConstants.BLOCKING).set(false);
             client.execute(op);
 
@@ -165,10 +177,15 @@ public class DomainGracefulShutdownTestCase {
 
             //make sure our initial request completed
             Assert.assertEquals(SuspendResumeHandler.TEXT, result.get());
-
-
         } finally {
             executorService.shutdown();
+
+            domainMasterLifecycleUtil.stop();
+            domainMasterLifecycleUtil.start();
+
+            if (!domainMasterLifecycleUtil.isHostControllerStarted()) {
+                domainMasterLifecycleUtil.start();
+            }
         }
     }
 
@@ -237,7 +254,16 @@ public class DomainGracefulShutdownTestCase {
     }
 
     @Test
-    public void testHostGracefulShutdown() throws Exception {
+    public void testHostGracefulShutdownNegativeTimeout() throws Exception {
+        commonTestPartHostGracefulShutdown(-1);
+    }
+
+    @Test
+    public void testHostGracefulShutdownTimeout() throws Exception {
+        commonTestPartHostGracefulShutdown(60);
+    }
+
+    private void commonTestPartHostGracefulShutdown(int timeout) throws Exception {
         DomainClient client = domainMasterLifecycleUtil.getDomainClient();
 
         final String address = "http://" + TestSuiteEnvironment.getServerAddress() + ":8080/web-suspend";
@@ -258,10 +284,11 @@ public class DomainGracefulShutdownTestCase {
             shutdownResult = executorService.submit(new Callable<ModelNode>() {
                 @Override
                 public ModelNode call() throws Exception {
+                    int timeoutValue = (timeout <= 0) ? timeout : TimeoutUtil.adjust(timeout);
                     ModelNode op = new ModelNode();
-                    op.get(OP).set("shutdown");
+                    op.get(OP).set(SHUTDOWN);
                     op.get(OP_ADDR).set(MASTER_ADDR.toModelNode());
-                    op.get(ModelDescriptionConstants.SUSPEND_TIMEOUT).set(TimeoutUtil.adjust(60));
+                    op.get(ModelDescriptionConstants.SUSPEND_TIMEOUT).set(timeoutValue);
                     op.get(ModelDescriptionConstants.RESTART).set(false);
                     return domainMasterLifecycleUtil.executeAwaitConnectionClosed(op);
                 }
@@ -290,6 +317,8 @@ public class DomainGracefulShutdownTestCase {
             Assert.assertTrue("There was a failure executing the shutdown operation", SUCCESS.equals(shutdownOpResult.get(OUTCOME).asString()));
 
         } finally {
+            executorService.shutdown();
+
             if (appLocked) {
                 HttpRequest.get(address + "?" + TestUndertowService.SKIP_GRACEFUL + "=true", TimeoutUtil.adjust(10), TimeUnit.SECONDS);
             }
@@ -309,7 +338,51 @@ public class DomainGracefulShutdownTestCase {
         }
     }
 
-    public static JavaArchive createDeployment() throws Exception {
+    @Test
+    public void testHostGracefulShutdownNoTimeout() throws Exception {
+        final String address = "http://" + TestSuiteEnvironment.getServerAddress() + ":8080/web-suspend";
+        final ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+        Future<ModelNode> shutdownResult;
+        try {
+            executorService.submit(new Callable<Object>() {
+                @Override
+                public Object call() throws Exception {
+                    return HttpRequest.get(address, TimeoutUtil.adjust(60), TimeUnit.SECONDS);
+                }
+            });
+            TimeUnit.SECONDS.sleep(TimeoutUtil.adjust(1));
+
+            shutdownResult = executorService.submit(new Callable<ModelNode>() {
+                @Override
+                public ModelNode call() throws Exception {
+                    ModelNode op = new ModelNode();
+                    op.get(OP).set(SHUTDOWN);
+                    op.get(OP_ADDR).set(MASTER_ADDR.toModelNode());
+                    op.get(ModelDescriptionConstants.SUSPEND_TIMEOUT).set(0);
+                    op.get(ModelDescriptionConstants.RESTART).set(false);
+                    return domainMasterLifecycleUtil.executeAwaitConnectionClosed(op);
+                }
+            });
+
+            //nasty, but we need to make sure the server has time to stop before we check
+            TimeUnit.SECONDS.sleep(TimeoutUtil.adjust(2));
+
+            boolean timeoutExceptionOcurred = false;
+            try {
+                shutdownResult.get(TimeoutUtil.adjust(5), TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                timeoutExceptionOcurred = true;
+            }
+            Assert.assertTrue(timeoutExceptionOcurred);
+        } finally {
+            executorService.shutdown();
+            domainMasterLifecycleUtil.stop();
+            domainMasterLifecycleUtil.start();
+        }
+    }
+
+    public static JavaArchive createDeployment() {
         JavaArchive jar = ShrinkWrap.create(JavaArchive.class, WEB_SUSPEND_JAR);
         jar.addPackage(SuspendResumeHandler.class.getPackage());
         jar.addAsServiceProvider(ServiceActivator.class, TestSuspendServiceActivator.class);
