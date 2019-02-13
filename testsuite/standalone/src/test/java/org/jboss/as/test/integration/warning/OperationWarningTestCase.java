@@ -141,13 +141,8 @@ public class OperationWarningTestCase extends AbstractMgmtTestBase {
         @Override
         public void setup(ManagementClient managementClient) throws Exception {
             super.setup(managementClient);
-            add(PathAddress.pathAddress(EXTENSION, "org.wildfly.extension.io"));
 
             add(PathAddress.pathAddress(EXTENSION, "org.jboss.as.remoting"));
-
-            add(PathAddress.pathAddress(SUBSYSTEM, "io"));
-
-            add(ADDRESS_WORKER_DEFAULT);
 
             add(PathAddress.pathAddress(SUBSYSTEM, "remoting"));
 
@@ -157,10 +152,6 @@ public class OperationWarningTestCase extends AbstractMgmtTestBase {
         public void tearDown(ManagementClient managementClient) throws Exception {
             try {
                 remove(PathAddress.pathAddress(SUBSYSTEM, "remoting"));
-
-                remove(PathAddress.pathAddress(SUBSYSTEM, "io"));
-
-                remove(PathAddress.pathAddress(EXTENSION, "org.wildfly.extension.io"));
 
                 remove(PathAddress.pathAddress(EXTENSION, "org.jboss.as.remoting"));
 

@@ -161,8 +161,6 @@ public class DomainGracefulShutdownTestCase {
 
             //make sure the server is still up, and trigger the actual shutdown
             HttpRequest.get(address + "?" + TestUndertowService.SKIP_GRACEFUL + "=true", 10, TimeUnit.SECONDS);
-            Assert.assertEquals(SuspendResumeHandler.TEXT, result.get());
-
             //make sure our initial request completed
             Assert.assertEquals(SuspendResumeHandler.TEXT, result.get());
 
@@ -290,6 +288,7 @@ public class DomainGracefulShutdownTestCase {
             Assert.assertTrue("There was a failure executing the shutdown operation", SUCCESS.equals(shutdownOpResult.get(OUTCOME).asString()));
 
         } finally {
+            executorService.shutdown();
             if (appLocked) {
                 HttpRequest.get(address + "?" + TestUndertowService.SKIP_GRACEFUL + "=true", TimeoutUtil.adjust(10), TimeUnit.SECONDS);
             }
@@ -313,7 +312,7 @@ public class DomainGracefulShutdownTestCase {
         JavaArchive jar = ShrinkWrap.create(JavaArchive.class, WEB_SUSPEND_JAR);
         jar.addPackage(SuspendResumeHandler.class.getPackage());
         jar.addAsServiceProvider(ServiceActivator.class, TestSuspendServiceActivator.class);
-        jar.addAsResource(new StringAsset("Dependencies: org.jboss.dmr, org.jboss.as.controller, io.undertow.core, org.jboss.as.server,org.wildfly.extension.request-controller, org.jboss.as.network\n"), "META-INF/MANIFEST.MF");
+        jar.addAsResource(new StringAsset("Dependencies: org.jboss.dmr, org.jboss.as.controller, io.undertow.core, org.jboss.as.server,org.wildfly.extension.request-controller, org.jboss.as.network, org.jboss.xnio, org.wildfly.extension.io\n"), "META-INF/MANIFEST.MF");
         jar.addAsManifestResource(PermissionUtils.createPermissionsXmlAsset(
                 new ReflectPermission("suppressAccessChecks"),
                 new RuntimePermission("createXnioWorker"),

@@ -186,7 +186,7 @@ public class HostSuspendResumeTestCase {
         return ShrinkWrap.create(JavaArchive.class, WEB_SUSPEND_JAR)
                 .addPackage(SuspendResumeHandler.class.getPackage())
                 .addAsServiceProvider(ServiceActivator.class, TestSuspendServiceActivator.class)
-                .addAsResource(new StringAsset("Dependencies: org.jboss.dmr, org.jboss.as.controller, io.undertow.core, org.jboss.as.server,org.wildfly.extension.request-controller, org.jboss.as.network\n"),
+                .addAsResource(new StringAsset("Dependencies: org.jboss.dmr, org.jboss.as.controller, io.undertow.core, org.jboss.as.server,org.wildfly.extension.request-controller, org.jboss.as.network, org.jboss.xnio, org.wildfly.extension.io\n"),
                         "META-INF/MANIFEST.MF")
                 .addAsManifestResource(PermissionUtils.createPermissionsXmlAsset(
                         new ReflectPermission("suppressAccessChecks"),
