@@ -11,8 +11,10 @@ import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
+import org.xnio.XnioWorker;
 
 import io.undertow.Undertow;
+import io.undertow.UndertowOptions;
 import io.undertow.server.ExchangeCompletionListener;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
@@ -32,6 +34,7 @@ public class TestUndertowService implements Service<TestUndertowService> {
     private volatile Undertow undertow;
     private final InjectedValue<RequestController> requestControllerInjectedValue = new InjectedValue<>();
     private final InjectedValue<SocketBindingManager> socketBindingManagerInjectedValue = new InjectedValue<>();
+    private final InjectedValue<XnioWorker> worker = new InjectedValue<>();
 
     @Override
     public void start(StartContext context) throws StartException {        //add graceful shutdown support
@@ -90,7 +93,12 @@ public class TestUndertowService implements Service<TestUndertowService> {
                 suspendResumeHandler.handleRequest(exchange);
             }
         };
-        undertow = Undertow.builder().addHttpListener(8080 + socketBindingManagerInjectedValue.getValue().getPortOffset(), "0.0.0.0").setHandler(shutdown).build();
+        undertow = Undertow.builder()
+                .addHttpListener(8080 + socketBindingManagerInjectedValue.getValue().getPortOffset(), "0.0.0.0")
+                .setHandler(shutdown)
+                .setWorker(worker.getValue())
+                .setServerOption(UndertowOptions.SHUTDOWN_TIMEOUT,1000)
+                .build();
         undertow.start();
     }
 
@@ -111,5 +119,9 @@ public class TestUndertowService implements Service<TestUndertowService> {
 
     public InjectedValue<SocketBindingManager> getSocketBindingManagerInjectedValue() {
         return socketBindingManagerInjectedValue;
+    }
+
+    public InjectedValue<XnioWorker> getWorker() {
+        return worker;
     }
 }

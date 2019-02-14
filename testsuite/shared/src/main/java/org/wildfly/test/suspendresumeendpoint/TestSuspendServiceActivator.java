@@ -1,10 +1,12 @@
 package org.wildfly.test.suspendresumeendpoint;
 
 import org.jboss.as.network.SocketBindingManager;
+import org.wildfly.extension.io.IOServices;
 import org.wildfly.extension.requestcontroller.RequestController;
 import org.jboss.msc.service.ServiceActivator;
 import org.jboss.msc.service.ServiceActivatorContext;
 import org.jboss.msc.service.ServiceRegistryException;
+import org.xnio.XnioWorker;
 
 /**
  * @author Stuart Douglas
@@ -19,6 +21,7 @@ public class TestSuspendServiceActivator implements ServiceActivator {
         serviceActivatorContext.getServiceTarget().addService(TestUndertowService.SERVICE_NAME, testUndertowService)
                 .addDependency(RequestController.SERVICE_NAME, RequestController.class, testUndertowService.getRequestControllerInjectedValue())
                 .addDependency(SocketBindingManager.SOCKET_BINDING_MANAGER, SocketBindingManager.class, testUndertowService.getSocketBindingManagerInjectedValue())
+                .addDependency(IOServices.WORKER.append("default"), XnioWorker.class, testUndertowService.getWorker())
                 .install();
     }
 }

@@ -70,6 +70,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.wildfly.test.suspendresumeendpoint.SuspendResumeHandler;
 import org.wildfly.test.suspendresumeendpoint.TestSuspendServiceActivator;
@@ -81,6 +82,9 @@ import org.wildfly.test.suspendresumeendpoint.TestUndertowService;
  * @author Stuart Douglas
  */
 public class DomainGracefulShutdownTestCase {
+    @Rule
+    public PrintTestNameRule name = new PrintTestNameRule();
+
     public static final String WEB_SUSPEND_JAR = "web-suspend.jar";
     public static final String MAIN_SERVER_GROUP = "main-server-group";
 
@@ -132,7 +136,9 @@ public class DomainGracefulShutdownTestCase {
         DomainClient client = domainMasterLifecycleUtil.getDomainClient();
 
         final String address = "http://" + TestSuiteEnvironment.getServerAddress() + ":8080/web-suspend";
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+        Future<ModelNode> shutdownResult = null;
         try {
             Future<Object> result = executorService.submit(new Callable<Object>() {
                 @Override
@@ -143,11 +149,18 @@ public class DomainGracefulShutdownTestCase {
 
             Thread.sleep(1000); //nasty, but we need to make sure the HTTP request has started
 
-            ModelNode op = new ModelNode();
-            op.get(ModelDescriptionConstants.OP).set("stop-servers");
-            op.get(ModelDescriptionConstants.TIMEOUT).set(60);
-            op.get(ModelDescriptionConstants.BLOCKING).set(false);
-            client.execute(op);
+            shutdownResult = executorService.submit(new Callable<ModelNode>() {
+                @Override
+                public ModelNode call() throws Exception {
+                    ModelNode op = new ModelNode();
+                    op.get(ModelDescriptionConstants.OP).set("stop-servers");
+                    op.get(ModelDescriptionConstants.TIMEOUT).set(60);
+                    op.get(ModelDescriptionConstants.BLOCKING).set(true);
+                    return domainMasterLifecycleUtil.executeForResult(op);
+                }
+            });
+
+            DomainTestUtils.waitUntilSuspendState(client, MASTER_ADDR.append(SERVER_MAIN_ONE), SUSPENDING);
 
             //make sure requests are being rejected
             final HttpURLConnection conn = (HttpURLConnection) new URL(address).openConnection();
@@ -161,8 +174,6 @@ public class DomainGracefulShutdownTestCase {
 
             //make sure the server is still up, and trigger the actual shutdown
             HttpRequest.get(address + "?" + TestUndertowService.SKIP_GRACEFUL + "=true", 10, TimeUnit.SECONDS);
-            Assert.assertEquals(SuspendResumeHandler.TEXT, result.get());
-
             //make sure our initial request completed
             Assert.assertEquals(SuspendResumeHandler.TEXT, result.get());
 
@@ -180,7 +191,7 @@ public class DomainGracefulShutdownTestCase {
         op.get(ModelDescriptionConstants.OP).set("reload-servers");
         op.get(ModelDescriptionConstants.BLOCKING).set(true);
         op.get(ModelDescriptionConstants.START_MODE).set(SUSPEND);
-        client.execute(op);
+        domainMasterLifecycleUtil.executeForResult(op);
 
         op = new ModelNode();
         op.get(ADDRESS).set(PathAddress.parseCLIStyleAddress("/host=master/server=main-one").toModelNode());
@@ -200,7 +211,7 @@ public class DomainGracefulShutdownTestCase {
 
         op = new ModelNode();
         op.get(OP).set("resume-servers");
-        client.execute(op);
+        domainMasterLifecycleUtil.executeForResult(op);
         HttpRequest.get(address + "?" + TestUndertowService.SKIP_GRACEFUL + "=true", 10, TimeUnit.SECONDS);
         Assert.assertEquals(SuspendResumeHandler.TEXT, HttpRequest.get(address, 60, TimeUnit.SECONDS));
 
@@ -208,13 +219,13 @@ public class DomainGracefulShutdownTestCase {
         op.get(ModelDescriptionConstants.OP).set("stop-servers");
         op.get(ModelDescriptionConstants.TIMEOUT).set(60);
         op.get(ModelDescriptionConstants.BLOCKING).set(true);
-        client.execute(op);
+        domainMasterLifecycleUtil.executeForResult(op);
 
 
         op.get(ModelDescriptionConstants.OP).set("start-servers");
         op.get(ModelDescriptionConstants.BLOCKING).set(true);
         op.get(ModelDescriptionConstants.START_MODE).set(SUSPEND);
-        client.execute(op);
+        domainMasterLifecycleUtil.executeForResult(op);
         conn = (HttpURLConnection) new URL(address).openConnection();
         try {
             conn.setDoInput(true);
@@ -231,7 +242,7 @@ public class DomainGracefulShutdownTestCase {
 
         op = new ModelNode();
         op.get(OP).set("resume-servers");
-        client.execute(op);
+        domainMasterLifecycleUtil.executeForResult(op);
         HttpRequest.get(address + "?" + TestUndertowService.SKIP_GRACEFUL + "=true", 10, TimeUnit.SECONDS);
         Assert.assertEquals(SuspendResumeHandler.TEXT, HttpRequest.get(address, 60, TimeUnit.SECONDS));
     }
@@ -290,6 +301,7 @@ public class DomainGracefulShutdownTestCase {
             Assert.assertTrue("There was a failure executing the shutdown operation", SUCCESS.equals(shutdownOpResult.get(OUTCOME).asString()));
 
         } finally {
+            executorService.shutdown();
             if (appLocked) {
                 HttpRequest.get(address + "?" + TestUndertowService.SKIP_GRACEFUL + "=true", TimeoutUtil.adjust(10), TimeUnit.SECONDS);
             }
@@ -313,7 +325,7 @@ public class DomainGracefulShutdownTestCase {
         JavaArchive jar = ShrinkWrap.create(JavaArchive.class, WEB_SUSPEND_JAR);
         jar.addPackage(SuspendResumeHandler.class.getPackage());
         jar.addAsServiceProvider(ServiceActivator.class, TestSuspendServiceActivator.class);
-        jar.addAsResource(new StringAsset("Dependencies: org.jboss.dmr, org.jboss.as.controller, io.undertow.core, org.jboss.as.server,org.wildfly.extension.request-controller, org.jboss.as.network\n"), "META-INF/MANIFEST.MF");
+        jar.addAsResource(new StringAsset("Dependencies: org.jboss.dmr, org.jboss.as.controller, io.undertow.core, org.jboss.as.server,org.wildfly.extension.request-controller, org.jboss.as.network, org.jboss.xnio, org.wildfly.extension.io\n"), "META-INF/MANIFEST.MF");
         jar.addAsManifestResource(PermissionUtils.createPermissionsXmlAsset(
                 new ReflectPermission("suppressAccessChecks"),
                 new RuntimePermission("createXnioWorker"),

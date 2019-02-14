@@ -173,6 +173,7 @@
                                             </excluded-packages>
                                         </feature-pack>
                                     </feature-packs>
+                                    <custom-config>${basedir}/src/test/resources/fp-config.xml</custom-config>
                                 </configuration>
                             </execution>
                         </executions>
