@@ -70,6 +70,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.wildfly.test.suspendresumeendpoint.SuspendResumeHandler;
@@ -136,9 +137,7 @@ public class DomainGracefulShutdownTestCase {
         DomainClient client = domainMasterLifecycleUtil.getDomainClient();
 
         final String address = "http://" + TestSuiteEnvironment.getServerAddress() + ":8080/web-suspend";
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
-
-        Future<ModelNode> shutdownResult = null;
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
             Future<Object> result = executorService.submit(new Callable<Object>() {
                 @Override
@@ -149,16 +148,11 @@ public class DomainGracefulShutdownTestCase {
 
             Thread.sleep(1000); //nasty, but we need to make sure the HTTP request has started
 
-            shutdownResult = executorService.submit(new Callable<ModelNode>() {
-                @Override
-                public ModelNode call() throws Exception {
-                    ModelNode op = new ModelNode();
-                    op.get(ModelDescriptionConstants.OP).set("stop-servers");
-                    op.get(ModelDescriptionConstants.TIMEOUT).set(60);
-                    op.get(ModelDescriptionConstants.BLOCKING).set(true);
-                    return domainMasterLifecycleUtil.executeForResult(op);
-                }
-            });
+            ModelNode op = new ModelNode();
+            op.get(ModelDescriptionConstants.OP).set("stop-servers");
+            op.get(ModelDescriptionConstants.TIMEOUT).set(60);
+            op.get(ModelDescriptionConstants.BLOCKING).set(false);
+            domainMasterLifecycleUtil.executeForResult(op);
 
             DomainTestUtils.waitUntilSuspendState(client, MASTER_ADDR.append(SERVER_MAIN_ONE), SUSPENDING);
 
@@ -177,6 +171,12 @@ public class DomainGracefulShutdownTestCase {
             //make sure our initial request completed
             Assert.assertEquals(SuspendResumeHandler.TEXT, result.get());
 
+            Thread.sleep(2000);
+
+            op = new ModelNode();
+            op.get(ADDRESS).set(PathAddress.parseCLIStyleAddress("/server-group=main-server-group").toModelNode());
+            op.get(ModelDescriptionConstants.OP).set("start-servers");
+            domainMasterLifecycleUtil.executeForResult(op);
 
         } finally {
             executorService.shutdown();
@@ -184,6 +184,7 @@ public class DomainGracefulShutdownTestCase {
     }
 
     @Test
+    @Ignore
     public void testStartSuspendedDomainMode() throws Exception {
         DomainClient client = domainMasterLifecycleUtil.getDomainClient();
 
