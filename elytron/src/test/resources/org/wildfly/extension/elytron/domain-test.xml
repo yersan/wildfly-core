@@ -89,4 +89,12 @@
             <permission class-name="org.wildfly.security.auth.permission.LoginPermission"/>
         </permission-set>
     </permission-sets>
+    <http>
+        <http-authentication-factory name="management-http-authentication-MyDomain" security-domain="MyDomain" http-server-mechanism-factory="global" />
+        <http-authentication-factory name="management-http-authentication-X500Domain" security-domain="X500Domain" http-server-mechanism-factory="global" />
+        <http-authentication-factory name="management-http-authentication-X500DomainTwo" security-domain="X500DomainTwo" http-server-mechanism-factory="global" />
+        <http-authentication-factory name="management-http-authentication-X500DomainThree" security-domain="X500DomainThree" http-server-mechanism-factory="global" />
+        <http-authentication-factory name="management-http-authentication-AnotherDomain" security-domain="AnotherDomain" http-server-mechanism-factory="global" />
+        <provider-http-server-mechanism-factory name="global"/>
+    </http>
 </subsystem>

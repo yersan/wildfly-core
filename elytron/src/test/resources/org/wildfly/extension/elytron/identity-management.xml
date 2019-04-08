@@ -15,4 +15,8 @@
     <mappers>
         <custom-permission-mapper name="LoginPermissionMapper" class-name="org.wildfly.extension.elytron.IdentityOperationsTestCase$LoginPermissionMapper" module="a.b.c" />
     </mappers>
+    <http>
+        <http-authentication-factory name="management-http-authentication-FileSystemDomain" security-domain="FileSystemDomain" http-server-mechanism-factory="global" />
+        <provider-http-server-mechanism-factory name="global"/>
+    </http>
 </subsystem>

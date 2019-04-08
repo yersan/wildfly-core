@@ -34,4 +34,8 @@
         <regex-validating-principal-transformer name="genericEmail" pattern="(.*)@(.*)"/>
 
     </mappers>
+    <http>
+        <http-authentication-factory name="management-http-authentication-TestingDomain" security-domain="TestingDomain" http-server-mechanism-factory="global" />
+        <provider-http-server-mechanism-factory name="global"/>
+    </http>
 </subsystem>

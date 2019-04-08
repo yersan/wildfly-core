@@ -50,4 +50,11 @@
             <permission class-name="org.wildfly.security.auth.permission.LoginPermission"/>
         </permission-set>
     </permission-sets>
+    <http>
+        <http-authentication-factory name="management-http-authentication-TestDomain1" security-domain="TestDomain1" http-server-mechanism-factory="global" />
+        <http-authentication-factory name="management-http-authentication-TestDomain2" security-domain="TestDomain2" http-server-mechanism-factory="global" />
+        <http-authentication-factory name="management-http-authentication-TestDomain3" security-domain="TestDomain3" http-server-mechanism-factory="global" />
+        <http-authentication-factory name="management-http-authentication-TestDomain4" security-domain="TestDomain4" http-server-mechanism-factory="global" />
+        <provider-http-server-mechanism-factory name="global"/>
+    </http>
 </subsystem>
