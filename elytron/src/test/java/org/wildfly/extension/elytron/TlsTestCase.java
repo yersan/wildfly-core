@@ -312,6 +312,9 @@ public class TlsTestCase extends AbstractSubsystemTest {
         if (!services.isSuccessfulBoot()) {
             Assert.fail(services.getBootError().toString());
         }
+
+        TestEnvironment.activateService(services, Capabilities.SSL_CONTEXT_RUNTIME_CAPABILITY, "ServerSslContextNoAuth");
+        TestEnvironment.activateService(services, Capabilities.SSL_CONTEXT_RUNTIME_CAPABILITY, "ServerSslContextAuth");
     }
 
 

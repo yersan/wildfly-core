@@ -70,6 +70,8 @@ public class SaslTestCase extends AbstractSubsystemTest {
         if (!services.isSuccessfulBoot()) {
             Assert.fail(services.getBootError().toString());
         }
+
+        TestEnvironment.activateService(services, Capabilities.SASL_AUTHENTICATION_FACTORY_RUNTIME_CAPABILITY, "MySaslAuth");
     }
 
     @Test
