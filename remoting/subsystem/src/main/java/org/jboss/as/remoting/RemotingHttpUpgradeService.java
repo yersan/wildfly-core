@@ -38,7 +38,6 @@ import org.jboss.as.network.SocketBinding;
 import org.jboss.as.remoting.logging.RemotingLogger;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.msc.service.StartContext;
@@ -115,7 +114,6 @@ public class RemotingHttpUpgradeService implements Service<RemotingHttpUpgradeSe
         final RemotingHttpUpgradeService service = new RemotingHttpUpgradeService(httpConnectorName, endpointName.getSimpleName(), connectorPropertiesOptionMap);
 
         ServiceBuilder<RemotingHttpUpgradeService> serviceBuilder = serviceTarget.addService(UPGRADE_SERVICE_NAME.append(remotingConnectorName), service)
-                .setInitialMode(ServiceController.Mode.PASSIVE)
                 .addDependency(HTTP_UPGRADE_REGISTRY.append(httpConnectorName), ChannelUpgradeHandler.class, service.injectedRegistry)
                 .addDependency(RemotingServices.HTTP_LISTENER_REGISTRY, ListenerRegistry.class, service.listenerRegistry)
                 .addDependency(endpointName, Endpoint.class, service.injectedEndpoint);
