@@ -2656,4 +2656,8 @@ final class OperationContextImpl extends AbstractOperationContext {
         }
     }
 
+    @Override
+    public Boolean isExternalCaller() {
+        return accessAuditContext.getAccessMechanism() != null;
+    }
 }

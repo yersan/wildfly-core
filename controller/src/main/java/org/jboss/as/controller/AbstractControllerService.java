@@ -420,6 +420,7 @@ public abstract class AbstractControllerService implements Service<ModelControll
         }
         boot(bootOps, false);
         finishBoot();
+        finishServersBoot();
     }
 
     /**
@@ -536,6 +537,10 @@ public abstract class AbstractControllerService implements Service<ModelControll
         controller.finishBoot();
         configurationPersister.successfulBoot();
         capabilityRegistry.publish();
+    }
+
+    protected void finishServersBoot() {
+        controller.finishServersBoot();
     }
 
     protected void bootThreadDone() {

@@ -1300,4 +1300,8 @@ public interface OperationContext extends ExpressionResolver {
             return name;
         }
     }
+
+    default Boolean isExternalCaller(){
+        return null;
+    }
 }

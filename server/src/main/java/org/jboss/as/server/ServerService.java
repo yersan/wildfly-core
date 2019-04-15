@@ -424,6 +424,7 @@ public final class ServerService extends AbstractControllerService {
 
     protected void finishBoot(boolean suspend) throws ConfigurationPersistenceException {
         super.finishBoot();
+        super.finishServersBoot();
         if (!suspend) {
             suspendController.resume();
         }

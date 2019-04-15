@@ -89,6 +89,7 @@ import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.as.controller.registry.PlaceholderResource;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.registry.Resource.ResourceEntry;
+import org.jboss.as.controller.transform.Transformers;
 import org.jboss.as.core.security.AccessMechanism;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceRegistry;
@@ -122,6 +123,7 @@ class ModelControllerImpl implements ModelController {
     private final ProcessType processType;
     private final RunningModeControl runningModeControl;
     private final AtomicBoolean bootingFlag = new AtomicBoolean(true);
+    private final AtomicBoolean bootingServersFlag = new AtomicBoolean(true);
     private final OperationStepHandler prepareStep;
     private final ControlledProcessState processState;
     private final ExecutorService executorService;
@@ -147,6 +149,8 @@ class ModelControllerImpl implements ModelController {
     private volatile ModelControllerClientFactory clientFactory;
 
     private PathAddress modelControllerResourceAddress;
+
+    private static final OperationContext.AttachmentKey<Boolean> KEY = OperationContext.AttachmentKey.create(Boolean.class);
 
     ModelControllerImpl(final ServiceRegistry serviceRegistry, final ServiceTarget serviceTarget,
                         final ManagementResourceRegistration rootRegistration,
@@ -403,6 +407,7 @@ class ModelControllerImpl implements ModelController {
                     headers, handler, attachments, managementModel.get(), originalResultTxControl, processState, auditLogger,
                     bootingFlag.get(), hostServerGroupTracker, accessContext, notificationSupport,
                     false, extraValidationStepHandler, partialModel, securityIdentitySupplier);
+            context.attach(KEY, accessMechanism != null && bootingServersFlag.get());
             // Try again if the operation-id is already taken
             if(activeOperations.putIfAbsent(operationID, context) == null) {
                 //noinspection deprecation
@@ -676,6 +681,10 @@ class ModelControllerImpl implements ModelController {
         bootingFlag.set(false);
     }
 
+    void finishServersBoot() {
+        bootingServersFlag.set(false);
+    }
+
     ManagementModel getManagementModel() {
         return managementModel.get();
     }
@@ -923,7 +932,8 @@ class ModelControllerImpl implements ModelController {
             }
             final PathAddress address = context.getCurrentAddress();
             final String operationName =  operation.require(OP).asString();
-            final OperationEntry stepOperation = resolveOperationHandler(address, operationName);
+            Boolean attachment = context.getAttachment(KEY);
+            final OperationEntry stepOperation = resolveOperationHandler(address, operationName, attachment);
             if (stepOperation != null) {
                 if (!context.isBooting()
                         && stepOperation.getType() == OperationEntry.EntryType.PRIVATE
@@ -947,7 +957,7 @@ class ModelControllerImpl implements ModelController {
         }
     }
 
-    private OperationEntry resolveOperationHandler(final PathAddress address, final String operationName) {
+    private OperationEntry resolveOperationHandler(final PathAddress address, final String operationName, final Boolean attachment) throws OperationFailedException {
         ManagementResourceRegistration rootRegistration = managementModel.get().getRootResourceRegistration();
         OperationEntry result = rootRegistration.getOperationEntry(address, operationName);
         if (result == null && address.size() > 0) {
@@ -978,6 +988,9 @@ class ModelControllerImpl implements ModelController {
                     }
                 }
             }
+        }
+        if (attachment && !result.getFlags().contains(OperationEntry.Flag.READ_ONLY)) {
+            throw new OperationFailedException("Error not allowed");
         }
         return result;
     }
