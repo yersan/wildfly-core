@@ -25,7 +25,11 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SER
 import static org.jboss.as.host.controller.logging.HostControllerLogger.ROOT_LOGGER;
 
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import org.jboss.as.controller.CurrentOperationIdHolder;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
@@ -87,28 +91,41 @@ public class StartServersHandler implements OperationStepHandler {
             throw new OperationFailedException(HostControllerLogger.ROOT_LOGGER.cannotStartServersInvalidMode(context.getRunningMode()));
         }
 
+        context.acquireControllerLock();
+        final Integer currentOperationID = CurrentOperationIdHolder.getCurrentOperationID();
         final ModelNode domainModel = Resource.Tools.readModel(context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS, true));
         context.addStep(new OperationStepHandler() {
             @Override
             public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
                 // start servers
+                ExecutorService executor = null;
+
+                executor = Executors.newFixedThreadPool(50);
+
                 final Resource resource =  context.readResource(PathAddress.EMPTY_ADDRESS);
                 final ModelNode hostModel = Resource.Tools.readModel(resource);
                 if(hostModel.hasDefined(SERVER_CONFIG)) {
                     final ModelNode servers = hostModel.get(SERVER_CONFIG).clone();
                     if (hostControllerEnvironment.isRestart() || runningModeControl.getRestartMode() == RestartMode.HC_ONLY){
-                        restartedHcStartOrReconnectServers(servers, domainModel, context);
+                        restartedHcStartOrReconnectServers(servers, domainModel, context, executor, currentOperationID);
                         runningModeControl.setRestartMode(RestartMode.SERVERS);
                     } else {
-                        cleanStartServers(servers, domainModel, context);
+                        cleanStartServers(servers, domainModel, context, executor, currentOperationID);
                     }
+                }
+
+                try {
+                    executor.shutdown();
+                    executor.awaitTermination(20, TimeUnit.MINUTES);
+                } catch (InterruptedException e) {
+                    Thread.interrupted();
                 }
                 context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
             }
         }, OperationContext.Stage.RUNTIME);
     }
 
-    private void cleanStartServers(final ModelNode servers, final ModelNode domainModel, OperationContext context) throws OperationFailedException {
+    private void cleanStartServers(final ModelNode servers, final ModelNode domainModel, OperationContext context, ExecutorService executor, Integer currentOperationID) throws OperationFailedException {
         Map<String, ProcessInfo> processInfos = serverInventory.determineRunningProcesses();
         for(final Property serverProp : servers.asPropertyList()) {
             String serverName = serverProp.getName();
@@ -117,27 +134,33 @@ public class StartServersHandler implements OperationStepHandler {
                 if ( info != null ){
                     serverInventory.reconnectServer(serverName, domainModel, info.getAuthKey(), info.isRunning(), info.isStopping());
                 } else {
-                    try {
-                        serverInventory.startServer(serverName, domainModel, START_BLOCKING, false);
-                    } catch (Exception e) {
-                        ROOT_LOGGER.failedToStartServer(e, serverName);
-                    }
+                    executor.execute(() -> {
+                        try {
+                                CurrentOperationIdHolder.setCurrentOperationID(currentOperationID);
+                            serverInventory.startServer(serverName, domainModel, START_BLOCKING, false);
+                        } catch (Exception e) {
+                            ROOT_LOGGER.failedToStartServer(e, serverName);
+                        }
+                    });
                 }
             }
         }
     }
 
-    private void restartedHcStartOrReconnectServers(final ModelNode servers, final ModelNode domainModel, final OperationContext context){
+    private void restartedHcStartOrReconnectServers(final ModelNode servers, final ModelNode domainModel, final OperationContext context, ExecutorService executor, Integer currentOperationID){
         Map<String, ProcessInfo> processInfos = serverInventory.determineRunningProcesses();
         for(final String serverName : servers.keys()) {
             ProcessInfo info = processInfos.get(serverInventory.getServerProcessName(serverName));
             boolean auto = servers.get(serverName, AUTO_START).asBoolean(true);
             if (info == null && auto) {
-                try {
-                    serverInventory.startServer(serverName, domainModel, START_BLOCKING, false);
-                } catch (Exception e) {
-                    ROOT_LOGGER.failedToStartServer(e, serverName);
-                }
+                executor.execute(() -> {
+                    try {
+                        CurrentOperationIdHolder.setCurrentOperationID(currentOperationID);
+                        serverInventory.startServer(serverName, domainModel, START_BLOCKING, false);
+                    } catch (Exception e) {
+                        ROOT_LOGGER.failedToStartServer(e, serverName);
+                    }
+                });
             } else if (info != null){
                 // Reconnect the server using the current authKey
                 serverInventory.reconnectServer(serverName, domainModel, info.getAuthKey(), info.isRunning(), info.isStopping());

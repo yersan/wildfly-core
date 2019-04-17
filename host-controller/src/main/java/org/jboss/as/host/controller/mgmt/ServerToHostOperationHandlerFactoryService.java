@@ -92,7 +92,7 @@ public class ServerToHostOperationHandlerFactoryService implements ManagementCha
     /** {@inheritDoc} */
     @Override
     public synchronized void start(StartContext context) throws StartException {
-        this.registrations = Executors.newSingleThreadExecutor(threadFactory);
+        this.registrations = Executors.newFixedThreadPool(50);
     }
 
     /** {@inheritDoc} */
