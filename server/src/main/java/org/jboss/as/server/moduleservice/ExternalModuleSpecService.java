@@ -21,6 +21,16 @@
  */
 package org.jboss.as.server.moduleservice;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.jar.JarFile;
+
 import org.jboss.as.server.deployment.module.ModuleDependency;
 import org.jboss.modules.DependencySpec;
 import org.jboss.modules.ModuleIdentifier;
@@ -32,11 +42,6 @@ import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.vfs.VFSUtils;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.jar.JarFile;
 
 /**
  * Service that manages the module spec for external modules (i.e. modules that reside outside of the application server).
@@ -52,22 +57,39 @@ public class ExternalModuleSpecService implements Service<ModuleDefinition> {
 
     private volatile ModuleDefinition moduleDefinition;
 
-    private volatile JarFile jarFile;
+    private List<JarFile> jarFiles;
 
     public ExternalModuleSpecService(ModuleIdentifier moduleIdentifier, File file) {
         this.moduleIdentifier = moduleIdentifier;
         this.file = file;
+        this.jarFiles = new ArrayList<>();
     }
 
     @Override
     public synchronized void start(StartContext context) throws StartException {
+        final ModuleSpec.Builder specBuilder;
         try {
-            this.jarFile = new JarFile(file);
+            if (! file.isDirectory()) {
+                this.jarFiles.add(new JarFile(file));
+                specBuilder = ModuleSpec.build(moduleIdentifier.toString());
+                addResourceRoot(specBuilder, jarFiles.get(0));
+            } else {
+                specBuilder = ModuleSpec.build(moduleIdentifier.toString());
+                addFolderResourceRoot(specBuilder, file.toPath());
+                final File[] jars = file.listFiles(file -> file.getName().endsWith(".jar") && !file.isDirectory());
+                if (jars != null) {
+                    Arrays.sort(jars, Comparator.comparing(File::getName).thenComparing(File::length));
+                    for (File jar : jars) {
+                        JarFile jarFile = new JarFile(jar);
+                        this.jarFiles.add(jarFile);
+                        addResourceRoot(specBuilder, jarFile);
+                    }
+                }
+            }
         } catch (IOException e) {
             throw new StartException(e);
         }
-        final ModuleSpec.Builder specBuilder = ModuleSpec.build(moduleIdentifier);
-        addResourceRoot(specBuilder, jarFile);
+
         //TODO: We need some way of configuring module dependencies for external archives
         ModuleIdentifier javaee = ModuleIdentifier.create("javaee.api");
         specBuilder.addDependency(DependencySpec.createModuleDependencySpec(javaee));
@@ -83,8 +105,11 @@ public class ExternalModuleSpecService implements Service<ModuleDefinition> {
 
     @Override
     public synchronized void stop(StopContext context) {
-        VFSUtils.safeClose(jarFile);
-        jarFile = null;
+        for (JarFile jarFile : jarFiles) {
+            VFSUtils.safeClose(jarFile);
+        }
+        jarFiles.clear();
+        jarFiles = null;
         moduleDefinition = null;
     }
 
@@ -98,4 +123,7 @@ public class ExternalModuleSpecService implements Service<ModuleDefinition> {
                     file.getName(), file)));
     }
 
+    private static void addFolderResourceRoot(final ModuleSpec.Builder specBuilder, Path path) {
+        specBuilder.addResourceRoot(ResourceLoaderSpec.createResourceLoaderSpec(ResourceLoaders.createPathResourceLoader(path)));
+    }
 }
