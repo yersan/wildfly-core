@@ -60,21 +60,17 @@ public class DeploymentFullReplaceHandler implements OperationStepHandler {
 
     private final ContentRepository contentRepository;
     private final HostFileRepository fileRepository;
+    private final boolean isMaster;
+    private final boolean isBackupDomain;
 
     /**
      * Constructor for a master Host Controller
      */
-    public DeploymentFullReplaceHandler(final ContentRepository contentRepository) {
+    public DeploymentFullReplaceHandler(final ContentRepository contentRepository, final HostFileRepository fileRepository, boolean isMaster, boolean isBackupDomain) {
         this.contentRepository = contentRepository;
-        this.fileRepository = null;
-    }
-
-    /**
-     * Constructor for a slave Host Controller
-     */
-    public DeploymentFullReplaceHandler(final HostFileRepository fileRepository) {
-        this.contentRepository = null;
         this.fileRepository = fileRepository;
+        this.isMaster = isMaster;
+        this.isBackupDomain = isBackupDomain;
     }
 
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
@@ -115,7 +111,7 @@ public class DeploymentFullReplaceHandler implements OperationStepHandler {
         ModelNode contentItemNode = content.require(0);
         if (contentItemNode.hasDefined(HASH)) {
             newHash = contentItemNode.require(HASH).asBytes();
-            if (contentRepository != null) {
+            if (isMaster) {
                 // We are the master DC. Validate that we actually have this content.
                 if (!contentRepository.hasContent(newHash)) {
                     throw createFailureException(DomainControllerLogger.ROOT_LOGGER.noDeploymentContentWithHash(HashUtil.bytesToHexString(newHash)));
@@ -126,7 +122,7 @@ public class DeploymentFullReplaceHandler implements OperationStepHandler {
                 fileRepository.getDeploymentFiles(ModelContentReference.fromModelAddress(address, newHash));
             }
         } else if (DeploymentHandlerUtils.hasValidContentAdditionParameterDefined(contentItemNode)) {
-            if (contentRepository == null) {
+            if (!isMaster) {
                 // This is a slave DC. We can't handle this operation; it should have been fixed up on the master DC
                 throw createFailureException(DomainControllerLogger.ROOT_LOGGER.slaveCannotAcceptUploads());
             }
@@ -175,19 +171,19 @@ public class DeploymentFullReplaceHandler implements OperationStepHandler {
                     if (replacedHash != null  && (newHash == null || !Arrays.equals(replacedHash, newHash))) {
                         // The old content is no longer used; clean from repos
                         ContentReference reference = ModelContentReference.fromModelAddress(address, replacedHash);
-                        if (contentRepository != null) {
+                        if (isMaster || isBackupDomain) {
                             contentRepository.removeContent(reference);
                         } else {
                             fileRepository.deleteDeployment(reference);
                         }
                     }
-                    if (newHash != null && contentRepository != null) {
+                    if (newHash != null) {
                         contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, newHash));
                     }
                 } else if (newHash != null && (replacedHash == null || !Arrays.equals(replacedHash, newHash))) {
                     // Due to rollback, the new content isn't used; clean from repos
                     ContentReference reference = ModelContentReference.fromModelAddress(address, newHash);
-                    if (contentRepository != null) {
+                    if (isMaster || isBackupDomain) {
                         contentRepository.removeContent(reference);
                     } else {
                         fileRepository.deleteDeployment(reference);
