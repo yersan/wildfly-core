@@ -630,7 +630,7 @@ class JdbcRealmDefinition extends SimpleResourceDefinition {
             }
 
             commonDependencies(serviceBuilder)
-                    .setInitialMode(ServiceController.Mode.ACTIVE)
+                    .setInitialMode(ServiceController.Mode.LAZY)
                     .install();
         }
 
