@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.jar.JarFile;
@@ -145,7 +146,8 @@ public class ExternalModuleSpecService implements Service<ModuleDefinition> {
                 }
 
                 if (! processedPaths.isEmpty()) {
-                    final TreeSet<Path> jars = new TreeSet<>(processedPaths);
+                    final TreeSet<Path> jars = new TreeSet<>(Comparator.comparing(Path::getNameCount).thenComparing(Path::compareTo));
+                    jars.addAll(processedPaths);
                     for (Path jar : jars) {
                         currentName = jar.toString();
                         JarFile jarFile = new JarFile(jar.toFile());
