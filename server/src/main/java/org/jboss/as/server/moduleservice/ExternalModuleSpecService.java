@@ -23,12 +23,14 @@ package org.jboss.as.server.moduleservice;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.jar.JarFile;
@@ -232,6 +234,7 @@ public class ExternalModuleSpecService implements Service<ModuleDefinition> {
      *
      */
     static class PathComparator implements Comparator<Path> {
+        private String separator = FileSystems.getDefault().getSeparator();
 
         @Override
         public int compare(Path path1, Path path2) {
@@ -252,19 +255,30 @@ public class ExternalModuleSpecService implements Service<ModuleDefinition> {
             if (path1Count < path2Count) {
                 if ( path1Count == 0 ) return -1;
                 Path sameLevel = parentPath2.getRoot().resolve(parentPath2.subpath(0, path1Count));
-                int comparison = parentPath1.compareTo(sameLevel);
+                int comparison = ignoreSeparator(parentPath1).compareTo(ignoreSeparator(sameLevel));
                 return comparison == 0 ? -1 : comparison;
             }
 
             if (path2Count < path1Count) {
                 if ( path2Count == 0 ) return -1;
                 Path sameLevel = parentPath1.getRoot().resolve(parentPath1.subpath(0, path2Count));
-                int comparison = sameLevel.compareTo(parentPath2);
+                int comparison = ignoreSeparator(sameLevel).compareTo(ignoreSeparator(parentPath2));
                 return comparison == 0 ? 1 : comparison;
             }
 
-            return path1.compareTo(path2);
+
+            return ignoreSeparator(path1).compareTo(ignoreSeparator(path2));
         }
+
+        private String ignoreSeparator(Path path){
+            StringBuilder sb = new StringBuilder();
+            Iterator<Path> iterator = path.iterator();
+            while(iterator.hasNext()) {
+                sb.append(iterator.next());
+            }
+            return sb.toString();
+        }
+
     }
 
 }

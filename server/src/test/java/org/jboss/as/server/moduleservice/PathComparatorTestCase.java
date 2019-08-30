@@ -18,7 +18,6 @@ package org.jboss.as.server.moduleservice;
 
 import static org.junit.Assert.assertArrayEquals;
 
-import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -36,39 +35,39 @@ public class PathComparatorTestCase {
 
     @Test
     public void pathComparatorOrderTest() {
-        String separator = FileSystems.getDefault().getSeparator();
+        Path root = Paths.get("").toAbsolutePath().getRoot();
         List<Path> pathsUnderTests = Arrays.asList(
-                Paths.get(separator, "C","E","A.txt"),
-                Paths.get(separator, "C","B","F","A.txt"),
-                Paths.get(separator, "A","A","A.txt"),
-                Paths.get(separator, "A","A","C.txt"),
-                Paths.get(separator, "A","B","B.txt"),
-                Paths.get(separator, "AB","C","A.txt"),
-                Paths.get(separator, "Z","A.txt"),
-                Paths.get(separator, "Z","B.txt"),
-                Paths.get(separator, "A","A.txt"),
-                Paths.get(separator, "A","B.txt"),
-                Paths.get(separator),
-                Paths.get(separator, "B.txt"),
-                Paths.get(separator, "A.txt")
+                root.resolve(Paths.get("C","E","A.txt")),
+                root.resolve(Paths.get("C","B","F","A.txt")),
+                root.resolve(Paths.get("A","A","A.txt")),
+                root.resolve(Paths.get("A","A","C.txt")),
+                root.resolve(Paths.get("A","B","B.txt")),
+                root.resolve(Paths.get("AB","C","A.txt")),
+                root.resolve(Paths.get("Z","A.txt")),
+                root.resolve(Paths.get("Z","B.txt")),
+                root.resolve(Paths.get("A","A.txt")),
+                root.resolve(Paths.get("A","B.txt")),
+                root,
+                root.resolve(Paths.get("B.txt")),
+                root.resolve(Paths.get("A.txt"))
         );
 
         Collections.sort(pathsUnderTests, new ExternalModuleSpecService.PathComparator());
 
         List<Path> pathsExpectedOrder = Arrays.asList(
-                Paths.get(separator),
-                Paths.get(separator,"A.txt"),
-                Paths.get(separator,"B.txt"),
-                Paths.get(separator,"A","A.txt"),
-                Paths.get(separator,"A","B.txt"),
-                Paths.get(separator,"A","A","A.txt"),
-                Paths.get(separator,"A","A","C.txt"),
-                Paths.get(separator,"A","B","B.txt"),
-                Paths.get(separator,"AB","C","A.txt"),
-                Paths.get(separator,"C","B","F","A.txt"),
-                Paths.get(separator,"C","E","A.txt"),
-                Paths.get(separator,"Z","A.txt"),
-                Paths.get(separator,"Z","B.txt")
+                root,
+                root.resolve(Paths.get("A.txt")),
+                root.resolve(Paths.get("B.txt")),
+                root.resolve(Paths.get("A","A.txt")),
+                root.resolve(Paths.get("A","B.txt")),
+                root.resolve(Paths.get("A","A","A.txt")),
+                root.resolve(Paths.get("A","A","C.txt")),
+                root.resolve(Paths.get("A","B","B.txt")),
+                root.resolve(Paths.get("AB","C","A.txt")),
+                root.resolve(Paths.get("C","B","F","A.txt")),
+                root.resolve(Paths.get("C","E","A.txt")),
+                root.resolve(Paths.get("Z","A.txt")),
+                root.resolve(Paths.get("Z","B.txt"))
         );
 
         assertArrayEquals("Unexpected order found", pathsUnderTests.toArray(), pathsExpectedOrder.toArray());
