@@ -252,18 +252,18 @@ public class ExternalModuleSpecService implements Service<ModuleDefinition> {
             if (path1Count < path2Count) {
                 if ( path1Count == 0 ) return -1;
                 Path sameLevel = parentPath2.getRoot().resolve(parentPath2.subpath(0, path1Count));
-                int comparison = parentPath1.compareTo(sameLevel);
+                int comparison = parentPath1.toString().compareTo(sameLevel.toString());
                 return comparison == 0 ? -1 : comparison;
             }
 
             if (path2Count < path1Count) {
                 if ( path2Count == 0 ) return -1;
                 Path sameLevel = parentPath1.getRoot().resolve(parentPath1.subpath(0, path2Count));
-                int comparison = sameLevel.compareTo(parentPath2);
+                int comparison = sameLevel.toString().compareTo(parentPath2.toString());
                 return comparison == 0 ? 1 : comparison;
             }
 
-            return path1.compareTo(path2);
+            return path1.toString().compareTo(path2.toString());
         }
     }
 
