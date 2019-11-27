@@ -860,9 +860,6 @@ public class DomainModelControllerService extends AbstractControllerService impl
             if (ok) {
                 try {
                     finishBoot();
-                    if (runningModeControl.getRunningMode() == RunningMode.NORMAL) {
-                        startServers(true);
-                    }
                 } finally {
                     // Trigger the started message
                     Notification notification = new Notification(ModelDescriptionConstants.BOOT_COMPLETE_NOTIFICATION, PathAddress.pathAddress(PathElement.pathElement(CORE_SERVICE, MANAGEMENT),
@@ -881,6 +878,14 @@ public class DomainModelControllerService extends AbstractControllerService impl
                     SystemExiter.abort(ExitCodes.HOST_CONTROLLER_ABORT_EXIT_CODE);
                 }
             }
+        }
+    }
+
+    @Override
+    protected void bootDone() {
+        processState.setRunning();
+        if (runningModeControl.getRunningMode() == RunningMode.NORMAL) {
+            startServers(true);
         }
     }
 

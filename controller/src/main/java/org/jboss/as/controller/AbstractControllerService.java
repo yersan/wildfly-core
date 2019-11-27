@@ -398,7 +398,7 @@ public abstract class AbstractControllerService implements Service<ModelControll
                             }
                         });
                     } finally {
-                        processState.setRunning();
+                        bootDone();
                     }
                 } catch (Throwable t) {
                     container.shutdown();
@@ -561,6 +561,10 @@ public abstract class AbstractControllerService implements Service<ModelControll
 
     protected void bootThreadDone() {
 
+    }
+
+    protected void bootDone() {
+        processState.setRunning();
     }
 
     protected NotificationSupport getNotificationSupport() {
