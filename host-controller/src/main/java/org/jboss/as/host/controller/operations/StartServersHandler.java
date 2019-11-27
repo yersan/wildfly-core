@@ -27,6 +27,7 @@ import static org.jboss.as.host.controller.logging.HostControllerLogger.ROOT_LOG
 import java.util.Map;
 
 import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.CurrentOperationIdHolder;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
@@ -98,6 +99,7 @@ public class StartServersHandler implements OperationStepHandler {
         }
 
         if (enabledAutoStart) {
+            HostControllerLogger.ROOT_LOGGER.info(" -------------> START. StartServersHandler. Acquired Lock ID=" +CurrentOperationIdHolder.getCurrentOperationID() + " -- " + operation.asString());
             context.acquireControllerLock();
         }
 
@@ -106,6 +108,7 @@ public class StartServersHandler implements OperationStepHandler {
             @Override
             public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
                 // start servers
+
                 final Resource resource =  context.readResource(PathAddress.EMPTY_ADDRESS);
                 final ModelNode hostModel = Resource.Tools.readModel(resource);
                 if(hostModel.hasDefined(SERVER_CONFIG)) {
@@ -120,6 +123,10 @@ public class StartServersHandler implements OperationStepHandler {
                 context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
             }
         }, OperationContext.Stage.RUNTIME);
+
+        if (enabledAutoStart) {
+            HostControllerLogger.ROOT_LOGGER.info(" -------------> END. StartServersHandler. Acquired Lock " + operation.asString());
+        }
     }
 
     private void cleanStartServers(final ModelNode servers, final ModelNode domainModel, OperationContext context) throws OperationFailedException {

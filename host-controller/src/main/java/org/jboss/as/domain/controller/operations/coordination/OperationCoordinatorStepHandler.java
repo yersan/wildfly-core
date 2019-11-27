@@ -181,6 +181,7 @@ public class OperationCoordinatorStepHandler {
             if (remoteHosts.size() > 0 || global) {
                 // Lock the controller to ensure there are no topology changes mid-op.
                 // This assumes registering/unregistering a remote proxy will involve an op and hence will block
+                DomainControllerLogger.HOST_CONTROLLER_LOGGER.info(" -----------------------------> Acquire Lock for " + operation.asString());
                 context.acquireControllerLock();
 
                 if (global) {

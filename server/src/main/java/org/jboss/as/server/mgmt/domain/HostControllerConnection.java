@@ -272,6 +272,17 @@ class HostControllerConnection extends FutureManagementChannel {
         @Override
         protected void sendRequest(final ActiveOperation.ResultHandler<ModelNode> resultHandler, final ManagementRequestContext<Void> context, final FlushableDataOutput output) throws IOException {
             output.writeUTF(serverProcessName);
+            int timeout = Integer.parseInt(WildFlySecurityManager.getPropertyPrivileged("org.jboss.as.server.domain.server.register.request.delay", "0"));
+            ServerLogger.ROOT_LOGGER.infof(" --------------------------------> Server %s waiting %d seconds", serverProcessName, timeout);
+            try {
+                TimeUnit.SECONDS.sleep(timeout);
+            } catch (InterruptedException e) {
+                Thread.interrupted();
+                e.printStackTrace();
+            }
+            if (timeout==30 && serverProcessName.contains("server-one")) {
+                throw new IOException("Intentionally a failure exception");
+            }
             output.writeInt(initialOperationID);
         }
 

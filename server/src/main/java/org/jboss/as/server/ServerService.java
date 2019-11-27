@@ -430,6 +430,23 @@ public final class ServerService extends AbstractControllerService {
     }
 
     protected void finishBoot(boolean suspend) throws ConfigurationPersistenceException {
+        int timeout = Integer.parseInt(WildFlySecurityManager.getPropertyPrivileged("org.jboss.as.server.domain.server.finish.boot.delay", "0"));
+
+        final ServerEnvironment serverEnvironment = configuration.getServerEnvironment();
+        final String serverName = serverEnvironment.getServerName();
+        ServerLogger.ROOT_LOGGER.infof(" --------------------------------> Server %s waiting %d seconds", serverEnvironment.getServerName(), timeout);
+
+        try {
+            TimeUnit.SECONDS.sleep(timeout);
+        } catch (InterruptedException e) {
+            Thread.interrupted();
+            e.printStackTrace();
+        }
+
+        if (timeout==30 && serverName.contains("server-one")) {
+            throw new ConfigurationPersistenceException("Intentionally a failure exception");
+        }
+
         super.finishBoot();
         if (!suspend) {
             suspendController.resume();

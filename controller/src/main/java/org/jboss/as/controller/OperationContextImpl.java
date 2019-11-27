@@ -1240,6 +1240,7 @@ final class OperationContextImpl extends AbstractOperationContext {
     }
 
     private void releaseModelControllerLock() {
+        ControllerLogger.ROOT_LOGGER.info(" -----------------> Release ID: " + operationId);
         modelController.releaseWriteLock(operationId);
         exclusiveStartTime = -1;
         lockStep = null;
