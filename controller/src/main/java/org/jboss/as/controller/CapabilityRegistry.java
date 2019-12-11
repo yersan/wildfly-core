@@ -385,8 +385,9 @@ public final class CapabilityRegistry implements ImmutableCapabilityRegistry, Po
             if (reloadCapabilities.contains(id)) {
                 return RuntimeStatus.RELOAD_REQUIRED;
             }
-            examined.add(id);
         } // else defer reload-required check until after we search requirements for restart-required
+
+        examined.add(id);
 
         Map<String, RuntimeRequirementRegistration> dependents = requirements.get(id);
         RuntimeStatus result = getDependentCapabilityStatus(dependents, id, examined);
