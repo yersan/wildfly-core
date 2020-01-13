@@ -22,7 +22,6 @@
 
 package org.jboss.as.domain.controller.operations.coordination;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.COMPOSITE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DOMAIN_UUID;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXECUTE_FOR_COORDINATOR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
@@ -91,11 +90,13 @@ public class OperationCoordinatorStepHandler {
             configureDomainUUID(operation);
             // See if this is a composite; if so use the two step path to avoid breaking it locally into multiple
             // steps that get invoked piecemeal on the target host
-            if (COMPOSITE.equals(operation.get(OP).asString()) && PathAddress.pathAddress(operation.get(OP_ADDR)).size() == 0) {
-                executeTwoPhaseOperation(context, operation, routing);
-            } else {
-                executeDirect(context, operation, false); // don't need to check private as we are just going to forward this
-            }
+//            if (COMPOSITE.equals(operation.get(OP).asString()) && PathAddress.pathAddress(operation.get(OP_ADDR)).size() == 0) {
+//                executeTwoPhaseOperation(context, operation, routing);
+//            } else {
+//                executeDirect(context, operation, false); // don't need to check private as we are just going to forward this
+//            }
+
+            executeDirect(context, operation, false);
         }
         else if (!routing.isMultiphase()) {
             // It's a domain or host level op (probably a read) that does not require bringing in other hosts or servers
