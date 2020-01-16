@@ -179,6 +179,17 @@ public abstract class AbstractControllerService implements Service<ModelControll
             RuntimeCapability.Builder.of("org.wildfly.management.process-state-notifier", ProcessStateNotifier.class)
                     .build();
 
+    /**
+     * Capability users of the controller use to read the web console availability and force it to make it available
+     * before the process controller is in RUNNING state.
+     *
+     * This capability isn't necessarily directly related to this class but we declare it
+     * here as it's as good a place as any at this time.
+     */
+    public static final RuntimeCapability<Void> CONSOLE_AVAILABILITY_CAPABILITY =
+            RuntimeCapability.Builder.of("org.wildfly.management.console-availability", ConsoleAvailability.class)
+                    .build();
+
     private static final OperationDefinition INIT_CONTROLLER_OP = new SimpleOperationDefinitionBuilder("boottime-controller-initializer-step", null)
         .setPrivateEntry()
         .build();

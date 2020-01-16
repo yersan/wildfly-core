@@ -37,6 +37,7 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.jboss.as.controller.ConsoleAvailabilityService;
 import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.controller.RunningModeControl;
 import org.jboss.as.repository.ContentRepository;
@@ -171,6 +172,8 @@ final class ApplicationServerService implements Service<AsyncFuture<ServiceConta
         DeploymentMountProvider.Factory.addService(serviceTarget);
         ServiceModuleLoader.addService(serviceTarget, configuration);
         ExternalModuleService.addService(serviceTarget, EXTERNAL_MODULE_CAPABILITY.getCapabilityServiceName());
+
+        ConsoleAvailabilityService.addService(serviceTarget, bootstrapListener::logAdminConsole);
 
         //Add server path manager service
         ServerPathManagerService.addService(serviceTarget, new ServerPathManagerService(configuration.getCapabilityRegistry()), serverEnvironment);
