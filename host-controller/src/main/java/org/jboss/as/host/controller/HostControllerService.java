@@ -45,6 +45,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.jboss.as.controller.CapabilityRegistry;
+import org.jboss.as.controller.ConsoleAvailabilityService;
 import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.controller.ProcessType;
 import org.jboss.as.host.controller.logging.HostControllerLogger;
@@ -209,9 +210,10 @@ public class HostControllerService implements Service<AsyncFuture<ServiceContain
                 .setInitialMode(ServiceController.Mode.ACTIVE)
                 .install();
 
+        ConsoleAvailabilityService.addService(serviceTarget, bootstrapListener::logAdminConsole);
+
         DomainModelControllerService.addService(serviceTarget, environment, runningModeControl, processState,
                 bootstrapListener, hostPathManagerService, capabilityRegistry, threadGroup);
-
     }
 
     @Override

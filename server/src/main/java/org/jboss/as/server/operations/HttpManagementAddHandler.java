@@ -39,6 +39,7 @@ import javax.net.ssl.SSLContext;
 
 import org.jboss.as.controller.CapabilityServiceBuilder;
 import org.jboss.as.controller.CapabilityServiceTarget;
+import org.jboss.as.controller.ConsoleAvailability;
 import org.jboss.as.controller.ProcessStateNotifier;
 import org.jboss.as.controller.ModelController;
 import org.jboss.as.controller.OperationContext;
@@ -152,6 +153,7 @@ public class HttpManagementAddHandler extends BaseHttpInterfaceAddStepHandler {
         final Supplier<SocketBinding> ssbSupplier = secureSocketBindingName != null ? builder.requiresCapability(SOCKET_BINDING_CAPABILITY_NAME, SocketBinding.class, secureSocketBindingName) : null;
         final Supplier<SocketBindingManager> sbmSupplier = builder.requiresCapability("org.wildfly.management.socket-binding-manager", SocketBindingManager.class);
         final Supplier<ProcessStateNotifier> cpsnSupplier = builder.requiresCapability("org.wildfly.management.process-state-notifier", ProcessStateNotifier.class);
+        final Supplier<ConsoleAvailability> caSupplier = builder.requiresCapability("org.wildfly.management.console-availability", ConsoleAvailability.class);
         final Supplier<ManagementHttpRequestProcessor> rpSupplier = builder.requires(requestProcessorName);
         final Supplier<XnioWorker> xwSupplier = builder.requires(ManagementWorkerService.SERVICE_NAME);
         final Supplier<Executor> eSupplier = builder.requires(ExternalManagementRequestExecutor.SERVICE_NAME);
@@ -160,7 +162,7 @@ public class HttpManagementAddHandler extends BaseHttpInterfaceAddStepHandler {
         final Supplier<SSLContext> scSupplier = sslContext != null ? builder.requiresCapability(SSL_CONTEXT_CAPABILITY, SSLContext.class, sslContext) : null;
         final UndertowHttpManagementService undertowService = new UndertowHttpManagementService(hmConsumer, lrSupplier, mcSupplier, sbSupplier, ssbSupplier, sbmSupplier,
                 null, null, cpsnSupplier, rpSupplier, xwSupplier, eSupplier, hafSupplier, srSupplier, scSupplier, null, null, commonPolicy.getAllowedOrigins(), consoleMode,
-                environment.getProductConfig().getConsoleSlot(), commonPolicy.getConstantHeaders());
+                environment.getProductConfig().getConsoleSlot(), commonPolicy.getConstantHeaders(), caSupplier);
         builder.setInstance(undertowService);
         builder.install();
 

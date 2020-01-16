@@ -180,6 +180,7 @@ import org.jboss.as.repository.ContentRepository;
 import org.jboss.as.repository.HostFileRepository;
 import org.jboss.as.repository.LocalFileRepository;
 import org.jboss.as.server.BootstrapListener;
+import org.jboss.as.controller.ConsoleAvailability;
 import org.jboss.as.server.ExternalManagementRequestExecutor;
 import org.jboss.as.server.RuntimeExpressionResolver;
 import org.jboss.as.server.controller.resources.VersionModelInitializer;
@@ -262,6 +263,7 @@ public class DomainModelControllerService extends AbstractControllerService impl
     private volatile ScheduledExecutorService pingScheduler;
     private volatile ManagementResourceRegistration hostModelRegistration;
     private volatile MasterDomainControllerClient masterDomainControllerClient;
+    private volatile Supplier<ConsoleAvailability> consoleAvailabilitySupplier;
 
     static void addService(final ServiceTarget serviceTarget,
                                                             final HostControllerEnvironment environment,
@@ -302,6 +304,7 @@ public class DomainModelControllerService extends AbstractControllerService impl
         sb.setInstance(service);
         sb.addDependency(ProcessControllerConnectionService.SERVICE_NAME, ProcessControllerConnectionService.class, service.injectedProcessControllerConnection);
         sb.requires(PATH_MANAGER_CAPABILITY.getCapabilityServiceName()); // ensure this is up
+        service.consoleAvailabilitySupplier = sb.requires(CONSOLE_AVAILABILITY_CAPABILITY.getCapabilityServiceName());
         sb.install();
 
         ExternalManagementRequestExecutor.install(serviceTarget, threadGroup,
@@ -576,11 +579,14 @@ public class DomainModelControllerService extends AbstractControllerService impl
                         new RuntimeCapabilityRegistration(EXECUTOR_CAPABILITY, CapabilityScope.GLOBAL, new RegistrationPoint(PathAddress.EMPTY_ADDRESS, null)));
         capabilityReg.registerCapability(
                 new RuntimeCapabilityRegistration(PROCESS_STATE_NOTIFIER_CAPABILITY, CapabilityScope.GLOBAL, new RegistrationPoint(PathAddress.EMPTY_ADDRESS, null)));
+        capabilityReg.registerCapability(
+                new RuntimeCapabilityRegistration(CONSOLE_AVAILABILITY_CAPABILITY, CapabilityScope.GLOBAL, new RegistrationPoint(PathAddress.EMPTY_ADDRESS, null)));
         // Record the core capabilities with the root MRR so reads of it will show it as their provider
         // This also gets them recorded as 'possible capabilities' in the capability registry
         rootRegistration.registerCapability(PATH_MANAGER_CAPABILITY);
         rootRegistration.registerCapability(EXECUTOR_CAPABILITY);
         rootRegistration.registerCapability(PROCESS_STATE_NOTIFIER_CAPABILITY);
+        rootRegistration.registerCapability(CONSOLE_AVAILABILITY_CAPABILITY);
 
         // Register the slave host info
         ResourceProvider.Tool.addResourceProvider(HOST_CONNECTION, new ResourceProvider() {
@@ -885,6 +891,10 @@ public class DomainModelControllerService extends AbstractControllerService impl
                 try {
                     if (runningModeControl.getRunningMode() == RunningMode.NORMAL) {
                         finishBoot(true);
+                        if (hostControllerInfo.isMasterDomainController()) {
+                           //Force the activation of the web console here before starting the servers
+                           consoleAvailabilitySupplier.get().setAvailable();
+                        }
                         startServers(true);
                         clearBootingReadOnlyFlag();
                     } else {
