@@ -515,6 +515,7 @@ public class CLIEmbedHostControllerTestCase extends AbstractCliTestBase {
 
         cli.sendLine("ls /host=foo", true);
         final String output = cli.readOutput();
+//        assertTrue(output.startsWith("{\"WFLYCTL0062:"));
         assertTrue(output.startsWith("WFLYDC0033:"));
         assertTrue(cli.isConnected());
 

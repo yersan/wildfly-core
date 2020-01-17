@@ -29,10 +29,13 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OPERATION_HEADERS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ROLLOUT_PLAN;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.STEPS;
+import static org.jboss.as.controller.operations.global.GlobalOperationHandlers.STD_READ_OPS;
 import static org.jboss.as.domain.controller.logging.DomainControllerLogger.HOST_CONTROLLER_LOGGER;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -92,7 +95,18 @@ public class OperationCoordinatorStepHandler {
             // See if this is a composite; if so use the two step path to avoid breaking it locally into multiple
             // steps that get invoked piecemeal on the target host
             if (COMPOSITE.equals(operation.get(OP).asString()) && PathAddress.pathAddress(operation.get(OP_ADDR)).size() == 0) {
-                executeTwoPhaseOperation(context, operation, routing);
+                // Do not acquire the write lock for this case in a two phase operation:
+                // -- The operation is going to be execute in a single remote HC
+                // -- It is a composite operation
+                // -- All the steps are global read only operations, it is assumed that global read operations are not going to generate
+                //    operations to the servers managed by this host in this case, since they are targeted to a remote host
+//                boolean acquireWriteLock = !isCompositeGlobalReadOnly(operation);   // @TODO: Encapsulate this logic into the routing ???
+//                if (acquireWriteLock) {                                             // @TODO: Can we rely on routing.isMultiphase() here and remove isCompositeGlobalReadOnly and execute the executeTwoPhaseOperation without acquiring the lock always ???
+//                    executeTwoPhaseOperation(context, operation, routing);
+//                } else {
+//                    executeTwoPhaseOperation(context, operation, routing, false);
+//                }
+                executeTwoPhaseOperation(context, operation, routing, false);
             } else {
                 executeDirect(context, operation, false); // don't need to check private as we are just going to forward this
             }
@@ -140,6 +154,10 @@ public class OperationCoordinatorStepHandler {
     }
 
     private void executeTwoPhaseOperation(OperationContext context, ModelNode operation, OperationRouting routing) throws OperationFailedException {
+        executeTwoPhaseOperation(context, operation, routing, true);
+    }
+
+    private void executeTwoPhaseOperation(OperationContext context, ModelNode operation, OperationRouting routing, boolean acquireWriteLock) throws OperationFailedException {
 
         HOST_CONTROLLER_LOGGER.trace("Executing two-phase");
 
@@ -181,7 +199,9 @@ public class OperationCoordinatorStepHandler {
             if (remoteHosts.size() > 0 || global) {
                 // Lock the controller to ensure there are no topology changes mid-op.
                 // This assumes registering/unregistering a remote proxy will involve an op and hence will block
-                context.acquireControllerLock();
+                if (acquireWriteLock) {
+                    context.acquireControllerLock();
+                }
 
                 if (global) {
                     remoteHosts.addAll(hostProxies.keySet());
@@ -214,6 +234,20 @@ public class OperationCoordinatorStepHandler {
                 accessContext.setDomainUuid(domainUUID);
             }
         }
+    }
+
+    static boolean isCompositeGlobalReadOnly(final ModelNode operation) {
+        boolean readOnly = false;
+        if (operation.hasDefined(STEPS)) {
+            final List<ModelNode> steps = operation.get(STEPS).asList();
+            readOnly = !steps.isEmpty();
+            for (ModelNode step : steps) {
+                final String operationName = step.require(OP).asString();
+                readOnly = readOnly && STD_READ_OPS.contains(operationName);
+            }
+        }
+
+        return readOnly;
     }
 
 }
