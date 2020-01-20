@@ -95,18 +95,16 @@ public class OperationCoordinatorStepHandler {
             // See if this is a composite; if so use the two step path to avoid breaking it locally into multiple
             // steps that get invoked piecemeal on the target host
             if (COMPOSITE.equals(operation.get(OP).asString()) && PathAddress.pathAddress(operation.get(OP_ADDR)).size() == 0) {
-                // Do not acquire the write lock for this case in a two phase operation:
+                // Do not acquire the write lock for this case in two phase operation:
                 // -- The operation is going to be execute in a single remote HC
                 // -- It is a composite operation
                 // -- All the steps are global read only operations, it is assumed that global read operations are not going to generate
                 //    operations to the servers managed by this host in this case, since they are targeted to a remote host
-//                boolean acquireWriteLock = !isCompositeGlobalReadOnly(operation);   // @TODO: Encapsulate this logic into the routing ???
-//                if (acquireWriteLock) {                                             // @TODO: Can we rely on routing.isMultiphase() here and remove isCompositeGlobalReadOnly and execute the executeTwoPhaseOperation without acquiring the lock always ???
-//                    executeTwoPhaseOperation(context, operation, routing);
-//                } else {
-//                    executeTwoPhaseOperation(context, operation, routing, false);
-//                }
-                executeTwoPhaseOperation(context, operation, routing, false);
+                if (!isCompositeGlobalReadOnly(operation)) {
+                    executeTwoPhaseOperation(context, operation, routing, true);
+                } else {
+                    executeTwoPhaseOperation(context, operation, routing, false);
+                }
             } else {
                 executeDirect(context, operation, false); // don't need to check private as we are just going to forward this
             }
