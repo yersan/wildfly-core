@@ -38,6 +38,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -49,6 +50,7 @@ import static org.junit.Assert.assertNull;
  *
  * @author <a href="mailto:tterem@redhat.com">Tomas Terem</a>
  */
+@Ignore
 public class HttpManagementConstantHeadersTestCase extends AbstractCliTestBase {
 
    private static final int MGMT_PORT = 9990;
