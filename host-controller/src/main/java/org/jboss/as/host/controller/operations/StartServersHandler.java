@@ -98,7 +98,7 @@ public class StartServersHandler implements OperationStepHandler {
         }
 
         if (enabledAutoStart) {
-            context.acquireControllerLock();
+//            context.acquireControllerLock();
         }
 
         final ModelNode domainModel = Resource.Tools.readModel(context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS, true));
