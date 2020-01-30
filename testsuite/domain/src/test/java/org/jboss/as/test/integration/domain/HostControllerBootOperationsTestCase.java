@@ -161,7 +161,7 @@ public class HostControllerBootOperationsTestCase {
 
         op = Util.getWriteAttributeOperation(SERVER_GROUP_MAIN_SERVER_GROUP.append(JVM_DEFAULT), "heap-size", "64m");
         ModelNode failureDescription = DomainTestUtils.executeForFailure(op, masterClient);
-        Assert.assertTrue("The slave host does not return the expected error. Failure Description was:"+failureDescription, failureDescription.get("host-failure-descriptions").get("slave").asString().startsWith("WFLYDC0098"));
+        Assert.assertTrue("The slave host does not return the expected error. Failure Description was:"+failureDescription, failureDescription.get("host-failure-descriptions").get("slave").asString().startsWith("WFLYCTL0379"));
 
         checkReadOperations(true);
 
