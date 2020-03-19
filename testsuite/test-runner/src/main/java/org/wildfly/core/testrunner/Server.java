@@ -78,6 +78,7 @@ public class Server {
     private String gitRepository;
     private String gitBranch;
     private String gitAuthConfiguration;
+    private Path configDir;
 
     public Server() {
         this(null, false);
@@ -148,6 +149,10 @@ public class Server {
         this.gitAuthConfiguration = gitAuthConfig;
     }
 
+    public void setConfigDir(Path configDir) {
+        this.configDir = configDir;
+    }
+
     protected void start() {
         start(System.out);
     }
@@ -187,6 +192,10 @@ public class Server {
 
             if (gitRepository != null) {
                 commandBuilder.setGitRepository(gitRepository, gitBranch, gitAuthConfiguration);
+            }
+
+            if (configDir != null) {
+                commandBuilder.addJavaOption("-Djboss.server.config.dir="+configDir.toString());
             }
 
             //we are testing, of course we want assertions and set-up some other defaults
