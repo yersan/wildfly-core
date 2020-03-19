@@ -16,13 +16,12 @@
 package org.jboss.as.test.manualmode.management;
 
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.DosFileAttributeView;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;
@@ -35,9 +34,11 @@ import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.helpers.Operations;
 import org.jboss.as.repository.PathUtil;
 import org.jboss.as.test.integration.security.common.CoreUtils;
+import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.dmr.ModelNode;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.ServerControl;
@@ -78,30 +79,28 @@ public class ReadOnlyModeTestCase {
 
     @Test
     public void testReadOnlyConfigurationDirectory() throws Exception {
+        Assume.assumeFalse(TestSuiteEnvironment.isWindows());
+
         final Path jbossHome = Paths.get(System.getProperty("jboss.home"));
         final Path configDir = jbossHome.resolve("standalone").resolve("configuration");
         final Path standaloneTmpDir = jbossHome.resolve("standalone").resolve("tmp");
-        final Path osTmpDir = Paths.get("/tmp");
+        final Path osTmpDir =  Paths.get("/tmp");
         final Path roConfigDir = Files.createTempDirectory(osTmpDir, "wildfly-test-suite");
 
         PathUtil.copyRecursively(configDir, roConfigDir, true);
 
-        final FileStore fileStore = Files.getFileStore(roConfigDir);
-        boolean dosMode = fileStore.supportsFileAttributeView(DosFileAttributeView.class);
-        if (dosMode) {
-            Files.getFileAttributeView(roConfigDir, DosFileAttributeView.class).setReadOnly(true);
-        } else {
-            Set<PosixFilePermission> perms = new HashSet<>();
+        Set<PosixFilePermission> perms = new HashSet<>();
 
-            perms.add(PosixFilePermission.OWNER_READ);
-            perms.add(PosixFilePermission.OWNER_EXECUTE);
-            perms.add(PosixFilePermission.GROUP_READ);
-            perms.add(PosixFilePermission.GROUP_EXECUTE);
-            perms.add(PosixFilePermission.OTHERS_READ);
-            perms.add(PosixFilePermission.OTHERS_EXECUTE);
+        perms.add(PosixFilePermission.OWNER_READ);
+        perms.add(PosixFilePermission.OWNER_EXECUTE);
+        perms.add(PosixFilePermission.GROUP_READ);
+        perms.add(PosixFilePermission.GROUP_EXECUTE);
+        perms.add(PosixFilePermission.OTHERS_READ);
+        perms.add(PosixFilePermission.OTHERS_EXECUTE);
 
-            Files.getFileAttributeView(roConfigDir, PosixFileAttributeView.class).setPermissions(perms);
-        }
+        Files.getFileAttributeView(roConfigDir, PosixFileAttributeView.class).setPermissions(perms);
+
+        assertFalse(roConfigDir.toString() + " is writeable", roConfigDir.toFile().canWrite());
 
         try {
             container.startReadOnly(roConfigDir);
@@ -124,23 +123,11 @@ public class ReadOnlyModeTestCase {
             }
 
         } finally {
-            if (dosMode) {
-                Files.getFileAttributeView(roConfigDir, DosFileAttributeView.class).setReadOnly(false);
-            } else {
-                Set<PosixFilePermission> perms = new HashSet<>();
+            perms.add(PosixFilePermission.OWNER_WRITE);
+            perms.add(PosixFilePermission.GROUP_WRITE);
+            perms.add(PosixFilePermission.OTHERS_WRITE);
 
-                perms.add(PosixFilePermission.OWNER_READ);
-                perms.add(PosixFilePermission.OWNER_WRITE);
-                perms.add(PosixFilePermission.OWNER_EXECUTE);
-                perms.add(PosixFilePermission.GROUP_READ);
-                perms.add(PosixFilePermission.GROUP_WRITE);
-                perms.add(PosixFilePermission.GROUP_EXECUTE);
-                perms.add(PosixFilePermission.OTHERS_READ);
-                perms.add(PosixFilePermission.OTHERS_WRITE);
-                perms.add(PosixFilePermission.OTHERS_EXECUTE);
-
-                Files.getFileAttributeView(roConfigDir, PosixFileAttributeView.class).setPermissions(perms);
-            }
+            Files.getFileAttributeView(roConfigDir, PosixFileAttributeView.class).setPermissions(perms);
 
             PathUtil.deleteRecursively(roConfigDir);
         }
