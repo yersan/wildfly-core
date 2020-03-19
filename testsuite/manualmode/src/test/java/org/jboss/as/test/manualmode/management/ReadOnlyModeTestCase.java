@@ -16,15 +16,28 @@
 package org.jboss.as.test.manualmode.management;
 
 
+import static org.junit.Assert.assertTrue;
+
+import java.nio.file.FileStore;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.DosFileAttributeView;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.HashSet;
+import java.util.Set;
+
 import javax.inject.Inject;
+
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.helpers.Operations;
+import org.jboss.as.repository.PathUtil;
 import org.jboss.as.test.integration.security.common.CoreUtils;
 import org.jboss.dmr.ModelNode;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.ServerControl;
@@ -42,14 +55,10 @@ public class ReadOnlyModeTestCase {
     @Inject
     private ServerController container;
 
-    @Before
-    public void startContainer() throws Exception {
-        // Start the server
-        container.startReadOnly();
-    }
-
     @Test
     public void testConfigurationNotUpdated() throws Exception {
+        container.startReadOnly();
+
         ModelNode address = PathAddress.pathAddress("system-property", "read-only").toModelNode();
         try (ModelControllerClient client = container.getClient().getControllerClient()) {
             ModelNode op = Operations.createAddOperation(address);
@@ -59,6 +68,7 @@ public class ReadOnlyModeTestCase {
             container.reload();
             Assert.assertTrue(Operations.readResult(client.execute(Operations.createReadAttributeOperation(address, "value"))).asBoolean());
         }
+
         container.stop();
         container.startReadOnly();
         try (ModelControllerClient client = container.getClient().getControllerClient()) {
@@ -66,9 +76,78 @@ public class ReadOnlyModeTestCase {
         }
     }
 
-    @After
-    public void stopContainer() throws Exception {
-            // Stop the container
+    @Test
+    public void testReadOnlyConfigurationDirectory() throws Exception {
+        final Path jbossHome = Paths.get(System.getProperty("jboss.home"));
+        final Path configDir = jbossHome.resolve("standalone").resolve("configuration");
+        final Path standaloneTmpDir = jbossHome.resolve("standalone").resolve("tmp");
+        final Path osTmpDir = Paths.get("/tmp");
+        final Path roConfigDir = Files.createTempDirectory(osTmpDir, "wildfly-test-suite");
+
+        PathUtil.copyRecursively(configDir, roConfigDir, true);
+
+        final FileStore fileStore = Files.getFileStore(roConfigDir);
+        boolean dosMode = fileStore.supportsFileAttributeView(DosFileAttributeView.class);
+        if (dosMode) {
+            Files.getFileAttributeView(roConfigDir, DosFileAttributeView.class).setReadOnly(true);
+        } else {
+            Set<PosixFilePermission> perms = new HashSet<>();
+
+            perms.add(PosixFilePermission.OWNER_READ);
+            perms.add(PosixFilePermission.OWNER_EXECUTE);
+            perms.add(PosixFilePermission.GROUP_READ);
+            perms.add(PosixFilePermission.GROUP_EXECUTE);
+            perms.add(PosixFilePermission.OTHERS_READ);
+            perms.add(PosixFilePermission.OTHERS_EXECUTE);
+
+            Files.getFileAttributeView(roConfigDir, PosixFileAttributeView.class).setPermissions(perms);
+        }
+
+        try {
+            container.startReadOnly(roConfigDir);
+            assertTrue("standalone_xml_history not found in " + standaloneTmpDir.toString(), standaloneTmpDir.resolve("standalone_xml_history").toFile().exists());
+
+            ModelNode address = PathAddress.pathAddress("system-property", "read-only").toModelNode();
+            try (ModelControllerClient client = container.getClient().getControllerClient()) {
+                ModelNode op = Operations.createAddOperation(address);
+                op.get("value").set(true);
+                CoreUtils.applyUpdate(op, client);
+                Assert.assertTrue(Operations.readResult(client.execute(Operations.createReadAttributeOperation(address, "value"))).asBoolean());
+                container.reload();
+                Assert.assertTrue(Operations.readResult(client.execute(Operations.createReadAttributeOperation(address, "value"))).asBoolean());
+            }
+
             container.stop();
+            container.startReadOnly(roConfigDir);
+            try (ModelControllerClient client = container.getClient().getControllerClient()) {
+                Assert.assertTrue(Operations.getFailureDescription(client.execute(Operations.createReadAttributeOperation(address, "value"))).asString().contains("WFLYCTL0216"));
+            }
+
+        } finally {
+            if (dosMode) {
+                Files.getFileAttributeView(roConfigDir, DosFileAttributeView.class).setReadOnly(false);
+            } else {
+                Set<PosixFilePermission> perms = new HashSet<>();
+
+                perms.add(PosixFilePermission.OWNER_READ);
+                perms.add(PosixFilePermission.OWNER_WRITE);
+                perms.add(PosixFilePermission.OWNER_EXECUTE);
+                perms.add(PosixFilePermission.GROUP_READ);
+                perms.add(PosixFilePermission.GROUP_WRITE);
+                perms.add(PosixFilePermission.GROUP_EXECUTE);
+                perms.add(PosixFilePermission.OTHERS_READ);
+                perms.add(PosixFilePermission.OTHERS_WRITE);
+                perms.add(PosixFilePermission.OTHERS_EXECUTE);
+
+                Files.getFileAttributeView(roConfigDir, PosixFileAttributeView.class).setPermissions(perms);
+            }
+
+            PathUtil.deleteRecursively(roConfigDir);
+        }
+    }
+
+    @After
+    public void stopContainer() {
+        container.stop();
     }
 }
