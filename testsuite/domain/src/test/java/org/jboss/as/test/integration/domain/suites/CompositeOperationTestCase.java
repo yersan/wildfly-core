@@ -68,6 +68,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import org.jboss.as.controller.PathAddress;
@@ -101,6 +102,7 @@ import org.junit.Test;
  * @author Brian Stansberry (c) 2015 Red Hat Inc.
  */
 public class CompositeOperationTestCase {
+    Logger logger = Logger.getAnonymousLogger();
     private static String DEPLOYMENT_NAME = "deployment.jar";
     private static final PathElement DEPLOYMENT_PATH = PathElement.pathElement(DEPLOYMENT, DEPLOYMENT_NAME);
     protected static final PathAddress SERVER_GROUP_MAIN_SERVER_GROUP = PathAddress.pathAddress(SERVER_GROUP, "main-server-group");
@@ -584,7 +586,7 @@ public class CompositeOperationTestCase {
 
         createDeployment();
 
-        final ExecutorService executorService = Executors.newFixedThreadPool(2);
+        final ExecutorService executorService = Executors.newFixedThreadPool(1);
 
         try {
             Future<ModelNode> deploymentFuture = executorService.submit(new Callable<ModelNode>() {
@@ -603,19 +605,23 @@ public class CompositeOperationTestCase {
             // it could ensure we have acquired the lock by the deployment operation executed before
             TimeUnit.SECONDS.sleep(TimeoutUtil.adjust(1));
 
+            logger.info("Read one");
             steps = prepareReadCompositeOperations(PathAddress.pathAddress(HOST_SLAVE), slaveChildrenTypes);
             op = createComposite(steps);
             DomainTestUtils.executeForResult(op, masterClient);
 
+            logger.info("Read two");
             steps = prepareReadCompositeOperations(PathAddress.EMPTY_ADDRESS, emptyAddressChildrenTypes);
             op = createComposite(steps);
             DomainTestUtils.executeForResult(op, masterClient);
 
+            logger.info("Read three");
             steps = prepareReadCompositeOperations(PathAddress.pathAddress(HOST_SLAVE), slaveChildrenTypes);
             steps.addAll(prepareReadCompositeOperations(PathAddress.EMPTY_ADDRESS, emptyAddressChildrenTypes));
             op = createComposite(steps);
             DomainTestUtils.executeForResult(op, masterClient);
 
+            logger.info("Read Done");
             Assert.assertEquals("It is expected deployment operation is still in progress", false, deploymentFuture.isDone());
 
             // keep the timeout in sync with SlowServiceActivator timeout
