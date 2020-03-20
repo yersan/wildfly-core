@@ -625,7 +625,7 @@ public class CompositeOperationTestCase {
             Assert.assertEquals("It is expected deployment operation is still in progress", false, deploymentFuture.isDone());
 
             // keep the timeout in sync with SlowServiceActivator timeout
-            deploymentFuture.get(TimeoutUtil.adjust(20), TimeUnit.SECONDS);
+            deploymentFuture.get(TimeoutUtil.adjust(60), TimeUnit.SECONDS);
 
         } finally {
             try {

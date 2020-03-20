@@ -36,7 +36,7 @@ public class SlowServiceActivator implements ServiceActivator {
     public void activate(ServiceActivatorContext serviceActivatorContext) throws ServiceRegistryException {
         try {
             logger.info(" SlowServiceActivator");
-            long timeout = System.currentTimeMillis() + TimeoutUtil.adjust(20)*1000;
+            long timeout = System.currentTimeMillis() + TimeoutUtil.adjust(60)*1000;
             int i = 0;
             while (System.currentTimeMillis() - timeout < 0) {
                 logger.info(" SlowServiceActivator Cycle: flag=" + i++);
