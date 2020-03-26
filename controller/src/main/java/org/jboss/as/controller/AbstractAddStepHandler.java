@@ -23,6 +23,7 @@
 package org.jboss.as.controller;
 
 import org.jboss.as.controller.capability.RuntimeCapability;
+import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
@@ -158,9 +159,26 @@ public class AbstractAddStepHandler implements OperationStepHandler, OperationDe
         populateModel(context, operation, resource);
         recordCapabilitiesAndRequirements(context, operation, resource);
         //verify model for alternatives & requires
+        if ( context.getCurrentAddress().size() == 3 &&
+//            context.getCurrentAddress().getElement(0).matches(PathElement.pathElement("host", "master")) &&
+            context.getCurrentAddress().getElement(1).matches(PathElement.pathElement("subsystem", "elytron")) &&
+            context.getCurrentAddress().getElement(2).matches(PathElement.pathElement("provider-loader", "elytron"))){
+            ControllerLogger.ROOT_LOGGER.info(Thread.currentThread() + " - "+Thread.currentThread().getId() +" 1) Operation="+operation.toString());
+            ControllerLogger.ROOT_LOGGER.info(Thread.currentThread() + " - "+Thread.currentThread().getId() +" 1) Requires Runtime="+requiresRuntime(context));
+            ControllerLogger.ROOT_LOGGER.info(Thread.currentThread() + " - "+Thread.currentThread().getId() +" 1) Is Booting="+context.isBooting());
+        }
         if (requiresRuntime(context)) {
             context.addStep(new OperationStepHandler() {
                 public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
+                    if ( context.getCurrentAddress().size() == 3 &&
+//                            context.getCurrentAddress().getElement(0).matches(PathElement.pathElement("host", "master")) &&
+                            context.getCurrentAddress().getElement(1).matches(PathElement.pathElement("subsystem", "elytron")) &&
+                            context.getCurrentAddress().getElement(2).matches(PathElement.pathElement("provider-loader", "elytron"))){
+                        ControllerLogger.ROOT_LOGGER.info(Thread.currentThread() + " - "+Thread.currentThread().getId() +" 2) Operation="+operation.toString());
+                        ControllerLogger.ROOT_LOGGER.info(Thread.currentThread() + " - "+Thread.currentThread().getId() +" 2) Requires Runtime="+requiresRuntime(context));
+                        ControllerLogger.ROOT_LOGGER.info(Thread.currentThread() + " - "+Thread.currentThread().getId() +" 2) Is Booting="+context.isBooting());
+                        ControllerLogger.ROOT_LOGGER.info(Thread.currentThread() + " - "+Thread.currentThread().getId() +" --------------------- Perform Runtime --------------------- ");
+                    }
                     performRuntime(context, operation, resource);
 
                     context.completeStep(new OperationContext.RollbackHandler() {

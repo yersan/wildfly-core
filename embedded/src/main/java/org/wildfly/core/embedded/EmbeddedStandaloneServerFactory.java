@@ -215,7 +215,7 @@ public class EmbeddedStandaloneServerFactory {
         private final ModuleLoader moduleLoader;
         private final ClassLoader embeddedModuleCL;
         private ServiceContainer serviceContainer;
-        private ControlledProcessState.State currentProcessState;
+        private volatile ControlledProcessState.State currentProcessState;
         private ModelControllerClient modelControllerClient;
         private ExecutorService executorService;
         private ProcessStateNotifier processStateNotifier;
@@ -339,6 +339,14 @@ public class EmbeddedStandaloneServerFactory {
             }
         }
 
+        @Override
+        public String getCurrentProcessState() {
+            if (currentProcessState == null) {
+                return "unknown";
+            }
+
+            return this.currentProcessState.toString();
+        }
         private void exit() {
 
             if (serviceContainer != null) {

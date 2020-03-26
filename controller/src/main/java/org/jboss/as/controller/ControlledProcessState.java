@@ -25,6 +25,8 @@ package org.jboss.as.controller;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicStampedReference;
 
+import org.jboss.as.controller.logging.ControllerLogger;
+
 /**
  * The overall state of a process that is being managed by a {@link ModelController}.
  *
@@ -110,6 +112,7 @@ public class ControlledProcessState {
 
     public void setStarting() {
         synchronized (service) {
+            ControllerLogger.ROOT_LOGGER.info(" -------- SETTING STARTING STATE");
             state.set(State.STARTING, stamp.incrementAndGet());
             service.stateChanged(State.STARTING);
         }
@@ -128,6 +131,7 @@ public class ControlledProcessState {
             synchronized (service) {
                 State newState = restartRequiredFlag ? State.RESTART_REQUIRED : State.RUNNING;
                 if (state.compareAndSet(was, newState, receiver[0], newStamp)) {
+                    ControllerLogger.ROOT_LOGGER.info(" -------- SETTING RUNNING STATE");
                     service.stateChanged(newState);
                     break;
                 }
@@ -137,6 +141,7 @@ public class ControlledProcessState {
 
     public void setStopping() {
         synchronized (service) {
+            ControllerLogger.ROOT_LOGGER.info(" -------- SETTING STOPPING STATE");
             state.set(State.STOPPING, stamp.incrementAndGet());
             service.stateChanged(State.STOPPING);
         }
@@ -144,6 +149,7 @@ public class ControlledProcessState {
 
     public void setStopped() {
         synchronized (service) {
+            ControllerLogger.ROOT_LOGGER.info(" -------- SETTING STOPPED STATE");
             state.set(State.STOPPED, stamp.incrementAndGet());
             service.stateChanged(State.STOPPED);
         }
@@ -164,6 +170,7 @@ public class ControlledProcessState {
             }
             synchronized (service) {
                 if (stateRef.compareAndSet(was, State.RELOAD_REQUIRED, receiver[0], newStamp)) {
+                    ControllerLogger.ROOT_LOGGER.info(" -------- SETTING RELOAD_REQUIRED STATE");
                     service.stateChanged(State.RELOAD_REQUIRED);
                     break;
                 }
@@ -184,6 +191,7 @@ public class ControlledProcessState {
             }
             synchronized (service) {
                 if (stateRef.compareAndSet(was, State.RESTART_REQUIRED, receiver[0], newStamp)) {
+                    ControllerLogger.ROOT_LOGGER.info(" -------- SETTING RESTART REQUIRED STATE");
                     restartRequiredFlag = true;
                     service.stateChanged(State.RESTART_REQUIRED);
                     break;
@@ -202,6 +210,7 @@ public class ControlledProcessState {
         Integer theirStamp = Integer.class.cast(stamp);
         synchronized (service) {
             if (state.compareAndSet(State.RELOAD_REQUIRED, State.RUNNING, theirStamp, this.stamp.incrementAndGet())) {
+                ControllerLogger.ROOT_LOGGER.info(" -------- SETTING REVERT RELOAD STATE");
                 service.stateChanged(State.RUNNING);
             }
         }
@@ -212,6 +221,7 @@ public class ControlledProcessState {
         Integer theirStamp = Integer.class.cast(stamp);
         synchronized (service) {
             if (state.compareAndSet(State.RESTART_REQUIRED, State.RUNNING, theirStamp, this.stamp.incrementAndGet())) {
+                ControllerLogger.ROOT_LOGGER.info(" -------- SETTING REVERT RESTART STATE");
                 restartRequiredFlag = false;
                 service.stateChanged(State.RUNNING);
             }

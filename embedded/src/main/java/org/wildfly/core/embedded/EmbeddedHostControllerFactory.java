@@ -227,7 +227,7 @@ public class EmbeddedHostControllerFactory {
         private final ModuleLoader moduleLoader;
         private final ClassLoader embeddedModuleCL;
         private ServiceContainer serviceContainer;
-        private ControlledProcessState.State currentProcessState;
+        private volatile ControlledProcessState.State currentProcessState;
         private ModelControllerClient modelControllerClient;
         private ExecutorService executorService;
         private ProcessStateNotifier processStateNotifier;
@@ -370,6 +370,15 @@ public class EmbeddedHostControllerFactory {
             }
         }
 
+        @Override
+        public String getCurrentProcessState() {
+            if (currentProcessState == null) {
+                return "unknown";
+            }
+
+            return this.currentProcessState.toString();
+        }
+
         private void exit() {
 
             if (serviceContainer != null) {
@@ -437,6 +446,8 @@ public class EmbeddedHostControllerFactory {
             }
             return Main.determineEnvironment(cmds.toArray(new String[cmds.size()]), startTime, ProcessType.EMBEDDED_HOST_CONTROLLER).getHostControllerEnvironment();
         }
+
+
     }
 }
 

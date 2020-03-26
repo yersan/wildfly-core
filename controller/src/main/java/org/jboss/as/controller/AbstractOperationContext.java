@@ -739,6 +739,13 @@ abstract class AbstractOperationContext implements OperationContext {
                 boolean exit = false;
                 try {
                     CapabilityRegistry.RuntimeStatus stepStatus = getStepExecutionStatus(step);
+                    if (  step.address != null && step.operation.hasDefined("operation") && !step.operation.get("operation").asString().equals("read-operation-description") && step.address.size() == 3 &&
+//                            step.address.getElement(0).matches(PathElement.pathElement("host", "master")) &&
+                            step.address.getElement(1).matches(PathElement.pathElement("subsystem", "elytron")) &&
+                            step.address.getElement(2).matches(PathElement.pathElement("provider-loader", "elytron"))){
+                        ControllerLogger.ROOT_LOGGER.info(Thread.currentThread() + " - "+Thread.currentThread().getId() +" STEP Operation="+step.operation.toString());
+                        ControllerLogger.ROOT_LOGGER.info(Thread.currentThread() + " - "+Thread.currentThread().getId() +" ------------------------------ STEP STATUS="+stepStatus);
+                    }
                     if (stepStatus == RuntimeCapabilityRegistry.RuntimeStatus.NORMAL) {
                         executeStep(step);
                     } else {
@@ -770,9 +777,21 @@ abstract class AbstractOperationContext implements OperationContext {
     }
 
     private CapabilityRegistry.RuntimeStatus getStepExecutionStatus(Step step) {
+        boolean flag =(step.address != null && step.operation.hasDefined("operation") && !step.operation.get("operation").asString().equals("read-operation-description") && step.address.size() == 3 &&
+//                            step.address.getElement(0).matches(PathElement.pathElement("host", "master")) &&
+                step.address.getElement(1).matches(PathElement.pathElement("subsystem", "elytron")) &&
+                step.address.getElement(2).matches(PathElement.pathElement("provider-loader", "elytron")));
+
         if (booting || currentStage != Stage.RUNTIME || !RUNTIME_LIMITED_STATES.contains(processState.getState())
                 || (step.operationDefinition != null && (step.operationDefinition.getFlags().contains(OperationEntry.Flag.READ_ONLY)
                         || step.operationDefinition.getFlags().contains(OperationEntry.Flag.RUNTIME_ONLY)))) {
+            if (flag) ControllerLogger.ROOT_LOGGER.info("booting=" + booting +
+                    "currentStage="+ currentStage +
+                    " state=" + processState.getState() +
+                    RUNTIME_LIMITED_STATES.contains(processState.getState()) +
+                    "- " + (step.operationDefinition != null && (step.operationDefinition.getFlags().contains(OperationEntry.Flag.READ_ONLY)
+                    || step.operationDefinition.getFlags().contains(OperationEntry.Flag.RUNTIME_ONLY)))
+            );
             return RuntimeCapabilityRegistry.RuntimeStatus.NORMAL;
         }
         ImmutableManagementResourceRegistration mrr = step.getManagementResourceRegistration(getManagementModel());
@@ -785,10 +804,19 @@ abstract class AbstractOperationContext implements OperationContext {
                 String attrName = step.operation.get(NAME).asString();
                 AttributeAccess aa = mrr.getAttributeAccess(PathAddress.EMPTY_ADDRESS, attrName);
                 if (aa != null && aa.getStorageType() == AttributeAccess.Storage.RUNTIME) {
+                    if (flag) ControllerLogger.ROOT_LOGGER.info("opName=" + opName);
                     return RuntimeCapabilityRegistry.RuntimeStatus.NORMAL;
                 }
             }
         }
+        if (flag) ControllerLogger.ROOT_LOGGER.info(" ... ");
+        if (flag) ControllerLogger.ROOT_LOGGER.info("booting=" + booting +
+                "currentStage="+ currentStage +
+                " state=" + processState.getState() +
+                RUNTIME_LIMITED_STATES.contains(processState.getState()) +
+                "- " + (step.operationDefinition != null && (step.operationDefinition.getFlags().contains(OperationEntry.Flag.READ_ONLY)
+                || step.operationDefinition.getFlags().contains(OperationEntry.Flag.RUNTIME_ONLY)))
+        );
         return getStepCapabilityStatus(step);
     }
 
@@ -1152,6 +1180,7 @@ abstract class AbstractOperationContext implements OperationContext {
     @Override
     public final void reloadRequired() {
         if (processState.isReloadSupported()) {
+            ControllerLogger.ROOT_LOGGER.info("Setting Reload Required for " + activeStep.operation.toString());
             activeStep.restartStamp = processState.setReloadRequired();
             activeStep.response.get(RESPONSE_HEADERS, OPERATION_REQUIRES_RELOAD).set(true);
             getManagementModel().getCapabilityRegistry().capabilityReloadRequired(activeStep.address,

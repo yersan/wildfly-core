@@ -30,7 +30,9 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.RunningMode;
 import org.jboss.as.controller.capability.RuntimeCapability;
+import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
@@ -73,6 +75,13 @@ abstract class TrivialAddHandler<T> extends BaseAddHandler {
 
         ServiceBuilder<T> serviceBuilder = (ServiceBuilder<T>)context.getCapabilityServiceTarget().addCapability(runtimeCapability);
         serviceBuilder.setInstance(trivialService);
+
+        if ( runtimeCapability.getName().equals("org.wildfly.security.providers") ) {
+            ServerLogger.ROOT_LOGGER.info(Thread.currentThread() + " - "+Thread.currentThread().getId() +" 2) Is Booting="+context.isBooting());
+            ServerLogger.ROOT_LOGGER.info(Thread.currentThread() + " - "+Thread.currentThread().getId() + " Service Name: " + runtimeCapability.getCapabilityServiceName());
+            ServerLogger.ROOT_LOGGER.info(Thread.currentThread() + " - "+Thread.currentThread().getId() +" Operation " + operation.toString());
+            Thread.dumpStack();
+        }
 
         trivialService.setValueSupplier(getValueSupplier(serviceBuilder, context, resource.getModel()));
         installedForResource(commonDependencies(serviceBuilder, dependOnProperties(), dependOnProviderRegistration())

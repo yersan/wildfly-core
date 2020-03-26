@@ -48,6 +48,8 @@ public interface EmbeddedManagedProcess {
      */
     void stop();
 
+    String getCurrentProcessState();
+
     static ClassLoader getTccl() {
         if (System.getSecurityManager() == null) {
             return Thread.currentThread().getContextClassLoader();
