@@ -276,7 +276,7 @@ class EmbedHostControllerHandler extends CommandHandlerWithHelp {
                 do {
                     status = hostController.getProcessState();
 
-                    if (status == null || "starting".equals(status)) {
+                    if ("starting".equals(status)) {
                         try {
                             Thread.sleep(50);
                         } catch (InterruptedException e) {
@@ -288,7 +288,7 @@ class EmbedHostControllerHandler extends CommandHandlerWithHelp {
                     }
                 } while (System.nanoTime() < expired);
 
-                if (status == null || "starting".equals(status)) {
+                if ("starting".equals(status)) {
                     assert bootTimeout != null; // we'll assume the loop didn't run for decades
                     // Stop server and restore environment
                     StopEmbeddedHostControllerHandler.cleanup(hostControllerReference);
