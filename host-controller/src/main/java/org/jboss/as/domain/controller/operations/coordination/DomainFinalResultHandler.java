@@ -89,7 +89,7 @@ class DomainFinalResultHandler implements OperationStepHandler {
         context.completeStep(new OperationContext.ResultHandler() {
             @Override
             public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                DomainControllerLogger.HOST_CONTROLLER_LOGGER.tracef("Establishing final response -- result action is %s", resultAction);
+                DomainControllerLogger.HOST_CONTROLLER_LOGGER.infof("Establishing final response -- result action is %s", resultAction);
                 // On the way out, fix up the response
                 final boolean isDomain = isDomainOperation(operation);
                 boolean shouldContinue = collectDomainFailure(context, isDomain);
@@ -110,7 +110,7 @@ class DomainFinalResultHandler implements OperationStepHandler {
                         localDomainFormatted.get(RESULT).clear();
                         ModelNode domainResults = executionSupport.getFormattedDomainResult(localResponse.get(RESULT));
                         localDomainFormatted.get(RESULT, DOMAIN_RESULTS).set(domainResults);
-                        DomainControllerLogger.HOST_CONTROLLER_LOGGER.tracef("Domain formatted result for local response %s is %s",
+                        DomainControllerLogger.HOST_CONTROLLER_LOGGER.infof("Domain formatted result for local response %s is %s",
                                 localResponse, localDomainFormatted);
                     }
 

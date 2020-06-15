@@ -260,7 +260,7 @@ public class BlockerExtension implements Extension {
                 Thread.sleep(time);
             } catch (InterruptedException e) {
                 log.info("interrupted");
-                Thread.currentThread().interrupt();
+//                Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             }
         }

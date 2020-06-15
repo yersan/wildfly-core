@@ -955,6 +955,8 @@ abstract class AbstractOperationContext implements OperationContext {
 
         // Cancellation is detected via interruption.
         if (Thread.currentThread().isInterrupted()) {
+            ControllerLogger.MGMT_OP_LOGGER.infof("Interrupted the Thread handling operation %s on address %s in stage %s",
+                    activeStep.operationId.name, activeStep.operationId.address, currentStage);
             cancelled = true;
         }
         // Rollback when any of:
@@ -968,7 +970,7 @@ abstract class AbstractOperationContext implements OperationContext {
                 activeStep.response.get(OUTCOME).set(CANCELLED);
                 activeStep.response.get(FAILURE_DESCRIPTION).set(ControllerLogger.ROOT_LOGGER.operationCancelled());
                 activeStep.response.get(ROLLED_BACK).set(true);
-                ControllerLogger.MGMT_OP_LOGGER.tracef("Rolling back on cancellation of operation %s on address %s in stage %s",
+                ControllerLogger.MGMT_OP_LOGGER.infof("Rolling back on cancellation of operation %s on address %s in stage %s",
                         activeStep.operationId.name, activeStep.operationId.address, currentStage);
             }
             resultAction = ResultAction.ROLLBACK;
@@ -977,10 +979,10 @@ abstract class AbstractOperationContext implements OperationContext {
             activeStep.response.get(OUTCOME).set(FAILED);
             activeStep.response.get(ROLLED_BACK).set(true);
             resultAction = ResultAction.ROLLBACK;
-            ControllerLogger.MGMT_OP_LOGGER.tracef("Rolling back on failed response %s to operation %s on address %s in stage %s",
+            ControllerLogger.MGMT_OP_LOGGER.infof("Rolling back on failed response %s to operation %s on address %s in stage %s",
                     activeStep.response, activeStep.operationId.name, activeStep.operationId.address, currentStage);
         } else if (activeStep != null && activeStep.hasFailed()) {
-            ControllerLogger.MGMT_OP_LOGGER.tracef("Not rolling back on failed response %s to operation %s on address %s in stage %s",
+            ControllerLogger.MGMT_OP_LOGGER.infof("Not rolling back on failed response %s to operation %s on address %s in stage %s",
                     activeStep.response, activeStep.operationId.name, activeStep.operationId.address, currentStage);
         }
         return resultAction != ResultAction.ROLLBACK;

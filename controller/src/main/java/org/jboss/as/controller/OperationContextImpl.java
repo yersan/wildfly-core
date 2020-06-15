@@ -2525,6 +2525,7 @@ final class OperationContextImpl extends AbstractOperationContext {
                 if (canCancel) {
                     done.done = true;
                     ControllerLogger.MGMT_OP_LOGGER.cancellingOperation(operationName, operationId, initiatingThread.getName());
+                    ControllerLogger.ROOT_LOGGER.info("Interrupting this thread=" + initiatingThread.getId() + "-" + initiatingThread.getName());
                     initiatingThread.interrupt();
                 }
                 return canCancel;
