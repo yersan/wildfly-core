@@ -98,9 +98,10 @@ class ConcurrentUpdateTask implements Runnable {
             HOST_CONTROLLER_LOGGER.info(" ....... Initial ......"+Thread.currentThread().isInterrupted());
             Thread.currentThread().interrupt();
             HOST_CONTROLLER_LOGGER.info(" ....... Interrupted ......"+Thread.currentThread().isInterrupted());
-            while (!Thread.currentThread().isInterrupted()) {
-                Thread.currentThread().interrupt();
-            }
+//            Thread.currentThread().interrupt();
+//            while (!Thread.currentThread().isInterrupted()) {
+//                Thread.currentThread().interrupt();
+//            }
             HOST_CONTROLLER_LOGGER.info(" ....... After While ......"+Thread.currentThread().isInterrupted());
         }
     }

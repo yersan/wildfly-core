@@ -85,6 +85,10 @@
                     </formatter>
                 </console-handler>
 
+                <console-handler name="DBUG_CONSOLE">
+                    <level name="TRACE"/>
+                </console-handler>
+
                 <periodic-rotating-file-handler name="FILE">
                     <level name="INFO"/>
                     <formatter>
@@ -95,6 +99,11 @@
                 </periodic-rotating-file-handler>
                 <logger category="org.jboss.as.controller">
                     <level name="TRACE"/>
+                </logger>
+                <logger category="org.jboss.threads" use-parent-handlers="true">
+                    <handlers>
+                        <handler name="DBUG_CONSOLE"/>
+                    </handlers>
                 </logger>
                 <root-logger>
                     <level name="INFO"/>
