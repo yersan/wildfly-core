@@ -740,7 +740,13 @@ abstract class AbstractOperationContext implements OperationContext {
                 try {
                     CapabilityRegistry.RuntimeStatus stepStatus = getStepExecutionStatus(step);
                     if (stepStatus == RuntimeCapabilityRegistry.RuntimeStatus.NORMAL) {
+                        if ( step.operation != null && step.operation.get(OP).isDefined() && step.operation.get(OP).asString().equals("block") ) {
+                            ControllerLogger.ROOT_LOGGER.info(" ...... Executing OP:" + step.operation + " --- Interrupt=" + Thread.currentThread().isInterrupted());
+                        }
                         executeStep(step);
+                        if ( step.operation != null && step.operation.get(OP).isDefined() && step.operation.get(OP).asString().equals("block") ) {
+                            ControllerLogger.ROOT_LOGGER.info(" ...... Executed OP:" + step.operation + " --- Interrupt=" + Thread.currentThread().isInterrupted());
+                        }
                     } else {
                         String header = stepStatus == RuntimeCapabilityRegistry.RuntimeStatus.RESTART_REQUIRED
                                 ? OPERATION_REQUIRES_RESTART : OPERATION_REQUIRES_RELOAD;
@@ -751,6 +757,9 @@ abstract class AbstractOperationContext implements OperationContext {
                     toThrow = re;
                 } finally {
                     // See if executeStep put us in a state where we shouldn't do any more
+                    if (step.operation.get(OP).isDefined() && step.operation.get(OP).asString().equals("block") ){
+                        ControllerLogger.ROOT_LOGGER.info("toThrow=" + toThrow + " -- Interrupted="+Thread.currentThread().isInterrupted());
+                    }
                     if (toThrow != null || !canContinueProcessing()) {
                         // We're done.
                         executeResultHandlerPhase(toThrow);

@@ -78,21 +78,30 @@ class ConcurrentUpdateTask implements Runnable {
                         e.getClass().getSimpleName(), concurrentTasks.get(i).toString());
                 patient = false;
                 future.cancel(true);
+                HOST_CONTROLLER_LOGGER.info(" ....... InterruptedException ......"+patient);
             } catch (ExecutionException e) {
                 HOST_CONTROLLER_LOGGER.caughtExceptionWaitingForTask(ConcurrentUpdateTask.class.getSimpleName(),
                         e.getClass().getSimpleName(), concurrentTasks.get(i).toString());
                 future.cancel(true);
+                HOST_CONTROLLER_LOGGER.info(" ....... ExecutionException ......"+patient);
             } catch (TimeoutException e) {
                 // Task wasn't already done; cancel it
                 HOST_CONTROLLER_LOGGER.caughtExceptionWaitingForTask(ConcurrentUpdateTask.class.getSimpleName(),
                         e.getClass().getSimpleName(), concurrentTasks.get(i).toString());
                 patient = false; // it should already be false if we got here, but just in case someone changes something
                 future.cancel(true);
+                HOST_CONTROLLER_LOGGER.info(" ....... TimeoutException ......"+patient);
             }
         }
 
         if (!patient) {
+            HOST_CONTROLLER_LOGGER.info(" ....... Initial ......"+Thread.currentThread().isInterrupted());
             Thread.currentThread().interrupt();
+            HOST_CONTROLLER_LOGGER.info(" ....... Interrupted ......"+Thread.currentThread().isInterrupted());
+            while (!Thread.currentThread().isInterrupted()) {
+                Thread.currentThread().interrupt();
+            }
+            HOST_CONTROLLER_LOGGER.info(" ....... After While ......"+Thread.currentThread().isInterrupted());
         }
     }
 
