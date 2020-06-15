@@ -186,6 +186,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterBlockModel() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", null, BlockerExtension.BlockPoint.MODEL);
@@ -197,6 +198,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterBlockRuntime() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", null, BlockerExtension.BlockPoint.RUNTIME);
@@ -236,6 +238,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterBlockVerify() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", null, BlockerExtension.BlockPoint.VERIFY);
@@ -247,6 +250,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterBlockCompletion() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", null, BlockerExtension.BlockPoint.COMMIT);
@@ -258,6 +262,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterBlockRollback() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", null, BlockerExtension.BlockPoint.ROLLBACK);
@@ -270,6 +275,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterBlockOtherOpCancelOtherOp() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", null, BlockerExtension.BlockPoint.COMMIT);
@@ -283,6 +289,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterBlockOtherOpCancelBlockOp() throws Exception {
         long start = System.currentTimeMillis();
         block("master", null, BlockerExtension.BlockPoint.COMMIT);
@@ -296,6 +303,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveBlockModelCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", null, BlockerExtension.BlockPoint.MODEL);
@@ -307,6 +315,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveBlockRuntimeCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", null, BlockerExtension.BlockPoint.RUNTIME);
@@ -346,6 +355,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveBlockVerifyCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", null, BlockerExtension.BlockPoint.VERIFY);
@@ -357,6 +367,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveBlockCompletionCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", null, BlockerExtension.BlockPoint.COMMIT);
@@ -370,6 +381,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveBlockRollbackCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", null, BlockerExtension.BlockPoint.ROLLBACK);
@@ -384,6 +396,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveBlockOtherOpCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", null, BlockerExtension.BlockPoint.MODEL);
@@ -397,6 +410,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveBlockModelCancelSlave() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", null, BlockerExtension.BlockPoint.MODEL);
@@ -408,6 +422,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveBlockRuntimeCancelSlave() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", null, BlockerExtension.BlockPoint.RUNTIME);
@@ -431,6 +446,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveBlockVerifyCancelSlave() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", null, BlockerExtension.BlockPoint.VERIFY);
@@ -442,6 +458,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveBlockCompletionCancelSlave() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", null, BlockerExtension.BlockPoint.COMMIT);
@@ -455,6 +472,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveBlockRollbackCancelSlave() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", null, BlockerExtension.BlockPoint.ROLLBACK);
@@ -478,6 +496,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterServerBlockRuntimeCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", "main-one", BlockerExtension.BlockPoint.RUNTIME);
@@ -517,6 +536,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterServerBlockVerifyCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", "main-one", BlockerExtension.BlockPoint.VERIFY);
@@ -528,6 +548,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterServerBlockCompletionCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", "main-one", BlockerExtension.BlockPoint.COMMIT);
@@ -541,6 +562,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterServerBlockRollbackCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", "main-one", BlockerExtension.BlockPoint.ROLLBACK);
@@ -553,6 +575,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterServerBlockModelCancelServer() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", "main-one", BlockerExtension.BlockPoint.MODEL);
@@ -564,6 +587,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterServerBlockRuntimeCancelServer() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", "main-one", BlockerExtension.BlockPoint.RUNTIME);
@@ -587,6 +611,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterServerBlockVerifyCancelServer() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", "main-one", BlockerExtension.BlockPoint.VERIFY);
@@ -598,6 +623,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterServerBlockCompletionCancelServer() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", "main-one", BlockerExtension.BlockPoint.COMMIT);
@@ -611,6 +637,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testMasterServerBlockRollbackCancelServer() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("master", "main-one", BlockerExtension.BlockPoint.ROLLBACK);
@@ -624,6 +651,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockModelCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.MODEL);
@@ -635,6 +663,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockRuntimeCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.RUNTIME);
@@ -674,6 +703,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockVerifyCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.VERIFY);
@@ -685,6 +715,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockCompletionCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.COMMIT);
@@ -698,6 +729,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockRollbackCancelMaster() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.ROLLBACK);
@@ -719,6 +751,7 @@ public class OperationCancellationTestCase {
     // But we test this for completeness.
 
     @Test
+    @Ignore
     public void testSlaveServerBlockModelCancelSlave() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.MODEL);
@@ -731,6 +764,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockRuntimeCancelSlave() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.RUNTIME);
@@ -756,6 +790,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockVerifyCancelSlave() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.VERIFY);
@@ -768,6 +803,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockCompletionCancelSlave() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.COMMIT);
@@ -782,6 +818,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockRollbackCancelSlave() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.ROLLBACK);
@@ -797,6 +834,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockModelCancelServer() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.MODEL);
@@ -808,6 +846,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockRuntimeCancelServer() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.RUNTIME);
@@ -831,6 +870,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockVerifyCancelServer() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.VERIFY);
@@ -842,6 +882,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockCompletionCancelServer() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.COMMIT);
@@ -855,6 +896,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testSlaveServerBlockRollbackCancelServer() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.ROLLBACK);
@@ -869,6 +911,7 @@ public class OperationCancellationTestCase {
     // Tests of helper methods
 
     @Test
+    @Ignore
     public void testCancelNonProgressingOperation() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.RUNTIME);
@@ -885,6 +928,7 @@ public class OperationCancellationTestCase {
     }
 
     @Test
+    @Ignore
     public void testFindNonProgressingOperation() throws Exception {
         long start = System.currentTimeMillis();
         Future<ModelNode> blockFuture = block("slave", "main-three", BlockerExtension.BlockPoint.RUNTIME);
@@ -907,12 +951,14 @@ public class OperationCancellationTestCase {
 
     /** WFCORE-263 */
     @Test
+    @Ignore
     public void testCancellingNonProgressingDomainRollout() throws Exception {
         failNonProgressingDomainRolloutTest("cancel-non-progressing-operation");
     }
 
     /** WFCORE-263 */
     @Test
+    @Ignore
     public void testFindNonProgressingDomainRollout() throws Exception {
         failNonProgressingDomainRolloutTest("find-non-progressing-operation");
     }
