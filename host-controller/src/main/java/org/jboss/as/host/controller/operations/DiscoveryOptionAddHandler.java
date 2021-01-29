@@ -64,7 +64,7 @@ public class DiscoveryOptionAddHandler extends AbstractDiscoveryOptionAddHandler
     @Override
     protected void performRuntime(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
         if (context.isBooting()) {
-            populateHostControllerInfo(hostControllerInfo, context, operation);
+            populateHostControllerInfo(hostControllerInfo, context, operation, model);
         } else {
             context.reloadRequired();
         }
@@ -77,16 +77,16 @@ public class DiscoveryOptionAddHandler extends AbstractDiscoveryOptionAddHandler
     }
 
     protected void populateHostControllerInfo(LocalHostControllerInfoImpl hostControllerInfo, OperationContext context,
-            ModelNode operation) throws OperationFailedException {
-        ModelNode codeNode = DiscoveryOptionResourceDefinition.CODE.resolveModelAttribute(context, operation);
+            ModelNode operation, ModelNode model) throws OperationFailedException {
+        ModelNode codeNode = DiscoveryOptionResourceDefinition.CODE.resolveModelAttribute(context, model);
         String discoveryOptionClassName = codeNode.isDefined() ? codeNode.asString() : null;
 
-        ModelNode moduleNode = DiscoveryOptionResourceDefinition.MODULE.resolveModelAttribute(context, operation);
+        ModelNode moduleNode = DiscoveryOptionResourceDefinition.MODULE.resolveModelAttribute(context, model);
         String moduleName = moduleNode.isDefined() ? moduleNode.asString() : null;
 
         final Map<String, ModelNode> discoveryOptionProperties = new HashMap<String, ModelNode>();
         if (operation.hasDefined(DiscoveryOptionResourceDefinition.PROPERTIES.getName())) {
-            for (Map.Entry<String, String> discoveryOptionProperty : DiscoveryOptionResourceDefinition.PROPERTIES.unwrap(context, operation).entrySet()) {
+            for (Map.Entry<String, String> discoveryOptionProperty : DiscoveryOptionResourceDefinition.PROPERTIES.unwrap(context, model).entrySet()) {
                 discoveryOptionProperties.put(discoveryOptionProperty.getKey(), new ModelNode(discoveryOptionProperty.getValue()));
             }
         }

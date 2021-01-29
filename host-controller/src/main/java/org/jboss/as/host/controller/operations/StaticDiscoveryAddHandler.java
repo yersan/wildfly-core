@@ -58,7 +58,7 @@ public class StaticDiscoveryAddHandler extends AbstractDiscoveryOptionAddHandler
     @Override
     protected void performRuntime(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
         if (context.isBooting()) {
-            populateHostControllerInfo(hostControllerInfo, context, operation);
+            populateHostControllerInfo(hostControllerInfo, context, model, null);
         } else {
             context.reloadRequired();
         }
@@ -71,7 +71,7 @@ public class StaticDiscoveryAddHandler extends AbstractDiscoveryOptionAddHandler
     }
 
     protected void populateHostControllerInfo(LocalHostControllerInfoImpl hostControllerInfo, OperationContext context,
-            ModelNode model) throws OperationFailedException {
+            ModelNode model, ModelNode th) throws OperationFailedException {
         ModelNode hostNode = StaticDiscoveryResourceDefinition.HOST.resolveModelAttribute(context, model);
         ModelNode portNode = StaticDiscoveryResourceDefinition.PORT.resolveModelAttribute(context, model);
         ModelNode protocolNode = DomainControllerWriteAttributeHandler.PROTOCOL.resolveModelAttribute(context, model);
