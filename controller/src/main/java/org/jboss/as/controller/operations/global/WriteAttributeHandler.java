@@ -180,6 +180,8 @@ public class WriteAttributeHandler implements OperationStepHandler {
 
                 final ModelNode originalOperation = operation; // final vars so they can be accessed from lambda
                 final ModelNode resolvedOperation = operation.clone();
+                resolvedOperation.get(ModelDescriptionConstants.NAME).set(attributeName); // replace the current expression with the base attribute name
+                resolvedOperation.get(ModelDescriptionConstants.VALUE).set(currentValue); // just pass in the existing value
                 operation = resolvedOperation;
 
                 context.addStep((context1, operation1) -> {
