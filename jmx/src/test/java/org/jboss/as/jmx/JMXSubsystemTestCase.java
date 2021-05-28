@@ -239,6 +239,7 @@ public class JMXSubsystemTestCase extends AbstractSubsystemBaseTest {
         }
 
         super.assertRemoveSubsystemResources(services);
+        services.shutdown();
     }
 
 
