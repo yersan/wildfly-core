@@ -64,6 +64,7 @@ import org.jboss.as.subsystem.test.AdditionalInitialization;
 import org.jboss.as.subsystem.test.ControllerInitializer;
 import org.jboss.as.subsystem.test.KernelServices;
 import org.jboss.dmr.ModelNode;
+import org.jboss.logging.Logger;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceNotFoundException;
@@ -79,6 +80,7 @@ import org.xnio.XnioWorker;
  * @author <a href="opalka.richard@gmail.com">Richard Opalka</a>
  */
 public class RemotingLegacySubsystemTestCase extends AbstractRemotingSubsystemBaseTest {
+    Logger log = Logger.getLogger(RemotingLegacySubsystemTestCase.class);
 
     @Override
     protected void compare(ModelNode node1, ModelNode node2) {
@@ -203,7 +205,9 @@ public class RemotingLegacySubsystemTestCase extends AbstractRemotingSubsystemBa
         write.get(OP_ADDR).add(SUBSYSTEM, RemotingExtension.SUBSYSTEM_NAME).add(CommonAttributes.CONNECTOR, "test-connector").add(CommonAttributes.PROPERTY, "org.xnio.Options.WORKER_ACCEPT_THREADS");
         write.get(NAME).set(VALUE);
         write.get(VALUE).set(2);
+        log.info("------------------------------------------------------------ START OP1");
         ModelNode result = services.executeOperation(write);
+        log.info("------------------------------------------------------------ END OP1");
         assertFalse(result.get(FAILURE_DESCRIPTION).toString(), result.hasDefined(FAILURE_DESCRIPTION));
         assertEquals(2, services.readWholeModel().get(SUBSYSTEM, RemotingExtension.SUBSYSTEM_NAME, CommonAttributes.CONNECTOR, "test-connector", CommonAttributes.PROPERTY, "org.xnio.Options.WORKER_ACCEPT_THREADS").require(VALUE).asInt());
         current.updateCurrentEndpoint(true);
@@ -214,7 +218,9 @@ public class RemotingLegacySubsystemTestCase extends AbstractRemotingSubsystemBa
         remove.get(OP).set(REMOVE);
         remove.remove(NAME);
         remove.remove(VALUE);
+        log.info("------------------------------------------------------------ START OP2");
         result = services.executeOperation(remove);
+        log.info("------------------------------------------------------------ END OP2");
         assertFalse(result.get(FAILURE_DESCRIPTION).toString(), result.hasDefined(FAILURE_DESCRIPTION));
         assertFalse(services.readWholeModel().get(SUBSYSTEM, RemotingExtension.SUBSYSTEM_NAME, CommonAttributes.CONNECTOR, "test-connector", CommonAttributes.PROPERTY, "org.xnio.Options.WORKER_ACCEPT_THREADS").isDefined());
         current.updateCurrentEndpoint(true);
@@ -224,7 +230,9 @@ public class RemotingLegacySubsystemTestCase extends AbstractRemotingSubsystemBa
         ModelNode add = remove.clone();
         add.get(OP).set(ADD);
         add.get(VALUE).set(1);
+        log.info("------------------------------------------------------------ START OP3");
         result = services.executeOperation(add);
+        log.info("------------------------------------------------------------ END OP3");
         assertFalse(result.get(FAILURE_DESCRIPTION).toString(), result.hasDefined(FAILURE_DESCRIPTION));
         assertEquals(1, services.readWholeModel().get(SUBSYSTEM, RemotingExtension.SUBSYSTEM_NAME, CommonAttributes.CONNECTOR, "test-connector", CommonAttributes.PROPERTY, "org.xnio.Options.WORKER_ACCEPT_THREADS").require(VALUE).asInt());
         current.updateCurrentEndpoint(true);
