@@ -35,4 +35,7 @@
         </service>
     </provides>
 
+    <dependencies>
+        <module name="org.bouncycastle.bcutil"/>
+    </dependencies>
 </module>
