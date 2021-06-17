@@ -36,6 +36,7 @@
     </provides>
 
     <dependencies>
-        <module name="org.bouncycastle.bcutil"/>
+        <module name="java.naming"/>
+        <module name="java.sql"/>
     </dependencies>
 </module>
