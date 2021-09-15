@@ -424,10 +424,18 @@ public final class ServerService extends AbstractControllerService {
             Notification notification = new Notification(ModelDescriptionConstants.BOOT_COMPLETE_NOTIFICATION, PathAddress.pathAddress(PathElement.pathElement(CORE_SERVICE, MANAGEMENT),
                     PathElement.pathElement(SERVICE, MANAGEMENT_OPERATIONS)), ServerLogger.AS_ROOT_LOGGER.bootComplete());
             getNotificationSupport().emit(notification);
-            bootstrapListener.printBootStatistics();
+            List<String> configFiles = new ArrayList<>();
+            if (configuration.getServerEnvironment().getServerConfigurationFile() != null) {
+                configFiles.add(configuration.getServerEnvironment().getServerConfigurationFile().getMainFile().getName());
+            }
+            bootstrapListener.printBootStatistics(false, configFiles);
         } else {
             // Die!
-            final String message = ServerLogger.ROOT_LOGGER.unsuccessfulBoot();
+            String append = "";
+            if (configuration.getServerEnvironment().getServerConfigurationFile() != null) {
+                append = ServerLogger.ROOT_LOGGER.serverConfigFileInUse(configuration.getServerEnvironment().getServerConfigurationFile().getMainFile().getName());
+            }
+            String message = ServerLogger.ROOT_LOGGER.unsuccessfulBoot(append);
             bootstrapListener.bootFailure(message);
             SystemExiter.logAndExit(new SystemExiter.ExitLogger() {
                 @Override

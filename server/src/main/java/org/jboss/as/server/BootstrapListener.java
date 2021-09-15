@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 
 import org.jboss.as.network.NetworkUtils;
 import org.jboss.as.server.logging.ServerLogger;
@@ -68,7 +69,7 @@ public final class BootstrapListener {
         return monitor;
     }
 
-    public void printBootStatistics() {
+    public void printBootStatistics(boolean isHostController, List<String> configFiles) {
         final StabilityStatistics statistics = new StabilityStatistics();
         try {
             monitor.awaitStability(statistics);
@@ -78,7 +79,7 @@ public final class BootstrapListener {
         } finally {
             serviceTarget.removeMonitor(monitor);
             final long bootstrapTime = System.currentTimeMillis() - startTime;
-            done(bootstrapTime, statistics);
+            done(bootstrapTime, statistics, isHostController, configFiles);
             monitor.clear();
         }
     }
@@ -87,7 +88,7 @@ public final class BootstrapListener {
         futureContainer.failed(new Exception(message));
     }
 
-    private void done(final long bootstrapTime, final StabilityStatistics statistics) {
+    private void done(final long bootstrapTime, final StabilityStatistics statistics, boolean isHostController, List<String> configFiles) {
         futureContainer.done(serviceContainer);
         if (serviceContainer.isShutdown()) {
             // Do not print boot statistics because server
@@ -104,12 +105,28 @@ public final class BootstrapListener {
         final int problem = statistics.getProblemsCount();
         final int started = statistics.getStartedCount();
         if (failed == 0 && problem == 0) {
-            ServerLogger.AS_ROOT_LOGGER.startedClean(prettyVersion, bootstrapTime, started, active + passive + onDemand + never + lazy, onDemand + passive + lazy);
+            ServerLogger.AS_ROOT_LOGGER.startedClean(prettyVersion, bootstrapTime, started, active + passive + onDemand + never + lazy, onDemand + passive + lazy, getMessageToAppend(configFiles, isHostController));
             createStartupMarker("success", startTime);
         } else {
-            ServerLogger.AS_ROOT_LOGGER.startedWitErrors(prettyVersion, bootstrapTime, started, active + passive + onDemand + never + lazy, failed + problem, onDemand + passive + lazy);
+            ServerLogger.AS_ROOT_LOGGER.startedWitErrors(prettyVersion, bootstrapTime, started, active + passive + onDemand + never + lazy, failed + problem, onDemand + passive + lazy, getMessageToAppend(configFiles, isHostController));
             createStartupMarker("error", startTime);
         }
+    }
+
+    private String getMessageToAppend(List<String> configFiles, boolean isHostController) {
+        String append = "";
+        if (configFiles != null && !configFiles.isEmpty()) {
+            if (isHostController) {
+                if (configFiles.size() == 2) {
+                    append = ServerLogger.AS_ROOT_LOGGER.hostControllerMasterConfigFilesInUse(configFiles.get(0), configFiles.get(1));
+                } else {
+                    append = ServerLogger.AS_ROOT_LOGGER.hostControllerSlaveConfigFileInUse(configFiles.get(0));
+                }
+            } else {
+                append = ServerLogger.AS_ROOT_LOGGER.serverConfigFileInUse(configFiles.get(0));
+            }
+        }
+        return append;
     }
 
     private void createStartupMarker(String result, long startTime) {

@@ -897,11 +897,22 @@ public class DomainModelControllerService extends AbstractControllerService impl
                     Notification notification = new Notification(ModelDescriptionConstants.BOOT_COMPLETE_NOTIFICATION, PathAddress.pathAddress(PathElement.pathElement(CORE_SERVICE, MANAGEMENT),
                             PathElement.pathElement(SERVICE, MANAGEMENT_OPERATIONS)), ControllerLogger.MGMT_OP_LOGGER.bootComplete());
                     getNotificationSupport().emit(notification);
-                    bootstrapListener.printBootStatistics();
+                    List<String> configFiles = new ArrayList<>();
+                    if (environment.getDomainConfigurationFile() != null) { //for slave HC is null
+                        configFiles.add(environment.getDomainConfigurationFile().getMainFile().getName());
+                    }
+                    configFiles.add(environment.getHostConfigurationFile().getMainFile().getName());
+                    bootstrapListener.printBootStatistics(true, configFiles);
                 }
             } else {
                 // Die!
-                String failed = ROOT_LOGGER.unsuccessfulBoot();
+                String append;
+                if (environment.getDomainConfigurationFile() != null) {
+                    append = ROOT_LOGGER.configFilesInUse(environment.getDomainConfigurationFile().getMainFile().getName(), environment.getHostConfigurationFile().getMainFile().getName());
+                } else {
+                    append = ROOT_LOGGER.configFileInUse(environment.getHostConfigurationFile().getMainFile().getName());
+                }
+                String failed = ROOT_LOGGER.unsuccessfulBoot(append);
                 ROOT_LOGGER.fatal(failed);
                 bootstrapListener.bootFailure(failed);
 
