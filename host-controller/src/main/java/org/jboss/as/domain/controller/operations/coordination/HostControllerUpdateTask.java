@@ -111,6 +111,7 @@ class HostControllerUpdateTask {
                     }
                 } else {
                     HOST_CONTROLLER_LOGGER.tracef("Sending %s (transformed to null) to %s", operation, name);
+                    assert false;
                 }
 
                 final AsyncFuture<OperationResponse> result = client.execute(subsystemListener, proxyOperation);
