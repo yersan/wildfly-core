@@ -424,11 +424,12 @@ public final class ServerService extends AbstractControllerService {
             Notification notification = new Notification(ModelDescriptionConstants.BOOT_COMPLETE_NOTIFICATION, PathAddress.pathAddress(PathElement.pathElement(CORE_SERVICE, MANAGEMENT),
                     PathElement.pathElement(SERVICE, MANAGEMENT_OPERATIONS)), ServerLogger.AS_ROOT_LOGGER.bootComplete());
             getNotificationSupport().emit(notification);
-            List<String> configFiles = new ArrayList<>();
+            String message = "";
             if (configuration.getServerEnvironment().getServerConfigurationFile() != null) {
-                configFiles.add(configuration.getServerEnvironment().getServerConfigurationFile().getMainFile().getName());
+                String serverConfig = configuration.getServerEnvironment().getServerConfigurationFile().getMainFile().getName();
+                message = ServerLogger.AS_ROOT_LOGGER.serverConfigFileInUse(serverConfig);
             }
-            bootstrapListener.printBootStatistics(false, configFiles);
+            bootstrapListener.printBootStatistics(message);
         } else {
             // Die!
             String append = "";

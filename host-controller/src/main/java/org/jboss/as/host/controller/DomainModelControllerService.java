@@ -897,12 +897,16 @@ public class DomainModelControllerService extends AbstractControllerService impl
                     Notification notification = new Notification(ModelDescriptionConstants.BOOT_COMPLETE_NOTIFICATION, PathAddress.pathAddress(PathElement.pathElement(CORE_SERVICE, MANAGEMENT),
                             PathElement.pathElement(SERVICE, MANAGEMENT_OPERATIONS)), ControllerLogger.MGMT_OP_LOGGER.bootComplete());
                     getNotificationSupport().emit(notification);
-                    List<String> configFiles = new ArrayList<>();
+
+                    String append;
+                    String hostConfig = environment.getHostConfigurationFile().getMainFile().getName();
                     if (environment.getDomainConfigurationFile() != null) { //for slave HC is null
-                        configFiles.add(environment.getDomainConfigurationFile().getMainFile().getName());
+                        String domainConfig = environment.getDomainConfigurationFile().getMainFile().getName();
+                        append = ROOT_LOGGER.configFilesInUse(domainConfig, hostConfig);
+                    } else {
+                        append = ROOT_LOGGER.configFileInUse(hostConfig);
                     }
-                    configFiles.add(environment.getHostConfigurationFile().getMainFile().getName());
-                    bootstrapListener.printBootStatistics(true, configFiles);
+                    bootstrapListener.printBootStatistics(append);
                 }
             } else {
                 // Die!

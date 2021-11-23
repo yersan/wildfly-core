@@ -1409,12 +1409,6 @@ public interface ServerLogger extends BasicLogger {
     @Message(id = Message.NONE, value = "Adding .gitignore")
     String addingIgnored();
 
-    @Message(id = Message.NONE, value = "- Host Controller configuration files in use: %s, %s")
-    String hostControllerMasterConfigFilesInUse(String domainConfigFile, String hostConfigFile);
-
-    @Message(id = Message.NONE, value = "- Host Controller configuration files in use: %s")
-    String hostControllerSlaveConfigFileInUse(String hostConfigFile);
-
     @Message(id = Message.NONE, value = "- Server configuration file in use: %s")
     String serverConfigFileInUse(String serverConfigFile);
 }

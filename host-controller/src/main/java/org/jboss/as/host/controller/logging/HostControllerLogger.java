@@ -1467,10 +1467,10 @@ public interface HostControllerLogger extends BasicLogger {
     ////////////////////////////////////////////////
     //Messages without IDs
 
-    @Message(id = Message.NONE, value = "Host Controller configuration files in use: %s, %s")
+    @Message(id = Message.NONE, value = "- Host Controller configuration files in use: %s, %s")
     String configFilesInUse(String domainConfigFile, String hostConfigFile);
 
-    @Message(id = Message.NONE, value = "Host Controller configuration file in use: %s")
+    @Message(id = Message.NONE, value = "- Host Controller configuration file in use: %s")
     String configFileInUse(String hostConfigFile);
 
 }
