@@ -48,9 +48,19 @@ abstract class CliProcessBuilder{
     private CliCommandBuilder cliCommandBuilder;
     private String cliConfigFile;
 
-    public CliProcessBuilder(){
+    /**
+     * Creates the CLI Process launched as a modular application or as non-modular application, in which case the CLI process
+     * is launched by using jboss-cli-client.jar
+     *
+     * @param modular Whether the process will be launched as a modular application.
+     */
+    public CliProcessBuilder(boolean modular){
         String jbossDist = TestSuiteEnvironment.getSystemProperty("jboss.dist");
-        cliCommandBuilder = CliCommandBuilder.of(jbossDist);
+        if (modular) {
+            cliCommandBuilder = CliCommandBuilder.asModularLauncher(jbossDist);
+        } else {
+            cliCommandBuilder = CliCommandBuilder.asJarLauncher(jbossDist);
+        }
         cliCommandBuilder.addJavaOptions(System.getProperty("cli.jvm.args", "").split("\\s+"));
     }
 
