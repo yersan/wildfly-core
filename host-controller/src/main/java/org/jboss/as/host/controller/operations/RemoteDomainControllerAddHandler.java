@@ -52,7 +52,7 @@ import org.wildfly.security.auth.client.AuthenticationContext;
  * @author <a href="kabir.khan@jboss.com">Kabir Khan</a>
  * @author <a href="mailto:darran.lofthouse@jboss.com">Darran Lofthouse</a>
  */
-public class RemoteDomainControllerAddHandler implements OperationStepHandler {
+    public class RemoteDomainControllerAddHandler implements OperationStepHandler {
 
     public static final String OPERATION_NAME = "write-remote-domain-controller";
 
@@ -104,6 +104,7 @@ public class RemoteDomainControllerAddHandler implements OperationStepHandler {
             .setAllowExpression(true)
             .setFlags(AttributeAccess.Flag.RESTART_JVM)
             .setValidator(EnumValidator.create(AdminOnlyDomainConfigPolicy.class))
+            .setAllowedValues(AdminOnlyDomainConfigPolicy.ALLOW_NO_CONFIG.toString(), AdminOnlyDomainConfigPolicy.FETCH_FROM_DOMAIN_CONTROLLER.toString(), AdminOnlyDomainConfigPolicy.REQUIRE_LOCAL_CONFIG.toString())
             .setDefaultValue(new ModelNode(AdminOnlyDomainConfigPolicy.ALLOW_NO_CONFIG.toString()))
             .build();
 
