@@ -120,7 +120,7 @@ import org.jboss.staxmapper.XMLExtendedStreamReader;
 import org.jboss.staxmapper.XMLExtendedStreamWriter;
 
 /**
- * Parser and marshaller for host controller configuration xml documents (e.g. host.xml) that use the urn:jboss:domain:18.0 schema.
+ * Parser and marshaller for host controller configuration xml documents (e.g. host.xml) that use the urn:jboss:domain:20.0 schema.
  *
  * @author Brian Stansberry
  * @author <a href="mailto:darran.lofthouse@jboss.com">Darran Lofthouse</a>
