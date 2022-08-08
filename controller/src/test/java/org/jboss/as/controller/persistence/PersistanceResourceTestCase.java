@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.AclEntry;
 import java.nio.file.attribute.AclEntryFlag;
 import java.nio.file.attribute.AclEntryPermission;
@@ -368,6 +369,18 @@ public class PersistanceResourceTestCase {
         } catch (IllegalStateException ise) {
             Assert.fail("Should not have rejected relative path");
         }
+    }
+
+    @Test
+    public void testSymbolicLinkForConfigurationFiles() throws Exception {
+        Path file = Paths.get(createFile(externalDir, "standard.xml", "test").toString());
+        Path symbolicLink = standardDir.toPath().resolve("standard.xml");
+        if (Files.exists(symbolicLink)) {
+            Files.delete(symbolicLink);
+        }
+        Files.createSymbolicLink(symbolicLink.toAbsolutePath(), file.toAbsolutePath());
+
+        new ConfigurationFile(standardDir, "standard.xml", "standard.xml", true);
     }
 
     @Test
