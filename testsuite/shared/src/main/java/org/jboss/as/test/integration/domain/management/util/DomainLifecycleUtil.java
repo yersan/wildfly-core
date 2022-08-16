@@ -412,10 +412,14 @@ public class DomainLifecycleUtil implements AutoCloseable {
         }
         try {
             // Wait for the channel to close
+            log.info("Wait for the channel to close");
             channel.awaitClosed();
+            log.info("Channel was closed");
 
             // Wait for the connection to be closed
+            log.info("Wait for the connection to be closed");
             connection.awaitConnectionClosed(ref);
+            log.info("Connection was closed");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

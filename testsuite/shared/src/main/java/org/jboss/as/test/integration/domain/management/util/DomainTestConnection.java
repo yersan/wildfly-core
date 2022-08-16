@@ -37,6 +37,7 @@ import org.jboss.as.protocol.logging.ProtocolLogger;
 import org.jboss.as.protocol.mgmt.ManagementChannelAssociation;
 import org.jboss.as.protocol.mgmt.ManagementChannelHandler;
 import org.jboss.as.protocol.mgmt.ManagementClientChannelStrategy;
+import org.jboss.logmanager.Logger;
 import org.jboss.remoting3.Channel;
 import org.jboss.remoting3.CloseHandler;
 import org.jboss.remoting3.Connection;
@@ -50,6 +51,7 @@ import org.xnio.OptionMap;
  * @author Emanuel Muckenhuber
  */
 class DomainTestConnection implements Closeable {
+    private static final Logger log = Logger.getLogger("WFCORE-XXXXXX");
 
     private static final String DEFAULT_CHANNEL_SERVICE_TYPE = "management";
 
@@ -138,10 +140,12 @@ class DomainTestConnection implements Closeable {
             connection.addCloseHandler(new CloseHandler<Connection>() {
                 @Override
                 public void handleClose(Connection old, IOException exception) {
+                    DomainTestConnection.log.info("Close handler invoked");
                     synchronized (DomainTestConnection.this) {
                         if(connection == old) {
                             connection = null;
                         }
+                        DomainTestConnection.log.info("Notifying Channel is closed via notifyAll");
                         DomainTestConnection.this.notifyAll();
                     }
                 }
@@ -187,6 +191,7 @@ class DomainTestConnection implements Closeable {
                     return;
                 }
                 wait();
+                log.info("connection closed. Thread awake");
             }
         }
     }

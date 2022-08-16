@@ -43,6 +43,7 @@ import org.jboss.as.controller.client.helpers.domain.DomainClient;
 import org.jboss.as.test.integration.domain.management.util.DomainLifecycleUtil;
 import org.jboss.as.test.integration.domain.management.util.DomainTestSupport;
 import org.jboss.dmr.ModelNode;
+import org.jboss.logmanager.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -57,6 +58,7 @@ import java.util.concurrent.TimeUnit;
  */
 //@Ignore("[WFCORE-1958] Clean up testsuite Elytron registration.")
 public class AdminOnlyModeTestCase {
+    private static final Logger log = Logger.getLogger("WFCORE-XXXXXX");
 
     private static DomainTestSupport testSupport;
     private static DomainLifecycleUtil domainMasterLifecycleUtil;
@@ -144,6 +146,7 @@ public class AdminOnlyModeTestCase {
 
     @Test
     public void testAdminOnlyModeRestartServers() throws Exception {
+        log.info("1.testAdminOnlyModeRestartServers");
         final DomainClient masterClient = domainMasterLifecycleUtil.getDomainClient();
 
         // restart master HC in admin only mode
@@ -152,6 +155,7 @@ public class AdminOnlyModeTestCase {
         op.get(OP).set("reload");
         op.get("admin-only").set(true);
         op.get("restart-servers").set(false);
+        log.info("executeAwaitConnectionClosed");
         domainMasterLifecycleUtil.executeAwaitConnectionClosed(op);
 
         // Try to reconnect to the hc
