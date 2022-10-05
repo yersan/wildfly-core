@@ -135,14 +135,14 @@ public class RolesIntegrityCheckingTestCase extends AbstractRbacTestCase {
     public void testAddScopedRoleUsingExistingScopedRoleName() throws Exception {
         ModelControllerClient client = testSupport.getDomainPrimaryLifecycleUtil().getDomainClient();
         addServerGroupScopedRole(client, "MainGroupMonitor", RbacUtil.MAINTAINER_ROLE, Outcome.FAILED);
-        addHostScopedRole(client, "HostMasterMonitor", RbacUtil.MAINTAINER_ROLE, Outcome.FAILED);
+        addHostScopedRole(client, "HostPrimaryMonitor", RbacUtil.MAINTAINER_ROLE, Outcome.FAILED);
     }
 
     @Test
     public void testAddScopedRoleUsingExistingScopedRoleNameDifferentCase() throws Exception {
         ModelControllerClient client = testSupport.getDomainPrimaryLifecycleUtil().getDomainClient();
         addServerGroupScopedRole(client, "MaInGrOuPmOnItOr", RbacUtil.MAINTAINER_ROLE, Outcome.FAILED);
-        addHostScopedRole(client, "HoStMaStErMoNiToR", RbacUtil.MAINTAINER_ROLE, Outcome.FAILED);
+        addHostScopedRole(client, "HostPrimaryMonitor", RbacUtil.MAINTAINER_ROLE, Outcome.FAILED);
     }
 
     // creating scoped roles with various base roles
@@ -158,7 +158,7 @@ public class RolesIntegrityCheckingTestCase extends AbstractRbacTestCase {
     public void testAddScopedRoleUsingExistingScopedBaseRole() throws Exception {
         ModelControllerClient client = testSupport.getDomainPrimaryLifecycleUtil().getDomainClient();
         addServerGroupScopedRole(client, NEW_ROLE, "MainGroupMaintainer", Outcome.FAILED);
-        addHostScopedRole(client, NEW_ROLE, "HostMasterMaintainer", Outcome.FAILED);
+        addHostScopedRole(client, NEW_ROLE, "HostPrimaryMaintainer", Outcome.FAILED);
     }
 
     @Test
@@ -176,7 +176,7 @@ public class RolesIntegrityCheckingTestCase extends AbstractRbacTestCase {
     public void testRemoveScopedRoleWithExistingRoleMapping() throws Exception {
         ModelControllerClient client = testSupport.getDomainPrimaryLifecycleUtil().getDomainClient();
         removeServerGroupScopedRole(client, "MainGroupOperator", Outcome.FAILED);
-        removeHostScopedRole(client, "HostMasterOperator", Outcome.FAILED);
+        removeHostScopedRole(client, "HostPrimaryOperator", Outcome.FAILED);
     }
 
     @Test

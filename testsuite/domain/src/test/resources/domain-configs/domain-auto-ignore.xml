@@ -26,7 +26,7 @@
 
 <domain xmlns="urn:jboss:domain:20.0">
     <!--
-      A trimmed down domain.xml for use with the auto-ignore resources on slave tests.
+      A trimmed down domain.xml for use with the auto-ignore resources on secondary tests.
 
       The profiles contain the following subsystems
 

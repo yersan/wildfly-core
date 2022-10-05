@@ -123,7 +123,7 @@ public class ConfigurationChangesTestCase extends AbstractConfigurationChangesTe
     }
 
     @Test
-    public void testConfigurationChangesOnSlave() throws Exception {
+    public void testConfigurationChangesOnSecondary() throws Exception {
         try {
             createProfileConfigurationChange(OTHER_PROFILE, 20);
             createConfigurationChanges(HOST_SECONDARY);
