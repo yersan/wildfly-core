@@ -708,7 +708,7 @@ final class StandaloneXml_18 extends CommonXml implements ManagementXmlDelegate 
             throws XMLStreamException {
 
         ModelNode modelNode = context.getModelNode();
-        writer.writeStartDocument();
+        writer.writeStartDocument("utf-8", "1.0");
         writer.writeStartElement(Element.SERVER.getLocalName());
 
         if (modelNode.hasDefined(NAME)) {
