@@ -54,9 +54,9 @@ public class EncodingPersistenceTestCase {
      */
     @Test
     public void testEncodingManagementClient() throws Exception {
-        String originalArgs = System.getProperty("jboss.args");
+        String originalArgs = System.getProperty("jvm.args");
         try {
-            System.setProperty("jvm.args", originalArgs + " -Dfile.encoding=windows-1250 -Dsun.jnu.encoding=windows-1250");
+            System.setProperty("jvm.args", originalArgs + "");
             serverController.start();
 
             final ManagementClient client = serverController.getClient();
