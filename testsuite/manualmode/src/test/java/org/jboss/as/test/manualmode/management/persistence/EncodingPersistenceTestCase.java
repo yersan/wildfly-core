@@ -72,6 +72,9 @@ public class EncodingPersistenceTestCase {
             op = Util.getReadResourceOperation(PROPERTY_ADDR);
             ModelNode result = client.executeForResult(op);
             Assert.assertEquals("áéíóú", result.get(VALUE).asString());
+
+            op = Util.createRemoveOperation(PROPERTY_ADDR);
+            client.executeForResult(op);
         } finally {
             System.setProperty("jvm.args", originalArgs);
             if (serverController.isStarted()) {
