@@ -143,6 +143,8 @@ public class Util {
     public static final String EXPRESSIONS_ALLOWED = "expressions-allowed";
     public static final String EXTENSION = "extension";
     public static final String FAILURE_DESCRIPTION = "failure-description";
+    public static final String FILE_LOCK = "file-lock";
+
     public static final String FILESYSTEM_PATH = "filesystem-path";
     public static final String FILESYSTEM_REALM = "filesystem-realm";
     public static final String FINAL_PRINCIPAL_TRANSFORMER = "final-principal-transformer";
@@ -177,6 +179,7 @@ public class Util {
     public static final String INPUT_STREAM_INDEX = "input-stream-index";
     public static final String INSTALLED_DRIVERS_LIST = "installed-drivers-list";
     public static final String JBOSS_SERVER_CONFIG_DIR = "jboss.server.config.dir";
+    public static final String JBOSS_CONTROLLER_TEMP_DIR = "jboss.controller.temp.dir";
     public static final String KEY_MANAGER = "key-manager";
     public static final String KEY_SIZE = "key-size";
     public static final String KEY_STORE = "key-store";
@@ -210,6 +213,7 @@ public class Util {
     public static final String OUTCOME = "outcome";
     public static final String PATH = "path";
     public static final String PEM = "pem";
+    public static final String PERFORM_INSTALLATION = "perform-installation";
     public static final String PERMISSION_MAPPER = "permission-mapper";
     public static final String PERSISTENT = "persistent";
     public static final String PLAIN_TEXT = "plain-text";

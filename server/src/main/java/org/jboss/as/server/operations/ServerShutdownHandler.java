@@ -32,7 +32,16 @@ import static org.jboss.as.server.controller.resources.ServerRootResourceDefinit
 import static org.jboss.as.server.controller.resources.ServerRootResourceDefinition.TIMEOUT;
 import static org.jboss.as.server.controller.resources.ServerRootResourceDefinition.renameTimeoutToSuspendTimeout;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.EnumSet;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jboss.as.controller.ControlledProcessState;
@@ -69,19 +78,29 @@ public class ServerShutdownHandler implements OperationStepHandler {
 
     protected static final SimpleAttributeDefinition RESTART = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.RESTART, ModelType.BOOLEAN)
             .setDefaultValue(ModelNode.FALSE)
+            .setAlternatives(ModelDescriptionConstants.PERFORM_INSTALLATION)
             .setRequired(false)
             .build();
 
+    // This requires the Installation Manager capability
+    protected static final SimpleAttributeDefinition PERFORM_INSTALLATION = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.PERFORM_INSTALLATION, ModelType.BOOLEAN)
+            .setDefaultValue(ModelNode.FALSE)
+            .setRequired(false)
+            .setAlternatives(ModelDescriptionConstants.RESTART)
+            .build();
+
     public static final SimpleOperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(ModelDescriptionConstants.SHUTDOWN, ServerDescriptions.getResourceDescriptionResolver(RUNNING_SERVER))
-            .setParameters(RESTART, TIMEOUT, SUSPEND_TIMEOUT)
+            .setParameters(RESTART, TIMEOUT, SUSPEND_TIMEOUT, PERFORM_INSTALLATION)
             .setRuntimeOnly()
             .build();
 
 
     private final ControlledProcessState processState;
+    private final Path homeDir;
 
-    public ServerShutdownHandler(ControlledProcessState processState) {
+    public ServerShutdownHandler(ControlledProcessState processState, File homeDir) {
         this.processState = processState;
+        this.homeDir = homeDir.toPath();
     }
 
     /**
@@ -92,6 +111,10 @@ public class ServerShutdownHandler implements OperationStepHandler {
         renameTimeoutToSuspendTimeout(operation);
         final boolean restart = RESTART.resolveModelAttribute(context, operation).asBoolean();
         final int timeout = SUSPEND_TIMEOUT.resolveModelAttribute(context, operation).asInt(); //in seconds, need to convert to ms
+        final boolean performInstallation = PERFORM_INSTALLATION.resolveModelAttribute(context, operation).asBoolean();
+
+       // @TODO: Reject the restart if there is no server prepared to do an installation or revert ??
+
         // Acquire the controller lock to prevent new write ops and wait until current ones are done
         context.acquireControllerLock();
         context.addStep(new OperationStepHandler() {
@@ -113,10 +136,12 @@ public class ServerShutdownHandler implements OperationStepHandler {
                 context.completeStep(new OperationContext.ResultHandler() {
                     @Override
                     public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                        if(resultAction == OperationContext.ResultAction.KEEP) {
+                        if (resultAction == OperationContext.ResultAction.KEEP) {
+                            // @TODO It would be great to detect here whether there is a server installation prepared. To do so, we would need to get a reference of the Installation Manager service, but that will make a circular reference via maven, so not sure aho who it could be implemented
+
                             //even if the timeout is zero we still pause the server
                             //to stop new requests being accepted as it is shutting down
-                            final ShutdownAction shutdown = new ShutdownAction(getOperationName(operation), restart);
+                            final ShutdownAction shutdown = new ShutdownAction(getOperationName(operation), restart, performInstallation, homeDir);
                             final ServiceRegistry registry = context.getServiceRegistry(false);
                             final ServiceController<SuspendController> suspendControllerServiceController = (ServiceController<SuspendController>) registry.getRequiredService(JBOSS_SUSPEND_CONTROLLER);
                             final SuspendController suspendController = suspendControllerServiceController.getValue();
@@ -167,9 +192,17 @@ public class ServerShutdownHandler implements OperationStepHandler {
         private final String op;
         private final boolean restart;
 
-        private ShutdownAction(String op, boolean restart) {
+        final boolean performInstallation;
+
+        // @TODO look for a better place to hold this path constant. I cannot use here the installation manager module due to cyclic references
+        // Aldo check ProcessControllerServerHandler and ShutDownHandler
+        final Path homeDir;
+
+        private ShutdownAction(String op, boolean restart, boolean performInstallation, Path homeDir) {
             this.op = op;
             this.restart = restart;
+            this.performInstallation = performInstallation;
+            this.homeDir = homeDir;
         }
 
         void cancel() {
@@ -177,11 +210,29 @@ public class ServerShutdownHandler implements OperationStepHandler {
         }
 
         void shutdown() {
-            if(compareAndSet(false, true)) {
+            if (compareAndSet(false, true)) {
                 processState.setStopping();
+
+                CountDownLatch countDownLatch = new CountDownLatch(1);
+
+                final ClientCloseVerifier clientCloseVerifier = new ClientCloseVerifier(countDownLatch);
+                final Thread treadWaitForLock = new Thread(clientCloseVerifier);
+                treadWaitForLock.setName("Management Triggered Shutdown -- Client Close Verifier");
+                treadWaitForLock.start();
+
                 final Thread thread = new Thread(new Runnable() {
                     public void run() {
                         int exitCode = restart ? ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT : ExitCodes.NORMAL;
+                        try {
+                            if (countDownLatch.await(180, TimeUnit.SECONDS)) {
+                                exitCode = performInstallation ? clientCloseVerifier.exitCode: restart ? ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT : ExitCodes.NORMAL;
+                            } else {
+                                // In case of any kind of error, for example file to check for lock doesn't exist, do a normal restart without enabling the installation if a restart was requested
+                                exitCode = restart || performInstallation ? ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT : ExitCodes.NORMAL;
+                            }
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
                         SystemExiter.logAndExit(new SystemExiter.ExitLogger() {
                             @Override
                             public void logExit() {
@@ -192,8 +243,55 @@ public class ServerShutdownHandler implements OperationStepHandler {
                 });
                 // The intention is that this shutdown is graceful, and so the client gets a reply.
                 // At the time of writing we did not yet have graceful shutdown.
-                thread.setName("Management Triggered Shutdown");
+                thread.setName("Management Triggered Shutdown -- System Exit");
                 thread.start();
+            }
+        }
+
+        class ClientCloseVerifier implements Runnable {
+
+            final CountDownLatch countDownLatch;
+
+            int exitCode;
+
+            ClientCloseVerifier(CountDownLatch countDownLatch) {
+                this.countDownLatch = countDownLatch;
+            }
+
+            @Override
+            public void run() {
+                if (!performInstallation) {
+                    // we didn't request a restart to perform an installation, so ignore any logic related with client locks
+                    exitCode = restart ? ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT : ExitCodes.NORMAL;
+                    countDownLatch.countDown();
+                    return;
+                }
+
+                final List<String> extensions = List.of("sh", "bat", "ps1");
+                try {
+                    for (String extension : extensions) {
+                        final File fileLock = homeDir
+                                .resolve("bin")
+                                .resolve("jboss-cli." + extension)
+                                .toFile();
+
+                        if (fileLock.exists()) {
+                            // try to acquire the exclusive lock and wait for client until it is closed.
+                            // If a JBoss-cli client has requested a restart to perform an update or revert and that client is using the same server distribution,
+                            // At this point we should have a file locked by the client under the server temporal directory.
+                            // This lock will be released when the client is closed / killed.
+                            try (FileChannel channel = FileChannel.open(fileLock.toPath(), StandardOpenOption.WRITE)) {
+                                FileLock lock = channel.lock();
+                                lock.release();
+                                exitCode = ExitCodes.PERFORM_INSTALLATION_FROM_STARTUP_SCRIPT;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // In case of any kind of error or interrupts, do a normal restart without enabling the installation if a restart was requested
+                    exitCode = ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT;
+                }
+                countDownLatch.countDown();
             }
         }
     }

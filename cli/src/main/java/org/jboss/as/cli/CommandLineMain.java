@@ -1,48 +1,61 @@
 /*
-* JBoss, Home of Professional Open Source.
-* Copyright 2015, Red Hat, Inc., and individual contributors
-* as indicated by the @author tags. See the copyright.txt file in the
-* distribution for a full listing of individual contributors.
-*
-* This is free software; you can redistribute it and/or modify it
-* under the terms of the GNU Lesser General Public License as
-* published by the Free Software Foundation; either version 2.1 of
-* the License, or (at your option) any later version.
-*
-* This software is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* Lesser General Public License for more details.
-*
-* You should have received a copy of the GNU Lesser General Public
-* License along with this software; if not, write to the Free
-* Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-* 02110-1301 USA, or see the FSF site: http://www.fsf.org.
-*/
+ * JBoss, Home of Professional Open Source.
+ * Copyright 2015, Red Hat, Inc., and individual contributors
+ * as indicated by the @author tags. See the copyright.txt file in the
+ * distribution for a full listing of individual contributors.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
 package org.jboss.as.cli;
-
-import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.Locale;
-import java.util.Properties;
-import java.util.logging.LogManager;
 
 import org.jboss.as.cli.impl.CliLauncher;
 import org.jboss.logmanager.Configurator;
 import org.jboss.logmanager.LogContext;
 import org.jboss.logmanager.PropertyConfigurator;
 
+import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.Locale;
+import java.util.Properties;
+import java.util.logging.LogManager;
+
 
 /**
-*
-* @author Alexey Loubyansky
-*/
+ * @author Alexey Loubyansky
+ */
 public class CommandLineMain {
 
     public static void main(String[] args) throws Exception {
         configureLogManager(args);
-        CliLauncher.main(args);
+        Path scriptHome = Paths.get(System.getenv("JBOSS_HOME")).resolve("bin").resolve(System.getenv("SCRIPT_NAME"));
+        try (FileChannel channel = FileChannel.open(scriptHome, StandardOpenOption.READ)) {
+            FileLock fileLock = channel.tryLock(0L, Long.MAX_VALUE, true);
+            CliLauncher.main(args);
+            fileLock.release();
+        } catch (Exception e) {
+            System.out.println("This client instance cannot get a shared read lock required to perform installations from interactive sessions. Perform installations will be disabled from this client.");
+            System.out.println("You have to ensure by your self that all CLI interactive sessions are closed before performing a server installation.");
+            CliLauncher.main(args);
+        }
     }
 
     private static void configureLogManager(final String[] args) {

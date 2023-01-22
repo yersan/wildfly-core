@@ -2,6 +2,7 @@
 
 DIRNAME=`dirname "$0"`
 GREP="grep"
+export SCRIPT_NAME=`basename "$0"`
 
 . "$DIRNAME/common.sh"
 

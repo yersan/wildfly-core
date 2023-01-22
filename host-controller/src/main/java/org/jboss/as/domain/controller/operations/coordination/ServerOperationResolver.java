@@ -187,7 +187,8 @@ public class ServerOperationResolver {
         SERVER(ModelDescriptionConstants.SERVER),
         SERVER_CONFIG(ModelDescriptionConstants.SERVER_CONFIG),
         SUBSYSTEM(ModelDescriptionConstants.SUBSYSTEM),
-        SOCKET_BINDING_GROUP(ModelDescriptionConstants.SOCKET_BINDING_GROUP);
+        SOCKET_BINDING_GROUP(ModelDescriptionConstants.SOCKET_BINDING_GROUP),
+        INSTALLATION_MANAGER(ModelDescriptionConstants.INSTALLATION_MANAGER);
 
         private final String name;
 

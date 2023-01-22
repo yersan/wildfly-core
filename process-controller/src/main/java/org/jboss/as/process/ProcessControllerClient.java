@@ -293,14 +293,16 @@ public final class ProcessControllerClient implements Closeable {
     }
 
     public void shutdown() throws IOException {
-        shutdown(0);
+        shutdown(0, "");
     }
 
-    public void shutdown(int exitCode) throws IOException {
+    public void shutdown(int exitCode, String hcHomeDir) throws IOException {
+        Assert.checkNotNullParam("hcHomeDir", hcHomeDir);
         final OutputStream os = connection.writeMessage();
         try {
             os.write(Protocol.SHUTDOWN);
             writeInt(os, exitCode);
+            writeUTFZBytes(os, hcHomeDir);
             os.close();
         } finally {
             safeClose(os);

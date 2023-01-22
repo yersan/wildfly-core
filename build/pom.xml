@@ -66,6 +66,7 @@
                             <plugin-options>
                                 <jboss-maven-dist/>
                                 <jboss-fork-embedded>${galleon.fork.embedded}</jboss-fork-embedded>
+                                <jboss-reset-embedded-system-properties>${galleon.reset.embedded.system.properties}</jboss-reset-embedded-system-properties>
                             </plugin-options>
                             <feature-packs>
                                 <feature-pack>

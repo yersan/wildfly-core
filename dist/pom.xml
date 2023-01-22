@@ -75,6 +75,7 @@
                                     <log-time>${galleon.log.time}</log-time>
                                     <offline>true</offline>
                                     <plugin-options>
+                                        <jboss-reset-embedded-system-properties>${galleon.reset.embedded.system.properties}</jboss-reset-embedded-system-properties>
                                         <jboss-fork-embedded>${galleon.fork.embedded}</jboss-fork-embedded>
                                     </plugin-options>
                                     <feature-packs>

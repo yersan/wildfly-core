@@ -34,10 +34,11 @@ public interface ModelControllerServiceInitialization {
     /**
      * Initialize a standalone server.
      *
-     * @param target the service target
-     * @param managementModel the management model
+     * @param target            the service target
+     * @param managementModel   the management model
+     * @param controllerService the AbstractControllerService that requested this initialization
      */
-    void initializeStandalone(ServiceTarget target, ManagementModel managementModel);
+    void initializeStandalone(ServiceTarget target, ManagementModel managementModel, AbstractControllerService controllerService);
 
     /**
      * Initialize the domain controller.
@@ -49,10 +50,12 @@ public interface ModelControllerServiceInitialization {
 
     /**
      * Initialize a host controller.
-     *  @param target the service target
-     * @param managementModel the management model
-     * @param hostName the name of the host
+     *
+     * @param target            the service target
+     * @param managementModel   the management model
+     * @param hostName          the name of the host
+     * @param controllerService the AbstractControllerService that requested this initialization
      */
-    void initializeHost(ServiceTarget target, ManagementModel managementModel, String hostName);
+    void initializeHost(ServiceTarget target, ManagementModel managementModel, String hostName, AbstractControllerService controllerService);
 
 }

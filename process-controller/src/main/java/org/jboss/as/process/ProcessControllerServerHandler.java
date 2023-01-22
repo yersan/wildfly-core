@@ -29,12 +29,18 @@ import static org.jboss.as.process.protocol.StreamUtils.readUTFZBytes;
 import static org.jboss.as.process.protocol.StreamUtils.readUnsignedByte;
 import static org.jboss.as.process.protocol.StreamUtils.safeClose;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.jboss.as.process.logging.ProcessLogger;
@@ -233,13 +239,43 @@ public final class ProcessControllerServerHandler implements ConnectionHandler {
                             }
                             dataStream.close();
                             break;
-                        } case Protocol.SHUTDOWN: {
+                        }
+                        case Protocol.SHUTDOWN: {
                             if (isPrivileged) {
                                 final int exitCode = readInt(dataStream);
+                                final String hcHomeDir = readUTFZBytes(dataStream);
                                 new Thread(new Runnable() {
                                     public void run() {
                                         processController.shutdown();
-                                        System.exit(exitCode);
+
+                                        int resultExitCode = exitCode;
+                                        if (!"".equals(hcHomeDir) && exitCode == ExitCodes.PERFORM_INSTALLATION_FROM_STARTUP_SCRIPT) {
+                                            final List<String> extensions = List.of("sh", "bat", "ps1");
+                                            try {
+                                                for (String extension : extensions) {
+                                                    // @TODO: we could want to wait for other clients by using the same approach, e.g appclient ...
+                                                    final File fileLock = Paths.get(hcHomeDir)
+                                                            .resolve("bin")
+                                                            .resolve("jboss-cli." + extension)
+                                                            .toFile();
+                                                    if (fileLock.exists()) {
+                                                        // try to acquire the exclusive lock and wait for client until it is closed.
+                                                        // If a JBoss-cli client has requested a restart to perform an update or revert and that client is using the same server distribution,
+                                                        // At this point we should have a file locked by the client under the server temporal directory.
+                                                        // This lock will be released when the client is closed / killed.
+                                                        try (FileChannel channel = FileChannel.open(fileLock.toPath(), StandardOpenOption.WRITE)) {
+                                                            FileLock lock = channel.lock();
+                                                            lock.release();
+                                                        }
+                                                    }
+                                                }
+                                            } catch (Exception e) {
+                                                // In case of any kind of error or interrupts, do a normal restart without enabling the installation if a restart was requested
+                                                resultExitCode = ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT;
+                                            }
+                                        }
+
+                                        System.exit(resultExitCode);
                                     }
                                 }).start();
                             } else {
@@ -275,8 +311,8 @@ public final class ProcessControllerServerHandler implements ConnectionHandler {
                             dataStream.close();
                         }
                     }
-                } catch(IOException e) {
-                    if(operationType != null && processName != null) {
+                } catch (IOException e) {
+                    if (operationType != null && processName != null) {
                         safeClose(dataStream);
                         try {
                             final OutputStream os = connection.writeMessage();

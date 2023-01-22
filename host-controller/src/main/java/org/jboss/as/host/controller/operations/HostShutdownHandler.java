@@ -24,6 +24,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_CONFIG;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SHUTDOWN;
 
+import java.io.File;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -36,6 +37,7 @@ import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.access.Action;
@@ -68,6 +70,7 @@ public class HostShutdownHandler implements OperationStepHandler {
 
     private static final AttributeDefinition RESTART = SimpleAttributeDefinitionBuilder.create(ModelDescriptionConstants.RESTART, ModelType.BOOLEAN, true)
             .setRequired(false)
+            .setAlternatives(ModelDescriptionConstants.PERFORM_INSTALLATION)
             .build();
 
     private static final AttributeDefinition SUSPEND_TIMEOUT = SimpleAttributeDefinitionBuilder.create(ModelDescriptionConstants.SUSPEND_TIMEOUT, ModelType.INT, true)
@@ -75,9 +78,21 @@ public class HostShutdownHandler implements OperationStepHandler {
             .setDefaultValue(ModelNode.ZERO)
             .build();
 
+    protected static final SimpleAttributeDefinition PERFORM_INSTALLATION = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.PERFORM_INSTALLATION, ModelType.BOOLEAN)
+            .setRequired(false)
+            .setAlternatives(ModelDescriptionConstants.RESTART)
+            .build();
+
+    protected static final SimpleAttributeDefinition FILE_LOCK = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.FILE_LOCK, ModelType.STRING)
+            .setRequired(false)
+            .setStorageRuntime()
+            .setRequires(ModelDescriptionConstants.PERFORM_INSTALLATION)
+            .build();
+
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, HostResolver.getResolver("host"))
             .addParameter(RESTART)
             .addParameter(SUSPEND_TIMEOUT)
+            .addParameter(PERFORM_INSTALLATION)
             .withFlag(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
             .setRuntimeOnly()
             .build();
@@ -98,9 +113,18 @@ public class HostShutdownHandler implements OperationStepHandler {
     @Override
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
         final boolean restart = RESTART.validateOperation(operation).asBoolean(false);
+        final boolean performInstallation = PERFORM_INSTALLATION.validateOperation(operation).asBoolean(false);
         final Resource hostResource = context.readResource(PathAddress.EMPTY_ADDRESS);
         final int suspendTimeout = SUSPEND_TIMEOUT.resolveModelAttribute(context, operation).asInt();
         final BlockingTimeout blockingTimeout = BlockingTimeout.Factory.getProxyBlockingTimeout(context);
+        final String shutDownLock = FILE_LOCK.resolveModelAttribute(context, operation).asStringOrNull();
+
+        if (performInstallation && shutDownLock != null) {
+            File lock = new File(shutDownLock);
+            if (lock.exists() && lock.canRead()) {
+                throw new IllegalArgumentException("Lock file provided by the client cannot be read by the server");
+            }
+        }
 
         context.addStep(new OperationStepHandler() {
             @Override
@@ -137,7 +161,9 @@ public class HostShutdownHandler implements OperationStepHandler {
                                 }
                             });
 
-                            if (restart) {
+                            if(performInstallation) {
+                                domainController.stopLocalHost(ExitCodes.PERFORM_INSTALLATION_FROM_STARTUP_SCRIPT);
+                            }else if (restart) {
                                 //Add the exit code so that we get respawned
                                 domainController.stopLocalHost(ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT);
                             } else {

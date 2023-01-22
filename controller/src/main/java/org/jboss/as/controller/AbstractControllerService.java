@@ -841,11 +841,10 @@ public abstract class AbstractControllerService implements Service<ModelControll
                     assert !processType.isHostController() || hostName != null;
                     for (ModelControllerServiceInitialization init : sl) {
                         if (processType.isHostController()) {
-                            init.initializeHost(context.getServiceTarget(), managementModel, hostName);
+                            init.initializeHost(context.getServiceTarget(), managementModel, hostName, AbstractControllerService.this);
                             init.initializeDomain(context.getServiceTarget(), managementModel);
                         } else {
-                            init.initializeStandalone(context.getServiceTarget(), managementModel);
-
+                            init.initializeStandalone(context.getServiceTarget(), managementModel, AbstractControllerService.this);
                         }
                     }
                     managementModel.getRootResourceRegistration().unregisterOperationHandler(INIT_CONTROLLER_OP.getName());

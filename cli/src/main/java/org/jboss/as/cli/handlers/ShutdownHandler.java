@@ -22,8 +22,16 @@
 
 package org.jboss.as.cli.handlers;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.jboss.as.cli.CommandContext;
@@ -41,6 +49,7 @@ import org.jboss.as.cli.operation.ParsedCommandLine;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.protocol.StreamUtils;
 import org.jboss.dmr.ModelNode;
+import org.wildfly.security.manager.WildFlySecurityManager;
 import org.xnio.http.RedirectException;
 
 /**
@@ -57,12 +66,22 @@ public class ShutdownHandler extends BaseOperationCommand {
     private final AtomicReference<EmbeddedProcessLaunch> embeddedServerRef;
     private PerNodeOperationAccess hostShutdownPermission;
 
+    private final ArgumentWithValue performInstallation;
+
     public ShutdownHandler(CommandContext ctx, final AtomicReference<EmbeddedProcessLaunch> embeddedServerRef) {
         super(ctx, "shutdown", true, false);
 
         this.embeddedServerRef = embeddedServerRef;
 
-        restart = new ArgumentWithValue(this, SimpleTabCompleter.BOOLEAN, "--restart");
+        restart = new ArgumentWithValue(this, SimpleTabCompleter.BOOLEAN, "--restart") {
+            @Override
+            public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
+                if (performInstallation.isPresent(ctx.getParsedCommandLine())) {
+                    return false;
+                }
+                return super.canAppearNext(ctx);
+            }
+        };
 
         timeout = new ArgumentWithValue(this, "--timeout"){
             @Override
@@ -96,6 +115,16 @@ public class ShutdownHandler extends BaseOperationCommand {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
                 if(!ctx.isDomainMode()) {
+                    return false;
+                }
+                return super.canAppearNext(ctx);
+            }
+        };
+
+        performInstallation = new ArgumentWithValue(this, SimpleTabCompleter.BOOLEAN, "--"+Util.PERFORM_INSTALLATION) {
+            @Override
+            public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
+                if (restart.isPresent(ctx.getParsedCommandLine())) {
                     return false;
                 }
                 return super.canAppearNext(ctx);
@@ -140,24 +169,27 @@ public class ShutdownHandler extends BaseOperationCommand {
         final ModelNode op = this.buildRequestWithoutHeaders(ctx);
 
         boolean disconnect = true;
-        final String restartValue = restart.getValue(ctx.getParsedCommandLine());
-        if (Util.TRUE.equals(restartValue) ||
+        final boolean requestRestart = Util.TRUE.equalsIgnoreCase(restart.getValue(ctx.getParsedCommandLine()))
+                || Util.TRUE.equalsIgnoreCase(performInstallation.getValue(ctx.getParsedCommandLine()));
+        if (requestRestart ||
                 ctx.isDomainMode() &&
                 !isLocalHost(ctx.getModelControllerClient(), host.getValue(ctx.getParsedCommandLine()))) {
             disconnect = false;
         }
 
-        try {
-            final ModelNode response = cliClient.execute(op, true);
-            if(!Util.isSuccess(response)) {
-                throw new CommandLineException(Util.getFailureDescription(response));
+        if (performInstallation.isPresent(ctx.getParsedCommandLine())
+                && Util.TRUE.equalsIgnoreCase(performInstallation.getValue(ctx.getParsedCommandLine()))) {
+            executeShutdown(client, cliClient, op, true);
+            try {
+                ctx.printLine("This client will be closed in 5 seconds.");
+                TimeUnit.SECONDS.sleep(10);
+            } catch (InterruptedException e) {
+                // Ignored
+            } finally {
+                System.exit(0);
             }
-        } catch(IOException e) {
-            // if it's not connected, it's assumed the connection has already been shutdown
-            if(cliClient.isConnected()) {
-                StreamUtils.safeClose(client);
-                throw new CommandLineException("Failed to execute :shutdown", e);
-            }
+        } else {
+            executeShutdown(client, cliClient, op, true);
         }
 
         if (disconnect) {
@@ -188,6 +220,21 @@ public class ShutdownHandler extends BaseOperationCommand {
         }
     }
 
+    private static void executeShutdown(ModelControllerClient client, AwaiterModelControllerClient cliClient, ModelNode op, boolean awaitClose) throws CommandLineException {
+        try {
+            final ModelNode response = cliClient.execute(op, awaitClose);
+            if (!Util.isSuccess(response)) {
+                throw new CommandLineException(Util.getFailureDescription(response));
+            }
+        } catch (IOException e) {
+            // if it's not connected, it's assumed the connection has already been shutdown
+            if (cliClient.isConnected()) {
+                StreamUtils.safeClose(client);
+                throw new CommandLineException("Failed to execute :shutdown", e);
+            }
+        }
+    }
+
     @Override
     protected ModelNode buildRequestWithoutHeaders(CommandContext ctx) throws CommandFormatException {
         final ModelNode op = new ModelNode();
@@ -214,8 +261,14 @@ public class ShutdownHandler extends BaseOperationCommand {
 
             op.get(Util.ADDRESS).setEmptyList();
         }
+
+        if (restart.isPresent(args) && performInstallation.isPresent(args)) {
+            throw new CommandFormatException(performInstallation.getFullName() + " cannot be used in conjunction with restart.");
+        }
+
         op.get(Util.OPERATION).set(Util.SHUTDOWN);
         setBooleanArgument(args, op, restart, Util.RESTART);
+        setBooleanArgument(args, op, performInstallation, Util.PERFORM_INSTALLATION);
         setIntArgument(args, op, timeout, Util.TIMEOUT);
         setIntArgument(args, op, suspendTimeout, Util.SUSPEND_TIMEOUT);
         return op;

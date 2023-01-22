@@ -231,6 +231,7 @@ public final class Main {
             initialCommand.add("-secmgr");
         }
         initialCommand.add("-mp");
+        // point to expand the Prospero classpath
         initialCommand.add(modulePath);
         initialCommand.add(bootModule);
         // Optionally pass the security manager property to the process controller

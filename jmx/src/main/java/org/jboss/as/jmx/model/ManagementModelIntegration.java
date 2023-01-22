@@ -22,6 +22,7 @@
 
 package org.jboss.as.jmx.model;
 
+import org.jboss.as.controller.AbstractControllerService;
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.ModelControllerServiceInitialization;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
@@ -45,7 +46,7 @@ public class ManagementModelIntegration implements ModelControllerServiceInitial
     public static final ServiceName SERVICE_NAME = ServiceName.JBOSS.append("jmx", "management", "integration");
 
     @Override
-    public void initializeStandalone(ServiceTarget target, ManagementModel managementModel) {
+    public void initializeStandalone(ServiceTarget target, ManagementModel managementModel, AbstractControllerService controllerService) {
         ManagementModelProvider provider =
                 new ManagementModelProvider(new ResourceAndRegistration(managementModel));
         target.addService(SERVICE_NAME, provider).setInitialMode(ServiceController.Mode.ON_DEMAND).install();
@@ -57,7 +58,7 @@ public class ManagementModelIntegration implements ModelControllerServiceInitial
     }
 
     @Override
-    public void initializeHost(ServiceTarget target, ManagementModel managementModel, String hostName) {
+    public void initializeHost(ServiceTarget target, ManagementModel managementModel, String hostName, AbstractControllerService controllerService) {
         // not relevant to host controller;
         ManagementModelProvider provider =
                 new ManagementModelProvider(new ResourceAndRegistration(managementModel));

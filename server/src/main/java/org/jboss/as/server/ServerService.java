@@ -527,6 +527,10 @@ public final class ServerService extends AbstractControllerService {
         };
     }
 
+    public void stopLocalServer(int updateServerFromStartupScript) {
+        // not implemented yet
+    }
+
     /** Temporary replacement for QueuelessThreadPoolService */
     private static class ServerExecutorService implements Service<ExecutorService> {
 

@@ -627,6 +627,10 @@ public class ModelDescriptionConstants {
     public static final String XML_NAMESPACES = "xml-namespaces";
     public static final String GIT_MASTER_BRANCH = "master";
     public static final String PRIMARY = "primary";
+    public static final String INSTALLATION_MANAGER = "installation-manager";
+    public static final String CLIENT_LOCK_MARKER_FILE = "client-lock-marker-file";
+    public static final String PERFORM_INSTALLATION = "perform-installation";
+    public static final String FILE_LOCK = "file-lock";
 
     private ModelDescriptionConstants() {
     }
