@@ -151,6 +151,9 @@ if $linux; then
          -Djboss.server.config.dir=*)
               JBOSS_CONFIG_DIR=`readlink -m ${p#*=}`
               ;;
+         -Djboss.server.temp.dir=*)
+              JBOSS_TEMP_DIR=`readlink -m ${p#*=}`
+              ;;
        esac
     done
 fi
@@ -172,6 +175,9 @@ if $solaris; then
              ;;
         -Djboss.server.config.dir=*)
              JBOSS_CONFIG_DIR=`echo $p | awk -F= '{print $2}'`
+             ;;
+        -Djboss.server.temp.dir=*)
+             JBOSS_TEMP_DIR=`echo $p | awk -F= '{print $2}'`
              ;;
       esac
     done
@@ -201,6 +207,9 @@ if $darwin || $freebsd || $other ; then
          -Djboss.server.config.dir=*)
               JBOSS_CONFIG_DIR=`cd ${p#*=} ; pwd -P`
               ;;
+         -Djboss.server.temp.dir=*)
+              JBOSS_TEMP_DIR=`cd ${p#*=} ; pwd -P`
+              ;;
        esac
     done
 fi
@@ -225,7 +234,10 @@ fi
 if [ "x$JBOSS_CONFIG_DIR" = "x" ]; then
    JBOSS_CONFIG_DIR="$JBOSS_BASE_DIR/configuration"
 fi
-
+# determine the default configuration temp, if not set
+if [ "x$JBOSS_TEMP_DIR" = "x" ]; then
+   JBOSS_TEMP_DIR="$JBOSS_BASE_DIR/tmp"
+fi
 if [ "x$JBOSS_MODULEPATH" = "x" ]; then
     JBOSS_MODULEPATH="$JBOSS_HOME/modules"
 fi
@@ -238,6 +250,7 @@ if $cygwin; then
     JBOSS_BASE_DIR=`cygpath --path --windows "$JBOSS_BASE_DIR"`
     JBOSS_LOG_DIR=`cygpath --path --windows "$JBOSS_LOG_DIR"`
     JBOSS_CONFIG_DIR=`cygpath --path --windows "$JBOSS_CONFIG_DIR"`
+    JBOSS_TEMP_DIR=`cygpath --path --windows "$JBOSS_TEMP_DIR"`
 fi
 
 
@@ -400,7 +413,7 @@ while true; do
          JBOSS_STATUS=0
       fi
       if [ "$JBOSS_STATUS" -ne 10 ]; then
-            # Wait for a complete shudown
+            # Wait for a complete shutdown
             wait $JBOSS_PID 2>/dev/null
       fi
       if [ "x$JBOSS_PIDFILE" != "x" ]; then
@@ -409,6 +422,10 @@ while true; do
    fi
    if [ "$JBOSS_STATUS" -eq 10 ]; then
       echo "Restarting..."
+   elif [ "$JBOSS_STATUS" -eq 20 ]; then
+        echo "Executing the installation manager"
+        $JBOSS_HOME/bin/installation-manager/installation-manager.sh $JBOSS_HOME $JBOSS_TEMP_DIR
+        echo "Restarting..."
    else
       exit $JBOSS_STATUS
    fi

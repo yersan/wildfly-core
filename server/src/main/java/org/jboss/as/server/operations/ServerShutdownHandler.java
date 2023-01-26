@@ -69,11 +69,19 @@ public class ServerShutdownHandler implements OperationStepHandler {
 
     protected static final SimpleAttributeDefinition RESTART = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.RESTART, ModelType.BOOLEAN)
             .setDefaultValue(ModelNode.FALSE)
+            .setAlternatives(ModelDescriptionConstants.PERFORM_INSTALLATION)
             .setRequired(false)
             .build();
 
+    // This requires the Installation Manager capability
+    protected static final SimpleAttributeDefinition PERFORM_INSTALLATION = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.PERFORM_INSTALLATION, ModelType.BOOLEAN)
+            .setDefaultValue(ModelNode.FALSE)
+            .setRequired(false)
+            .setAlternatives(ModelDescriptionConstants.RESTART)
+            .build();
+
     public static final SimpleOperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(ModelDescriptionConstants.SHUTDOWN, ServerDescriptions.getResourceDescriptionResolver(RUNNING_SERVER))
-            .setParameters(RESTART, TIMEOUT, SUSPEND_TIMEOUT)
+            .setParameters(RESTART, TIMEOUT, SUSPEND_TIMEOUT, PERFORM_INSTALLATION)
             .setRuntimeOnly()
             .build();
 
@@ -92,6 +100,12 @@ public class ServerShutdownHandler implements OperationStepHandler {
         renameTimeoutToSuspendTimeout(operation);
         final boolean restart = RESTART.resolveModelAttribute(context, operation).asBoolean();
         final int timeout = SUSPEND_TIMEOUT.resolveModelAttribute(context, operation).asInt(); //in seconds, need to convert to ms
+        final boolean performInstallation = PERFORM_INSTALLATION.resolveModelAttribute(context, operation).asBoolean();
+
+        // @TODO: Reject the restart if there is no server prepared to do an installation or revert or missing capability
+        // @TODO Cannot use the Installation Manager service, we will generate a circular reference via maven, maybe Check the temp directory
+
+
         // Acquire the controller lock to prevent new write ops and wait until current ones are done
         context.acquireControllerLock();
         context.addStep(new OperationStepHandler() {
@@ -113,10 +127,10 @@ public class ServerShutdownHandler implements OperationStepHandler {
                 context.completeStep(new OperationContext.ResultHandler() {
                     @Override
                     public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                        if(resultAction == OperationContext.ResultAction.KEEP) {
+                        if (resultAction == OperationContext.ResultAction.KEEP) {
                             //even if the timeout is zero we still pause the server
                             //to stop new requests being accepted as it is shutting down
-                            final ShutdownAction shutdown = new ShutdownAction(getOperationName(operation), restart);
+                            final ShutdownAction shutdown = new ShutdownAction(getOperationName(operation), restart, performInstallation);
                             final ServiceRegistry registry = context.getServiceRegistry(false);
                             final ServiceController<SuspendController> suspendControllerServiceController = (ServiceController<SuspendController>) registry.getRequiredService(JBOSS_SUSPEND_CONTROLLER);
                             final SuspendController suspendController = suspendControllerServiceController.getValue();
@@ -166,10 +180,12 @@ public class ServerShutdownHandler implements OperationStepHandler {
 
         private final String op;
         private final boolean restart;
+        private final boolean performInstallation;
 
-        private ShutdownAction(String op, boolean restart) {
+        private ShutdownAction(String op, boolean restart, boolean performInstallation) {
             this.op = op;
             this.restart = restart;
+            this.performInstallation = performInstallation;
         }
 
         void cancel() {
@@ -181,7 +197,7 @@ public class ServerShutdownHandler implements OperationStepHandler {
                 processState.setStopping();
                 final Thread thread = new Thread(new Runnable() {
                     public void run() {
-                        int exitCode = restart ? ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT : ExitCodes.NORMAL;
+                        int exitCode = restart ? ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT : performInstallation ? ExitCodes.PERFORM_INSTALLATION_FROM_STARTUP_SCRIPT : ExitCodes.NORMAL;
                         SystemExiter.logAndExit(new SystemExiter.ExitLogger() {
                             @Override
                             public void logExit() {

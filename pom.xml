@@ -242,6 +242,7 @@
         <version.org.wildfly.client.config>1.0.1.Final</version.org.wildfly.client.config>
         <version.org.wildfly.common>1.6.0.Final</version.org.wildfly.common>
         <version.org.wildfly.discovery>1.2.1.Final</version.org.wildfly.discovery>
+        <version.org.wildfly.installation-manager.installation-manager-api>1.0.0.Beta1</version.org.wildfly.installation-manager.installation-manager-api>
         <version.org.wildfly.legacy.test>7.0.0.Final</version.org.wildfly.legacy.test>
         <version.org.wildfly.openssl>2.2.5.Final</version.org.wildfly.openssl>
         <version.org.wildfly.openssl.natives>2.2.2.Final</version.org.wildfly.openssl.natives>
@@ -297,6 +298,7 @@
         <module>testsuite</module>
         <module>threads</module>
         <module>version</module>
+        <module>installation-manager</module>
     </modules>
 
     <build>
@@ -2242,6 +2244,18 @@
                 <version>${version.org.wildfly.security.elytron}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.wildfly.installation-manager</groupId>
+                <artifactId>installation-manager-api</artifactId>
+                <version>${version.org.wildfly.installation-manager.installation-manager-api}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.wildfly.core</groupId>
+                <artifactId>installation-manager</artifactId>
+                <version>${project.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
