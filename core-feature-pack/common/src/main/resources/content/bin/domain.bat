@@ -162,6 +162,7 @@ set "CONSOLIDATED_OPTS=%JAVA_OPTS% %SERVER_OPTS%"
 set baseDirFound=false
 set configDirFound=false
 set logDirFound=false
+set tempDirFound=false
 for %%a in (!CONSOLIDATED_OPTS!) do (
    if !baseDirFound! == true (
       set "JBOSS_BASE_DIR=%%~a"
@@ -175,6 +176,10 @@ for %%a in (!CONSOLIDATED_OPTS!) do (
       set "JBOSS_LOG_DIR=%%~a"
       set logDirFound=false
    )
+   if !tempDirFound! == true (
+      set "JBOSS_TEMP_DIR=%%~a"
+      set tempDirFound=false
+   )
    if "%%~a" == "-Djboss.domain.base.dir" (
        set baseDirFound=true
    )
@@ -183,6 +188,9 @@ for %%a in (!CONSOLIDATED_OPTS!) do (
    )
    if "%%~a" == "-Djboss.domain.log.dir" (
        set logDirFound=true
+   )
+   if "%%~a" == "-Djboss.domain.temp.dir" (
+       set tempDirFound=true
    )
 )
 
@@ -206,6 +214,10 @@ if "x%JBOSS_LOG_DIR%" == "x" (
 rem Set the domain configuration dir
 if "x%JBOSS_CONFIG_DIR%" == "x" (
   set  "JBOSS_CONFIG_DIR=%JBOSS_BASE_DIR%\configuration"
+)
+rem Set the domain temp dir
+if "x%JBOSS_TEMP_DIR%" == "x" (
+  set  "JBOSS_TEMP_DIR=%JBOSS_BASE_DIR%\tmp"
 )
 
 rem Set the module options
@@ -248,7 +260,13 @@ echo.
     %*
 
 if %errorlevel% equ 10 (
-    echo Restarting...
+    echo INFO: Restarting...
+    goto RESTART
+)
+
+if %errorlevel% equ 20 (
+    echo INFO: Executing Installation Manager...
+    call "%JBOSS_HOME%/bin/installation-manager/installation-manager.bat" "%JBOSS_HOME%" "%JBOSS_TEMP_DIR%"
     goto RESTART
 )
 

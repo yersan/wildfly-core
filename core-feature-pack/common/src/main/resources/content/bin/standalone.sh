@@ -421,11 +421,11 @@ while true; do
       fi
    fi
    if [ "$JBOSS_STATUS" -eq 10 ]; then
-      echo "Restarting..."
+      echo "INFO: Restarting..."
    elif [ "$JBOSS_STATUS" -eq 20 ]; then
-        echo "Executing the installation manager"
-        $JBOSS_HOME/bin/installation-manager/installation-manager.sh $JBOSS_HOME $JBOSS_TEMP_DIR
-        echo "Restarting..."
+        echo "INFO: Executing the installation manager"
+        "${JBOSS_HOME}/bin/installation-manager.sh" "${JBOSS_HOME}" "${JBOSS_TEMP_DIR}"
+        echo "INFO: Restarting..."
    else
       exit $JBOSS_STATUS
    fi

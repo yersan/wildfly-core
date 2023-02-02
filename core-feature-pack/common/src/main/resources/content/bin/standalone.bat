@@ -219,6 +219,7 @@ set "CONSOLIDATED_OPTS=%JAVA_OPTS% %SERVER_OPTS%"
 set baseDirFound=false
 set configDirFound=false
 set logDirFound=false
+set tmpDirFound=false
 for %%a in (!CONSOLIDATED_OPTS!) do (
    if !baseDirFound! == true (
       set "JBOSS_BASE_DIR=%%~a"
@@ -232,6 +233,10 @@ for %%a in (!CONSOLIDATED_OPTS!) do (
       set "JBOSS_LOG_DIR=%%~a"
       set logDirFound=false
    )
+   if !tmpDirFound! == true (
+      set "JBOSS_TEMP_DIR=%%~a"
+      set tmpDirFound=false
+   )
    if "%%~a" == "-Djboss.server.base.dir" (
        set baseDirFound=true
    )
@@ -240,6 +245,9 @@ for %%a in (!CONSOLIDATED_OPTS!) do (
    )
    if "%%~a" == "-Djboss.server.log.dir" (
        set logDirFound=true
+   )
+   if "%%~a" == "-Djboss.server.temp.dir" (
+       set tmpDirFound=true
    )
 )
 
@@ -266,6 +274,10 @@ if "x%JBOSS_LOG_DIR%" == "x" (
 rem Set the standalone configuration dir
 if "x%JBOSS_CONFIG_DIR%" == "x" (
   set  "JBOSS_CONFIG_DIR=%JBOSS_BASE_DIR%\configuration"
+)
+rem Set the standalone temp dir
+if "x%JBOSS_TEMP_DIR%" == "x" (
+  set  "JBOSS_TEMP_DIR=%JBOSS_BASE_DIR%\tmp"
 )
 
 setlocal EnableDelayedExpansion
@@ -362,6 +374,12 @@ echo.
 
 if %errorlevel% equ 10 (
     echo Restarting...
+    goto RESTART
+)
+
+if %errorlevel% equ 20 (
+    echo Executing Installation Manager...
+    call "%JBOSS_HOME%/bin/installation-manager.bat" "%JBOSS_HOME%" "%JBOSS_TEMP_DIR%"
     goto RESTART
 )
 

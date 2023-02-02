@@ -160,7 +160,7 @@ if $linux; then
              JBOSS_CONFIG_DIR=`readlink -m ${p#*=}`
              ;;
         -Djboss.domain.temp.dir=*)
-             JBOSS_DOMAIN_TEMP_DIR=`readlink -m ${p#*=}`
+             JBOSS_TEMP_DIR=`readlink -m ${p#*=}`
              ;;
       esac
     done
@@ -185,7 +185,7 @@ if $solaris; then
              JBOSS_CONFIG_DIR=`echo $p | awk -F= '{print $2}'`
              ;;
         -Djboss.domain.temp.dir=*)
-             JBOSS_DOMAIN_TEMP_DIR=`echo $p | awk -F= '{print $2}'`
+             JBOSS_TEMP_DIR=`echo $p | awk -F= '{print $2}'`
              ;;
       esac
     done
@@ -216,7 +216,7 @@ if $darwin || $other ; then
              JBOSS_CONFIG_DIR=`cd ${p#*=} ; pwd -P`
              ;;
         -Djboss.domain.temp.dir=*)
-             JBOSS_DOMAIN_TEMP_DIR=`cd ${p#*=} ; pwd -P`
+             JBOSS_TEMP_DIR=`cd ${p#*=} ; pwd -P`
              ;;
       esac
     done
@@ -234,8 +234,8 @@ if [ "x$JBOSS_CONFIG_DIR" = "x" ]; then
    JBOSS_CONFIG_DIR="$JBOSS_BASE_DIR/configuration"
 fi
 # determine the default domain temp dir, if not set
-if [ "x$JBOSS_DOMAIN_TEMP_DIR" = "x" ]; then
-   JBOSS_DOMAIN_TEMP_DIR="$JBOSS_BASE_DIR/tmp"
+if [ "x$JBOSS_TEMP_DIR" = "x" ]; then
+   JBOSS_TEMP_DIR="$JBOSS_BASE_DIR/tmp"
 fi
 
 # Setup the java path to invoke from JVM
@@ -251,7 +251,7 @@ if $cygwin; then
     JBOSS_LOG_DIR=`cygpath --path --windows "$JBOSS_LOG_DIR"`
     JBOSS_CONFIG_DIR=`cygpath --path --windows "$JBOSS_CONFIG_DIR"`
     JBOSS_MODULEPATH=`cygpath --path --windows "$JBOSS_MODULEPATH"`
-    JBOSS_DOMAIN_TEMP_DIR=`cygpath --path --windows "$JBOSS_DOMAIN_TEMP_DIR"`
+    JBOSS_TEMP_DIR=`cygpath --path --windows "$JBOSS_TEMP_DIR"`
 fi
 
 # If the -Djava.security.manager is found, enable the -secmgr and include a bogus security manager for JBoss Modules to replace
@@ -370,11 +370,11 @@ while true; do
       fi
    fi
    if [ "$JBOSS_STATUS" -eq 10 ]; then
-      echo "Restarting..."
+      echo "INFO: Restarting..."
    elif [ "$JBOSS_STATUS" -eq 20 ]; then
-      echo "Executing the installation manager"
-      $JBOSS_HOME/bin/installation-manager/installation-manager.sh $JBOSS_HOME $JBOSS_DOMAIN_TEMP_DIR
-      echo "Restarting..."
+      echo "INFO: Executing the installation manager"
+       "${JBOSS_HOME}/bin/installation-manager.sh" "${JBOSS_HOME}" "${JBOSS_TEMP_DIR}"
+      echo "INFO: Restarting..."
    else
       exit $JBOSS_STATUS
    fi
