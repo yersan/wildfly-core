@@ -115,6 +115,14 @@ class InstMgrService implements Service {
         }
     }
 
+    void cleanTrackedWorkDir(Path workDirPath) throws IOException {
+        if (workDirPath == null) {
+            return;
+        }
+
+       cleanTrackedWorkDir(workDirPath.getFileName().toString());
+    }
+
     void cleanTrackedWorkDir(String workDirName) throws IOException {
         if (workDirName == null) {
             return;

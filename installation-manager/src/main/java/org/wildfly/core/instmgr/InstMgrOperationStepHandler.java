@@ -101,21 +101,6 @@ abstract class InstMgrOperationStepHandler implements OperationStepHandler {
         return attr.resolveValue(context, attr.validateOperation(operation));
     }
 
-    protected static void deleteOnShutDownHook(final Path workDir) {
-        final Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    deleteDirIfExits(workDir);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
-        thread.setDaemon(true);
-        Runtime.getRuntime().addShutdownHook(thread);
-    }
-
     /**
      * unpack...
      *

@@ -101,7 +101,7 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
                 public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
                     if (resultAction == OperationContext.ResultAction.ROLLBACK) {
                         try {
-                            deleteDirIfExits(listUpdatesWorkDir);
+                            imService.cleanTrackedWorkDir(listUpdatesWorkDir);
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
@@ -145,12 +145,12 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
                     resultValue.get(InstMgrConstants.UPDATES_RESULT).set(updatesMn);
                     resultValue.get(InstMgrConstants.LIST_UPDATES_WORK_DIR).set(listUpdatesWorkDir.getFileName().toString());
                 } else {
-                    deleteDirIfExits(listUpdatesWorkDir);
+                    imService.cleanTrackedWorkDir(listUpdatesWorkDir);
                     resultValue.get(InstMgrConstants.RETURN_CODE).set(InstMgrConstants.RETURN_CODE_UPDATES_WITHOUT_WORK_DIR);
                     resultValue.get(InstMgrConstants.UPDATES_RESULT).set(updatesMn);
                 }
             } else {
-                deleteDirIfExits(listUpdatesWorkDir);
+                imService.cleanTrackedWorkDir(listUpdatesWorkDir);
                 updatesMn.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_CHANGES_FOUND)));
                 resultValue.get(InstMgrConstants.RETURN_CODE).set(InstMgrConstants.RETURN_CODE_NO_UPDATES);
                 resultValue.get(InstMgrConstants.UPDATES_RESULT).set(updatesMn);
