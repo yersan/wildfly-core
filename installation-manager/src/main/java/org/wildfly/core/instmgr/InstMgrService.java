@@ -156,9 +156,8 @@ class InstMgrService implements Service {
         return workDir.resolve("prepared-server");
     }
 
-    Path getApplyUpdatesCliScript() throws IllegalStateException {
-        // This must be in sync with the path specified in JBOSS_HOME/bin/installation-manager/installation-manager.sh
-        return getHomeDir().resolve("bin").resolve("installation-manager").resolve("installation-manager-lib.sh");
+    Path getScriptPropertiesPath() throws IllegalStateException {
+        return getHomeDir().resolve("bin").resolve("installation-manager.properties");
     }
 
     void setServerPrepared(boolean value) {

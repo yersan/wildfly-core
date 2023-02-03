@@ -23,6 +23,7 @@ import org.wildfly.installationmanager.Channel;
 import org.wildfly.installationmanager.HistoryResult;
 import org.wildfly.installationmanager.InstallationChanges;
 import org.wildfly.installationmanager.MavenOptions;
+import org.wildfly.installationmanager.OperationNotAvailableException;
 import org.wildfly.installationmanager.Repository;
 import org.wildfly.installationmanager.spi.InstallationManager;
 
@@ -65,8 +66,8 @@ public class ProsperoInstallationManager implements InstallationManager {
     }
 
     @Override
-    public void prepareUpdate(Path targetDir, List<Repository> repositories) throws Exception {
-
+    public boolean prepareUpdate(Path targetDir, List<Repository> repositories) throws Exception {
+        return false;
     }
 
     @Override
@@ -96,6 +97,16 @@ public class ProsperoInstallationManager implements InstallationManager {
 
     @Override
     public Path createSnapshot(Path targetPath) throws Exception {
+        return null;
+    }
+
+    @Override
+    public String generateApplyUpdateCommand(Path candidatePath) throws OperationNotAvailableException {
+        return null;
+    }
+
+    @Override
+    public String generateApplyRevertCommand(Path candidatePath) throws OperationNotAvailableException {
         return null;
     }
 }

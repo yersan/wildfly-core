@@ -44,7 +44,7 @@ public interface InstMgrLogger extends BasicLogger {
     @Message(id = 3, value = "Unable to locate the root directory of the unloaded Zip File")
     Exception invalidZipEntry();
 
-    @Message(id = 4, value = "A new installation is prepared and ready to be applied. You can use the 'clean' operation to discard the current prepared installation and generate a new one.")
+    @Message(id = 4, value = "There is an installation prepared and ready to be applied. The current prepared installation can be discarded by using the 'clean' operation.")
     OperationFailedException serverAlreadyPrepared();
 
 }

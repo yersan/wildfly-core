@@ -26,7 +26,6 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.registry.OperationEntry;
-import org.jboss.as.domain.http.server.OperatingSystemDetector;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.wildfly.core.instmgr.logging.InstMgrLogger;
@@ -35,14 +34,13 @@ import org.wildfly.installationmanager.Repository;
 import org.wildfly.installationmanager.spi.InstallationManager;
 import org.wildfly.installationmanager.spi.InstallationManagerFactory;
 
-import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Properties;
 import java.util.zip.ZipException;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ATTACHED_STREAMS;
@@ -143,6 +141,12 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
 
             Files.createDirectories(imService.getPreparedServerDir());
             im.prepareUpdate(imService.getPreparedServerDir(), repositories);
+
+            try (FileWriter output = new FileWriter(imService.getScriptPropertiesPath().toFile())) {
+                Properties prop = new Properties();
+                prop.setProperty("INST_MGR_ACTION", "update");
+                prop.store(output, null);
+            }
 
             // @TODO: put server in restart required?
             // once put in restart required, the clean operation should revert it if it cleans the prepared server
