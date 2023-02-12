@@ -17,6 +17,7 @@ if ! [ -e "${propsFile}" ]; then
 fi
 
 while IFS='=' read -r key value; do
+   [ "${key:0:1}" = "#" ] && continue
    export "$key=$value"
 done < "$propsFile"
 

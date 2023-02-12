@@ -114,7 +114,6 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
             if (listUpdatesWorkDir != null) {
                 // We come from list-updates and there is already a maven repo unzipped
                 final Path mvnRepoWorkDir = imService.getTrackedWorkDirByName(listUpdatesWorkDir);
-                // @TODO: check that mvnRepoParentWorkdir exists?
                 addCompleteStep(context, imService, listUpdatesWorkDir);
 
                 Path uploadedRepoZipRootDir = getUploadedMvnRepoRoot(mvnRepoWorkDir);
@@ -142,9 +141,11 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
             Files.createDirectories(imService.getPreparedServerDir());
             im.prepareUpdate(imService.getPreparedServerDir(), repositories);
 
+            String command = im.generateApplyUpdateCommand(imService.getPreparedServerDir());
             try (FileWriter output = new FileWriter(imService.getScriptPropertiesPath().toFile())) {
                 Properties prop = new Properties();
                 prop.setProperty("INST_MGR_ACTION", "update");
+                prop.setProperty("INST_MGR_COMMAND", command);
                 prop.store(output, null);
             }
 

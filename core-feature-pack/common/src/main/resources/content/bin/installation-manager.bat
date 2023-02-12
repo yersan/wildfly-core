@@ -11,16 +11,14 @@ if not exist "%PREPARED_INSTALLATION%" (
     goto EOF
 )
 
-set PROPS_FILE=%{INSTALLATION_HOME%/bin/installation-manager.properties
+set PROPS_FILE=%INSTALLATION_HOME%\bin\installation-manager.properties
 if not exist "%PROPS_FILE%" (
     echo INFO: Installation Manager properties file not found at %PROPS_FILE%.
 
     goto EOF
 )
 
-for /F "usebackq tokens=1* delims==" %%G IN ("%PROPS_FILE%") do (
-    if "%%G"=="INST_MGR_ACTION" set INST_MGR_ACTION=%%H
-)
+for /F "usebackq tokens=1* eol=# delims==" %%G IN ("%PROPS_FILE%") do (set %%G=%%H)
 
 call "%INSTALLATION_HOME%\bin\prospero.bat" %INST_MGR_ACTION% apply --dir="%INSTALLATION_HOME%" --update-dir="%PREPARED_INSTALLATION%"
 

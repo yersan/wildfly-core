@@ -1404,6 +1404,9 @@ public interface ServerLogger extends BasicLogger {
     @Message(id = 291, value = "The error cause is unknown at this thread. Check other log messages and caller to know the possible cause.")
     IllegalStateException throwableIsNull();
 
+    @Message(id = 292, value = "There is not any server installation prepared.")
+    IllegalStateException noServerInstallationPrepared();
+
     ////////////////////////////////////////////////
     //Messages without IDs
 

@@ -132,9 +132,11 @@ public class InstMgrPrepareRevertHandler extends AbstractInstMgrUpdateHandler {
             Files.createDirectories(imService.getPreparedServerDir());
             im.prepareRevert(revision, imService.getPreparedServerDir(), repositories);
 
+            String command = im.generateApplyRevertCommand(imService.getPreparedServerDir());
             try (FileWriter output = new FileWriter(imService.getScriptPropertiesPath().toFile())) {
                 Properties prop = new Properties();
-                prop.setProperty("INST_MGR_ACTION", "revert");
+                prop.setProperty("INST_MGR_ACTION", "update");
+                prop.setProperty("INST_MGR_COMMAND", command);
                 prop.store(output, null);
             }
 

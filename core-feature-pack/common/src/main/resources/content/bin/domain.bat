@@ -266,7 +266,7 @@ if %errorlevel% equ 10 (
 
 if %errorlevel% equ 20 (
     echo INFO: Executing Installation Manager...
-    call "%JBOSS_HOME%/bin/installation-manager/installation-manager.bat" "%JBOSS_HOME%" "%JBOSS_TEMP_DIR%"
+    call "%JBOSS_HOME%\bin\installation-manager.bat" "%JBOSS_HOME%" "%JBOSS_TEMP_DIR%"
     goto RESTART
 )
 

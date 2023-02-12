@@ -49,6 +49,7 @@ import org.jboss.as.controller.access.AuthorizationResult;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.process.ExitCodes;
+import org.jboss.as.server.ServerEnvironment;
 import org.jboss.as.server.SystemExiter;
 import org.jboss.as.server.controller.descriptions.ServerDescriptions;
 import org.jboss.as.server.logging.ServerLogger;
@@ -87,9 +88,11 @@ public class ServerShutdownHandler implements OperationStepHandler {
 
 
     private final ControlledProcessState processState;
+    private final ServerEnvironment serverEnvironment;
 
-    public ServerShutdownHandler(ControlledProcessState processState) {
+    public ServerShutdownHandler(ControlledProcessState processState, ServerEnvironment serverEnvironment) {
         this.processState = processState;
+        this.serverEnvironment = serverEnvironment;
     }
 
     /**
@@ -104,7 +107,9 @@ public class ServerShutdownHandler implements OperationStepHandler {
 
         // @TODO: Reject the restart if there is no server prepared to do an installation or revert or missing capability
         // @TODO Cannot use the Installation Manager service, we will generate a circular reference via maven, maybe Check the temp directory
-
+        if (performInstallation && !serverEnvironment.getServerTempDir().toPath().resolve("installation-manager").resolve("prepared-server").toFile().exists()) {
+            ServerLogger.ROOT_LOGGER.noServerInstallationPrepared();
+        }
 
         // Acquire the controller lock to prevent new write ops and wait until current ones are done
         context.acquireControllerLock();

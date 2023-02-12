@@ -47,11 +47,13 @@ import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.domain.controller.DomainController;
+import org.jboss.as.host.controller.HostControllerEnvironment;
 import org.jboss.as.host.controller.ServerInventory;
 import org.jboss.as.host.controller.descriptions.HostResolver;
 import org.jboss.as.host.controller.logging.HostControllerLogger;
 import org.jboss.as.process.ExitCodes;
 import org.jboss.as.server.SystemExiter;
+import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.dmr.Property;
@@ -90,13 +92,15 @@ public class HostShutdownHandler implements OperationStepHandler {
             .build();
 
     private final ServerInventory serverInventory;
+    private final HostControllerEnvironment environment;
 
     /**
      * Create the ServerAddHandler
      */
-    public HostShutdownHandler(final DomainController domainController, ServerInventory serverInventory) {
+    public HostShutdownHandler(final DomainController domainController, ServerInventory serverInventory, HostControllerEnvironment environment) {
         this.domainController = domainController;
         this.serverInventory = serverInventory;
+        this.environment = environment;
     }
 
     /**
@@ -109,6 +113,12 @@ public class HostShutdownHandler implements OperationStepHandler {
         final Resource hostResource = context.readResource(PathAddress.EMPTY_ADDRESS);
         final int suspendTimeout = SUSPEND_TIMEOUT.resolveModelAttribute(context, operation).asInt();
         final BlockingTimeout blockingTimeout = BlockingTimeout.Factory.getProxyBlockingTimeout(context);
+
+        // @TODO: Reject the restart if there is no server prepared to do an installation or revert or missing capability
+        // @TODO Cannot use the Installation Manager service, we will generate a circular reference via maven, maybe Check the temp directory
+        if (performInstallation && ! environment.getDomainTempDir().toPath().resolve("installation-manager").resolve("prepared-server").toFile().exists()) {
+            ServerLogger.ROOT_LOGGER.noServerInstallationPrepared();
+        }
 
         context.addStep(new OperationStepHandler() {
             @Override
