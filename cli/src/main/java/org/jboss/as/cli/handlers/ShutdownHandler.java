@@ -41,6 +41,7 @@ import org.wildfly.security.manager.WildFlySecurityManager;
 import org.xnio.http.RedirectException;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -326,7 +327,9 @@ public class ShutdownHandler extends BaseOperationCommand {
         }
 
         final String jbossHome = WildFlySecurityManager.getEnvPropertyPrivileged("JBOSS_HOME", null);
-        return result.get(Util.HOME_DIR).asString().equals(jbossHome);
+        return Paths.get(jbossHome).normalize().toAbsolutePath().equals(
+                Paths.get(result.get(Util.HOME_DIR).asString()).normalize().toAbsolutePath()
+        );
     }
 
     protected void setBooleanArgument(final ParsedCommandLine args, final ModelNode op, ArgumentWithValue arg, String paramName)
