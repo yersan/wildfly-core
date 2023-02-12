@@ -46,14 +46,7 @@ public final class InstMgrInitialization implements ModelControllerServiceInitia
     public void initializeStandalone(ServiceTarget target, ManagementModel managementModel) {
         Optional<InstallationManagerFactory> im = InstallationManagerFinder.find();
         if (im.isPresent()) {
-
-            ServiceBuilder<?> serviceBuilder = target.addService(InstMgrResourceDefinition.INSTALLATION_MANAGER_CAPABILITY.getCapabilityServiceName());
-            Supplier<PathManager> pathManagerSupplier = serviceBuilder.requires(PATH_MANAGER_CAPABILITY.getCapabilityServiceName());
-            Supplier<ExecutorService> executorServiceSupplier =  serviceBuilder.requires(EXECUTOR_CAPABILITY.getCapabilityServiceName());
-            InstMgrService imService = new InstMgrService(pathManagerSupplier, executorServiceSupplier);
-            serviceBuilder.setInstance(imService).setInitialMode(ServiceController.Mode.PASSIVE)
-                    .install();
-
+            final InstMgrService imService = createImService(target);
             managementModel.getRootResource().registerChild(InstMgrResourceDefinition.getPath(InstMgrConstants.TOOL_NAME), PlaceholderResource.INSTANCE);
             managementModel.getRootResourceRegistration().registerSubModel(new InstMgrResourceDefinition(im.get(), imService));
         }
@@ -76,16 +69,20 @@ public final class InstMgrInitialization implements ModelControllerServiceInitia
                 // real hostname yet.
                 return;
             }
-
-            ServiceBuilder<?> serviceBuilder = target.addService(InstMgrResourceDefinition.INSTALLATION_MANAGER_CAPABILITY.getCapabilityServiceName());
-            Supplier<PathManager> pathManagerSupplier = serviceBuilder.requires(PATH_MANAGER_CAPABILITY.getCapabilityServiceName());
-            Supplier<ExecutorService> executorServiceSupplier =  serviceBuilder.requires(EXECUTOR_CAPABILITY.getCapabilityServiceName());
-            InstMgrService imService = new InstMgrService(pathManagerSupplier, executorServiceSupplier);
-            serviceBuilder.setInstance(imService).setInitialMode(ServiceController.Mode.PASSIVE)
-                    .install();
-
+            final InstMgrService imService = createImService(target);
             hostResource.registerChild(InstMgrResourceDefinition.getPath(InstMgrConstants.TOOL_NAME), PlaceholderResource.INSTANCE);
             hostRegistration.registerSubModel(new InstMgrResourceDefinition(im.get(), imService));
         }
+    }
+
+    private InstMgrService createImService(ServiceTarget target) {
+        ServiceBuilder<?> serviceBuilder = target.addService(InstMgrResourceDefinition.INSTALLATION_MANAGER_CAPABILITY.getCapabilityServiceName());
+        Supplier<PathManager> pathManagerSupplier = serviceBuilder.requires(PATH_MANAGER_CAPABILITY.getCapabilityServiceName());
+        Supplier<ExecutorService> executorServiceSupplier =  serviceBuilder.requires(EXECUTOR_CAPABILITY.getCapabilityServiceName());
+        InstMgrService imService = new InstMgrService(pathManagerSupplier, executorServiceSupplier);
+        serviceBuilder.setInstance(imService).setInitialMode(ServiceController.Mode.PASSIVE)
+                .install();
+
+        return imService;
     }
 }
