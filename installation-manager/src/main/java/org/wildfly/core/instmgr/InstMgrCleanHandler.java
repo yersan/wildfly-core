@@ -56,11 +56,11 @@ public class InstMgrCleanHandler extends InstMgrOperationStepHandler {
         final String listUpdatesWorkDir = resolveAttribute(context, operation, LIST_UPDATES_WORK_DIR).asStringOrNull();
         try {
             if (listUpdatesWorkDir != null) {
-                imService.cleanTrackedWorkDir(listUpdatesWorkDir);
+                imService.deleteTempDir(listUpdatesWorkDir);
             } else {
                 deleteDirIfExits(imService.getPreparedServerDir());
-                imService.cleanTrackedWorkDirs();
-                imService.setServerPrepared(false);
+                imService.deleteTempDirs();
+                imService.resetCandidateStatus();
             }
         } catch (Exception e) {
             context.getFailureDescription().set(e.getLocalizedMessage());

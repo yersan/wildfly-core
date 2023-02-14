@@ -63,18 +63,13 @@ public class ListUpdatesAction extends AbstractInstMgrCommand {
         addRepositories(op, this.repositories);
 
         if (localCache != null) {
-            op.get(InstMgrConstants.LOCAL_CACHE, localCache.normalize().toAbsolutePath().toString());
+            op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.normalize().toAbsolutePath().toString());
         }
 
         op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(noResolveLocalCache);
         op.get(InstMgrConstants.OFFLINE).set(offline);
 
         return operationBuilder.build();
-    }
-
-    @Override
-    public CommandResult execute(CLICommandInvocation commandInvocation) throws CommandException, InterruptedException {
-        return null;
     }
 
     public static class Builder {

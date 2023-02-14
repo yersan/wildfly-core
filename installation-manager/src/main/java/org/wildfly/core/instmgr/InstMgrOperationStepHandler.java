@@ -41,6 +41,9 @@ import java.util.zip.ZipFile;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
 
+/**
+ * Base class for installation-manager operation handlers.
+ */
 abstract class InstMgrOperationStepHandler implements OperationStepHandler {
     private final InstMgrService imService;
     private final InstallationManagerFactory imf;

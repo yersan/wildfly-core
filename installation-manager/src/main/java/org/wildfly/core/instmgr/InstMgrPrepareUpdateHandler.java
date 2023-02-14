@@ -34,13 +34,11 @@ import org.wildfly.installationmanager.Repository;
 import org.wildfly.installationmanager.spi.InstallationManager;
 import org.wildfly.installationmanager.spi.InstallationManagerFactory;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Properties;
 import java.util.zip.ZipException;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ATTACHED_STREAMS;
@@ -89,8 +87,6 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
 
     @Override
     void executeRuntimeStep(OperationContext context, ModelNode operation, InstMgrService imService, InstallationManagerFactory imf) throws OperationFailedException {
-        context.acquireControllerLock();
-
         final boolean offline = resolveAttribute(context, operation, OFFLINE).isDefined() ? resolveAttribute(context, operation, OFFLINE).asBoolean() : false;
         final String pathLocalRepo = resolveAttribute(context, operation, LOCAL_CACHE).asStringOrNull();
         final boolean noResolveLocalCache = resolveAttribute(context, operation, NO_RESOLVE_LOCAL_CACHE).isDefined() ? resolveAttribute(context, operation, NO_RESOLVE_LOCAL_CACHE).asBoolean() : false;
@@ -99,21 +95,23 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
         final String listUpdatesWorkDir = resolveAttribute(context, operation, LIST_UPDATES_WORK_DIR).asStringOrNull();
         final ModelNode repositoriesMn = operation.hasDefined(REPOSITORIES.getName()) ? REPOSITORIES.resolveModelAttribute(context, operation).asObject() : null;
 
-        if (imService.isServerPrepared()) {
-            throw InstMgrLogger.ROOT_LOGGER.serverAlreadyPrepared();
-        }
-        imService.setServerPrepared(true);
-        addCompleteStep(context, imService, null);
-
+        context.acquireControllerLock();
         try {
+            if (!imService.canPrepareServer()) {
+                throw InstMgrLogger.ROOT_LOGGER.serverAlreadyPrepared();
+            }
+            imService.beginCandidateServer();
+            addCompleteStep(context, imService, null);
+
             final Path homeDir = imService.getHomeDir();
             final MavenOptions mavenOptions = new MavenOptions(localRepository, noResolveLocalCache, offline);
             final InstallationManager im = imf.create(homeDir, mavenOptions);
 
-            List<Repository> repositories;
+            final List<Repository> repositories;
             if (listUpdatesWorkDir != null) {
-                // We come from list-updates and there is already a maven repo unzipped
-                final Path mvnRepoWorkDir = imService.getTrackedWorkDirByName(listUpdatesWorkDir);
+                // We are coming from a previous list-updates management operation where a Maven Zip Repository
+                // has been uploaded and upzipped on a temp dir.
+                final Path mvnRepoWorkDir = imService.getTempDirByName(listUpdatesWorkDir);
                 addCompleteStep(context, imService, listUpdatesWorkDir);
 
                 Path uploadedRepoZipRootDir = getUploadedMvnRepoRoot(mvnRepoWorkDir);
@@ -121,8 +119,10 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
                 repositories = List.of(uploadedMavenRepo);
 
             } else if (mavenRepoFileIndex != null) {
+                // We are uploading a Maven Zip Repository. Store it in a temporal directory
+                // as "maven-repo-prepare-updates.zip" and unzip it.
                 final InputStream is = context.getAttachmentStream(mavenRepoFileIndex);
-                final Path prepareUpdateWorkDir = imService.createWorkDir("prepare-updates-");
+                final Path prepareUpdateWorkDir = imService.createTempDir("prepare-updates-");
 
                 addCompleteStep(context, imService, prepareUpdateWorkDir.getFileName().toString());
 
@@ -139,20 +139,17 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
             }
 
             Files.createDirectories(imService.getPreparedServerDir());
-            im.prepareUpdate(imService.getPreparedServerDir(), repositories);
-
-            String command = im.generateApplyUpdateCommand(imService.getPreparedServerDir());
-            try (FileWriter output = new FileWriter(imService.getScriptPropertiesPath().toFile())) {
-                Properties prop = new Properties();
-                prop.setProperty("INST_MGR_ACTION", "update");
-                prop.setProperty("INST_MGR_COMMAND", command);
-                prop.store(output, null);
+            boolean prepared = im.prepareUpdate(imService.getPreparedServerDir(), repositories);
+            if (prepared) {
+                // @TODO: put server in restart required?
+                // once put in restart required, the clean operation should revert it if it cleans the prepared server
+                // but we cannot revert the restart flag from a different Operation since there could be other Operations executed which could have been set this flag?
+                context.getResult().set("Candidate Server prepared at " + imService.getPreparedServerDir().normalize().toAbsolutePath());
+                imService.commitCandidateServer("prospero.sh", "update apply");
+            } else {
+                context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_CHANGES_FOUND)));
+                imService.resetCandidateStatus();
             }
-
-            // @TODO: put server in restart required?
-            // once put in restart required, the clean operation should revert it if it cleans the prepared server
-            // but we cannot revert the restart flag from a different Operation since there could be other Operations executed which could have been set this flag?
-            context.getResult().set("Candidate Server prepared at " + imService.getPreparedServerDir().normalize().toAbsolutePath());
         } catch (ZipException e) {
             context.getFailureDescription().set(e.getLocalizedMessage());
             throw new OperationFailedException(e);
@@ -170,9 +167,9 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
             @Override
             public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
                 try {
-                    imService.cleanTrackedWorkDir(workDir);
+                    imService.deleteTempDir(workDir);
                     if (resultAction == OperationContext.ResultAction.ROLLBACK) {
-                        imService.setServerPrepared(false);
+                        imService.resetCandidateStatus();
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);

@@ -40,9 +40,11 @@ import java.util.List;
 
 @CommandDefinition(name = "update", description = "Apply the latest available patches on a server instance.")
 public class UpdateCommand extends AbstractInstMgrCommand {
-    @Option(name = "dry-run", hasValue = false)
+    static final String DRY_RUN_OPTION = "dry-run";
+    static final String CONFIRM_OPTION = "confirm";
+    @Option(name = DRY_RUN_OPTION, hasValue = false, activator = AbstractInstMgrCommand.DryRunActivator.class)
     private boolean dryRun;
-    @Option(name = "yes", hasValue = false)
+    @Option(name = CONFIRM_OPTION, hasValue = false, activator = AbstractInstMgrCommand.ConfirmActivator.class)
     private boolean confirm;
     @OptionList(name = "repositories")
     private List<String> repositories;
@@ -67,6 +69,11 @@ public class UpdateCommand extends AbstractInstMgrCommand {
             return CommandResult.FAILURE;
         }
 
+        if (confirm && dryRun) {
+            ctx.printLine(CONFIRM_OPTION + " and " + DRY_RUN_OPTION + " cannot be used at the same time.");
+            return CommandResult.FAILURE;
+        }
+
         ListUpdatesAction.Builder listUpdatesCmdBuilder = new ListUpdatesAction.Builder()
                 .setNoResolveLocalCache(noResolveLocalCache)
                 .setLocalCache(localCache)
@@ -76,7 +83,7 @@ public class UpdateCommand extends AbstractInstMgrCommand {
 
         ListUpdatesAction listUpdatesCmd = listUpdatesCmdBuilder.build();
         ModelNode response = listUpdatesCmd.executeOp(ctx, host);
-        printResponse(ctx, response);
+        ctx.printLine(response.toJSONString(false));
 
         if (Util.isSuccess(response)) {
             if (response.hasDefined(Util.RESULT)) {

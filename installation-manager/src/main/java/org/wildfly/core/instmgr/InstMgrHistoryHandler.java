@@ -54,9 +54,11 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
             .withFlag(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
             .setRuntimeOnly()
             .build();
+
     InstMgrHistoryHandler(InstMgrService imService, InstallationManagerFactory imf) {
         super(imService, imf);
     }
+
     @Override
     void executeRuntimeStep(OperationContext context, ModelNode operation, InstMgrService imService, InstallationManagerFactory imf) throws OperationFailedException {
         final String revision = resolveAttribute(context, operation, REVISION).asStringOrNull();

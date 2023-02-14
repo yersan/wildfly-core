@@ -34,6 +34,7 @@ import org.jboss.dmr.ModelNode;
 import org.wildfly.core.cli.command.aesh.CLICommandInvocation;
 import org.wildfly.core.cli.command.aesh.CLICompleterInvocation;
 import org.wildfly.core.cli.command.aesh.activator.AbstractOptionActivator;
+import org.wildfly.core.cli.command.aesh.activator.AbstractRejectOptionActivator;
 import org.wildfly.core.cli.command.aesh.activator.DomainOptionActivator;
 import org.wildfly.core.instmgr.InstMgrConstants;
 
@@ -47,6 +48,8 @@ import java.util.List;
 import static org.jboss.as.cli.Util.ADDRESS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
+import static org.wildfly.core.instmgr.cli.UpdateCommand.CONFIRM_OPTION;
+import static org.wildfly.core.instmgr.cli.UpdateCommand.DRY_RUN_OPTION;
 
 @CommandDefinition(name = "abstract-inst-mgr-cmd", description = "")
 public abstract class AbstractInstMgrCommand implements Command<CLICommandInvocation> {
@@ -88,13 +91,26 @@ public abstract class AbstractInstMgrCommand implements Command<CLICommandInvoca
 
     @Override
     public CommandResult execute(CLICommandInvocation commandInvocation) throws CommandException, InterruptedException {
-       throw new RuntimeException();
+        throw new CommandException("Command action is missing.");
     }
+
     public static class HostsActivator extends AbstractOptionActivator implements DomainOptionActivator {
 
         @Override
         public boolean isActivated(ParsedCommand processedCommand) {
             return getCommandContext().getModelControllerClient() != null && getCommandContext().isDomainMode();
+        }
+    }
+
+    public static class DryRunActivator extends AbstractRejectOptionActivator {
+        public DryRunActivator() {
+            super(CONFIRM_OPTION);
+        }
+    }
+
+    public static class ConfirmActivator extends AbstractRejectOptionActivator {
+        public ConfirmActivator() {
+            super(DRY_RUN_OPTION);
         }
     }
 
@@ -122,11 +138,11 @@ public abstract class AbstractInstMgrCommand implements Command<CLICommandInvoca
         }
     }
 
-    private PathAddress createStandalone() {
+    private static PathAddress createStandalone() {
         return PathAddress.pathAddress(CORE_SERVICE_INSTALLER);
     }
 
-    public static final PathAddress createHost(final String hostName, final ModelControllerClient client) {
+    private static PathAddress createHost(final String hostName, final ModelControllerClient client) {
         final PathElement host = PathElement.pathElement(HOST, hostName);
         final PathAddress address = PathAddress.pathAddress(host, CORE_SERVICE_INSTALLER);
 

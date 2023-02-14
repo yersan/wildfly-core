@@ -34,13 +34,11 @@ import org.wildfly.installationmanager.Repository;
 import org.wildfly.installationmanager.spi.InstallationManager;
 import org.wildfly.installationmanager.spi.InstallationManagerFactory;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Properties;
 import java.util.zip.ZipException;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ATTACHED_STREAMS;
@@ -101,20 +99,20 @@ public class InstMgrPrepareRevertHandler extends AbstractInstMgrUpdateHandler {
         final String revision = REVISION.resolveModelAttribute(context, operation).asString();
 
         try {
+            if (!imService.canPrepareServer()) {
+                throw InstMgrLogger.ROOT_LOGGER.serverAlreadyPrepared();
+            }
+            imService.beginCandidateServer();
+            addCompleteStep(context, imService, null);
+
             final Path homeDir = imService.getHomeDir();
             final MavenOptions mavenOptions = new MavenOptions(localRepository, noResolveLocalCache, offline);
             final InstallationManager im = imf.create(homeDir, mavenOptions);
 
-            if (imService.isServerPrepared()) {
-                throw InstMgrLogger.ROOT_LOGGER.serverAlreadyPrepared();
-            }
-            imService.setServerPrepared(true);
-            addCompleteStep(context, imService, null);
-
             List<Repository> repositories;
             if (mavenRepoFileIndex != null) {
                 final InputStream is = context.getAttachmentStream(mavenRepoFileIndex);
-                final Path preparationWorkDir = imService.createWorkDir("prepare-revert-");
+                final Path preparationWorkDir = imService.createTempDir("prepare-revert-");
                 addCompleteStep(context, imService, preparationWorkDir.getFileName().toString());
 
                 Path uploadedRepoZipFileName = preparationWorkDir.resolve("maven-repo-prepare-updates.zip");
@@ -131,17 +129,10 @@ public class InstMgrPrepareRevertHandler extends AbstractInstMgrUpdateHandler {
 
             Files.createDirectories(imService.getPreparedServerDir());
             im.prepareRevert(revision, imService.getPreparedServerDir(), repositories);
-
-            String command = im.generateApplyRevertCommand(imService.getPreparedServerDir());
-            try (FileWriter output = new FileWriter(imService.getScriptPropertiesPath().toFile())) {
-                Properties prop = new Properties();
-                prop.setProperty("INST_MGR_ACTION", "update");
-                prop.setProperty("INST_MGR_COMMAND", command);
-                prop.store(output, null);
-            }
+            context.getResult().set("Candidate Server prepared at " + imService.getPreparedServerDir().normalize().toAbsolutePath());
+            imService.commitCandidateServer("prospero.sh", "revert apply");
 
             // @TODO Better Exception handling
-            context.getResult().set("Candidate Server prepared at " + imService.getPreparedServerDir().normalize().toAbsolutePath());
         } catch (ZipException e) {
             context.getFailureDescription().set(e.getLocalizedMessage());
             throw new OperationFailedException(e);
@@ -159,9 +150,9 @@ public class InstMgrPrepareRevertHandler extends AbstractInstMgrUpdateHandler {
             @Override
             public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
                 try {
-                    imService.cleanTrackedWorkDir(mavenRepoParentWorkdir);
+                    imService.deleteTempDir(mavenRepoParentWorkdir);
                     if (resultAction == OperationContext.ResultAction.ROLLBACK) {
-                        imService.setServerPrepared(false);
+                        imService.resetCandidateStatus();
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);

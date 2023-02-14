@@ -81,8 +81,6 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
 
     @Override
     void executeRuntimeStep(OperationContext context, ModelNode operation, InstMgrService imService, InstallationManagerFactory imf) throws OperationFailedException {
-        context.acquireControllerLock();
-
         final boolean offline = resolveAttribute(context, operation, OFFLINE).isDefined() ? resolveAttribute(context, operation, OFFLINE).asBoolean() : false;
         final String pathLocalRepo = resolveAttribute(context, operation, LOCAL_CACHE).asStringOrNull();
         final boolean noResolveLocalCache = resolveAttribute(context, operation, NO_RESOLVE_LOCAL_CACHE).isDefined() ? resolveAttribute(context, operation, NO_RESOLVE_LOCAL_CACHE).asBoolean() : false;
@@ -90,18 +88,19 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
         final Integer mavenRepoFileIndex = resolveAttribute(context, operation, MAVEN_REPO_FILE).asIntOrNull();
         final ModelNode repositoriesMn = operation.hasDefined(REPOSITORIES.getName()) ? REPOSITORIES.resolveModelAttribute(context, operation).asObject() : null;
 
+        context.acquireControllerLock();
         try {
             final Path homeDir = imService.getHomeDir();
             final MavenOptions mavenOptions = new MavenOptions(localRepository, noResolveLocalCache, offline);
             final InstallationManager im = imf.create(homeDir, mavenOptions);
-            final Path listUpdatesWorkDir = imService.createWorkDir("list-updates-");
+            final Path listUpdatesWorkDir = imService.createTempDir("list-updates-");
 
             context.completeStep(new OperationContext.ResultHandler() {
                 @Override
                 public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
                     if (resultAction == OperationContext.ResultAction.ROLLBACK) {
                         try {
-                            imService.cleanTrackedWorkDir(listUpdatesWorkDir);
+                            imService.deleteTempDir(listUpdatesWorkDir);
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
@@ -124,9 +123,11 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
                 repositories = toRepositories(repositoriesMn);
             }
 
+
             final List<ArtifactChange> updates = im.findUpdates(repositories);
-            ModelNode resultValue = new ModelNode();
-            ModelNode updatesMn = new ModelNode().addEmptyList();
+            final ModelNode resultValue = new ModelNode();
+            final ModelNode updatesMn = new ModelNode().addEmptyList();
+
             if (!updates.isEmpty()) {
                 for (ArtifactChange artifactChange : updates) {
                     switch (artifactChange.getStatus()) {
@@ -145,12 +146,12 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
                     resultValue.get(InstMgrConstants.UPDATES_RESULT).set(updatesMn);
                     resultValue.get(InstMgrConstants.LIST_UPDATES_WORK_DIR).set(listUpdatesWorkDir.getFileName().toString());
                 } else {
-                    imService.cleanTrackedWorkDir(listUpdatesWorkDir);
+                    imService.deleteTempDir(listUpdatesWorkDir);
                     resultValue.get(InstMgrConstants.RETURN_CODE).set(InstMgrConstants.RETURN_CODE_UPDATES_WITHOUT_WORK_DIR);
                     resultValue.get(InstMgrConstants.UPDATES_RESULT).set(updatesMn);
                 }
             } else {
-                imService.cleanTrackedWorkDir(listUpdatesWorkDir);
+                imService.deleteTempDir(listUpdatesWorkDir);
                 updatesMn.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_CHANGES_FOUND)));
                 resultValue.get(InstMgrConstants.RETURN_CODE).set(InstMgrConstants.RETURN_CODE_NO_UPDATES);
                 resultValue.get(InstMgrConstants.UPDATES_RESULT).set(updatesMn);

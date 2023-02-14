@@ -1,10 +1,8 @@
 @echo off
 setlocal
 
-:: Invokes the installation manager tool to apply the prepared server.
-:: This script is expected to be invoked with two arguments
-:: INSTALLATION_HOME: absolute path to the installation
-:: WORK_DIR: Root of the working directory where the installation manager tool will found the candidate server.
+rem This script launches the operation to apply a candidate server installation to update or revert.
+rem The server JVM writes the required values into the installation-manager.properties file by using InstMgrCandidateStatus.java
 
 set INSTALLATION_HOME=%~1
 set WORK_DIR=%~2
@@ -25,12 +23,19 @@ if not exist "%PROPS_FILE%" (
 
 for /F "usebackq tokens=1* eol=# delims==" %%G IN ("%PROPS_FILE%") do (set %%G=%%H)
 
-call "%INSTALLATION_HOME%\bin\prospero.bat" %INST_MGR_ACTION% apply --dir="%INSTALLATION_HOME%" --update-dir="%PREPARED_INSTALLATION%"
+if "%INST_MGR_STATUS%" neq "PREPARED" (
+    echo ERROR: The Candidate Server installation is not in the PREPARED status. The current status is %INST_MGR_STATUS%
+
+    goto EOF
+)
+
+call "%INSTALLATION_HOME%\bin\%INST_MGR_SCRIPT_NAME%" %INST_MGR_ACTION% --dir="%INSTALLATION_HOME%" --update-dir="%PREPARED_INSTALLATION%"
 
 set IM_RESULT=%errorlevel%
 if %IM_RESULT% equ 0 (
     echo INFO: The Candidate Server was successfully applied.
     rmdir /S /Q "%PREPARED_INSTALLATION%"
+    echo INST_MGR_STATUS=CLEAN > %PROPS_FILE%
 
     goto EOF
 )

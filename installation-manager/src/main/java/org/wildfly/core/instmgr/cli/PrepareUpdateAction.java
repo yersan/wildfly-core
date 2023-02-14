@@ -65,7 +65,7 @@ public class PrepareUpdateAction extends AbstractInstMgrCommand {
         addRepositories(op, this.repositories);
 
         if (localCache != null) {
-            op.get(InstMgrConstants.LOCAL_CACHE, localCache.normalize().toAbsolutePath().toString());
+            op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.normalize().toAbsolutePath().toString());
         }
 
         op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(noResolveLocalCache);

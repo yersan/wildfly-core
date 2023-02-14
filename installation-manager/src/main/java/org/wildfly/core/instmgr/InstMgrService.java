@@ -31,38 +31,42 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
+/**
+ * This is the main service used by the installation manager management operation handlers.
+ */
 class InstMgrService implements Service {
     private final Supplier<PathManager> pathManagerSupplier;
-    private final Supplier<ExecutorService> executorServiceSupplier;
     private PathManager pathManager;
-    private ExecutorService executorService;
     private AtomicBoolean started = new AtomicBoolean(false);
-    private static final AtomicBoolean serverPrepared = new AtomicBoolean(false);
-    private Path workDir = null;
+    private Path homeDir = null;
+    private Path properties = null;
+    private Path prepareServerDir = null;
+    private HashMap<String, Path> tempDirs = new HashMap<>();
+    private InstMgrCandidateStatus candidateStatus;
 
-    private HashMap<String, Path> trackedWorkDirs = new HashMap<>();
-
-    InstMgrService(Supplier<PathManager> pathManagerSupplier, Supplier<ExecutorService> executorServiceSupplier) {
+    InstMgrService(Supplier<PathManager> pathManagerSupplier) {
         this.pathManagerSupplier = pathManagerSupplier;
-        this.executorServiceSupplier = executorServiceSupplier;
+        this.candidateStatus = new InstMgrCandidateStatus();
     }
 
     @Override
     public void start(StartContext startContext) throws StartException {
         this.pathManager = pathManagerSupplier.get();
-        this.executorService = executorServiceSupplier.get();
-
-        workDir = Paths.get(pathManager.getPathEntry("jboss.controller.temp.dir").resolvePath())
+        this.homeDir = Path.of(this.pathManager.getPathEntry("jboss.home.dir").resolvePath());
+        this.properties = homeDir.resolve("bin").resolve("installation-manager.properties");
+        Path workDir = Paths.get(pathManager.getPathEntry("jboss.controller.temp.dir").resolvePath())
                 .resolve("installation-manager");
+        this.prepareServerDir = workDir.resolve("prepared-server");
+        this.candidateStatus.initialize(properties);
         try {
+            if (candidateStatus.getStatus() == InstMgrCandidateStatus.Status.PREPARING) {
+                candidateStatus.setFailed();
+            }
             //Ensure work dir is available
             Files.createDirectories(workDir);
-            serverPrepared.set(workDir.resolve("prepared-server").toFile().exists());
         } catch (IOException e) {
             throw new StartException(e);
         }
@@ -72,42 +76,27 @@ class InstMgrService implements Service {
     @Override
     public void stop(StopContext context) {
         this.pathManager = null;
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    cleanTrackedWorkDirs();
-                } catch (IOException e) {
-                    // ignored, maybe log it?
-                } finally {
-                    trackedWorkDirs = null;
-                    context.complete();
-                }
-            }
-        };
         try {
-            executorService.execute(r);
-        } catch (RejectedExecutionException e) {
-            r.run();
-        } finally {
-            context.asynchronous();
+            deleteTempDirs();
+        } catch (IOException e) {
+            // ignored, maybe log it?
         }
         started.set(false);
     }
 
-    Path createWorkDir(String workDirPrefix) throws IOException {
+    Path createTempDir(String workDirPrefix) throws IOException {
         Path tempDirectory = Files.createTempDirectory(workDirPrefix);
-        this.trackedWorkDirs.put(tempDirectory.getFileName().toString(), tempDirectory);
+        this.tempDirs.put(tempDirectory.getFileName().toString(), tempDirectory);
 
         return tempDirectory;
     }
 
-    Path getTrackedWorkDirByName(String workDirName) {
-        return this.trackedWorkDirs.get(workDirName);
+    Path getTempDirByName(String workDirName) {
+        return this.tempDirs.get(workDirName);
     }
 
-    void cleanTrackedWorkDirs() throws IOException {
-        for (Path workDir : trackedWorkDirs.values()) {
+    void deleteTempDirs() throws IOException {
+        for (Path workDir : tempDirs.values()) {
             Files.walk(workDir)
                     .sorted(Comparator.reverseOrder())
                     .map(Path::toFile)
@@ -115,21 +104,21 @@ class InstMgrService implements Service {
         }
     }
 
-    void cleanTrackedWorkDir(Path workDirPath) throws IOException {
-        if (workDirPath == null) {
+    void deleteTempDir(Path tempDirPath) throws IOException {
+        if (tempDirPath == null) {
             return;
         }
 
-       cleanTrackedWorkDir(workDirPath.getFileName().toString());
+        deleteTempDir(tempDirPath.getFileName().toString());
     }
 
-    void cleanTrackedWorkDir(String workDirName) throws IOException {
-        if (workDirName == null) {
+    void deleteTempDir(String tempDirName) throws IOException {
+        if (tempDirName == null) {
             return;
         }
 
-        Path dirToClean = this.trackedWorkDirs.get(workDirName);
-        trackedWorkDirs.remove(workDirName);
+        Path dirToClean = this.tempDirs.get(tempDirName);
+        tempDirs.remove(tempDirName);
         if (dirToClean != null && dirToClean.toFile().exists()) {
             Files.walk(dirToClean)
                     .sorted(Comparator.reverseOrder())
@@ -142,29 +131,29 @@ class InstMgrService implements Service {
         if (!started.get()) throw new IllegalStateException();
     }
 
-    private PathManager getPathManager() throws IllegalStateException {
-        checkStarted();
-        return this.pathManager;
-    }
-
     Path getHomeDir() throws IllegalStateException {
         checkStarted();
-        return Path.of(getPathManager().getPathEntry("jboss.home.dir").resolvePath());
+        return homeDir;
     }
 
     Path getPreparedServerDir() throws IllegalStateException {
-        return workDir.resolve("prepared-server");
+        checkStarted();
+        return prepareServerDir;
     }
 
-    Path getScriptPropertiesPath() throws IllegalStateException {
-        return getHomeDir().resolve("bin").resolve("installation-manager.properties");
+    boolean canPrepareServer() throws IOException {
+        return this.candidateStatus.getStatus() == InstMgrCandidateStatus.Status.CLEAN;
     }
 
-    void setServerPrepared(boolean value) {
-        serverPrepared.set(value);
+    void beginCandidateServer() {
+        this.candidateStatus.begin();
     }
 
-    boolean isServerPrepared() {
-        return serverPrepared.get();
+    void commitCandidateServer(String scriptName, String command) {
+        this.candidateStatus.commit(scriptName, command);
+    }
+
+    void resetCandidateStatus() {
+        this.candidateStatus.reset();
     }
 }
