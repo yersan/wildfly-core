@@ -75,7 +75,7 @@ public class PrepareUpdateAction extends AbstractInstMgrCommand {
             op.get(InstMgrConstants.LIST_UPDATES_WORK_DIR).set(listUpdatesWorkDir.toString());
         }
 
-        // @TODO validate Operation in the client?
+        // @TODO validate Operation on the client side?
         return operationBuilder.build();
     }
     public static class Builder {
@@ -107,9 +107,9 @@ public class PrepareUpdateAction extends AbstractInstMgrCommand {
             return this;
         }
 
-        public Builder setLocalCache(Path localCache) {
+        public Builder setLocalCache(File localCache) {
             if (localCache != null) {
-                this.localCache = localCache;
+                this.localCache = localCache.toPath();
             }
             return this;
         }

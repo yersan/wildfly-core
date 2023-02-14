@@ -105,9 +105,9 @@ public class ListUpdatesAction extends AbstractInstMgrCommand {
             return this;
         }
 
-        public Builder setLocalCache(Path localCache) {
+        public Builder setLocalCache(File localCache) {
             if (localCache != null) {
-                this.localCache = localCache;
+                this.localCache = localCache.toPath();
             }
             return this;
         }

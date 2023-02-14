@@ -47,7 +47,7 @@ public class UpdateCommand extends AbstractInstMgrCommand {
     @OptionList(name = "repositories")
     private List<String> repositories;
     @Option(name = "local-cache")
-    private Path localCache;
+    private File localCache;
     @Option(name = "no-resolve-local-cache", hasValue = false)
     private boolean noResolveLocalCache;
     @Option(name = "offline", hasValue = false)
