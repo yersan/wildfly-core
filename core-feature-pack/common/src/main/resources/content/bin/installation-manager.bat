@@ -1,5 +1,10 @@
 @echo off
+setlocal
+
 :: Invokes the installation manager tool to apply the prepared server.
+:: This script is expected to be invoked with two arguments
+:: INSTALLATION_HOME: absolute path to the installation
+:: WORK_DIR: Root of the working directory where the installation manager tool will found the candidate server.
 
 set INSTALLATION_HOME=%~1
 set WORK_DIR=%~2
