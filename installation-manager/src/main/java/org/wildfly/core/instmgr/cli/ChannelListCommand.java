@@ -19,8 +19,6 @@ import java.util.List;
 
 @CommandDefinition(name = "channel-list", description = "List channels subscribed to by the installation.")
 public class ChannelListCommand extends AbstractInstMgrCommand {
-    @Option(name = "host", completer = AbstractInstMgrCommand.HostsCompleter.class, activator = AbstractInstMgrCommand.HostsActivator.class)
-    protected String host;
 
     @Override
     protected Operation buildOperation() {
@@ -40,7 +38,7 @@ public class ChannelListCommand extends AbstractInstMgrCommand {
             return CommandResult.FAILURE;
         }
 
-        ModelNode response = this.executeOp(commandInvocation.getCommandContext(), host);
+        ModelNode response = this.executeOp(commandInvocation.getCommandContext());
         ModelNode result = response.get(Util.RESULT);
         List<ModelNode> channelsMn = result.get(InstMgrConstants.CHANNELS).asListOrEmpty();
 

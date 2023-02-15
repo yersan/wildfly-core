@@ -18,11 +18,9 @@
 
 package org.wildfly.core.instmgr.cli;
 
-import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
-import org.aesh.command.option.Option;
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.impl.CLIModelControllerClient;
 import org.jboss.as.controller.client.ModelControllerClient;
@@ -39,8 +37,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 
 @CommandDefinition(name = "clean", description = "Clean installation manager content.")
 public class CleanCommand extends AbstractInstMgrCommand {
-    @Option(name = "host", completer = AbstractInstMgrCommand.HostsCompleter.class, activator = AbstractInstMgrCommand.HostsActivator.class)
-    protected String host;
     final Path lstUpdatesWorkDir;
 
     public CleanCommand() {
@@ -71,7 +67,7 @@ public class CleanCommand extends AbstractInstMgrCommand {
             return CommandResult.FAILURE;
         }
 
-        this.executeOp(commandInvocation.getCommandContext(), host);
+        this.executeOp(commandInvocation.getCommandContext());
         return CommandResult.SUCCESS;
     }
 }

@@ -40,8 +40,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 
 @CommandDefinition(name = "clone-export", description = "Export the installation metadata.")
 public class CreateSnapshotCommand extends AbstractInstMgrCommand {
-    @Option(name = "host", completer = AbstractInstMgrCommand.HostsCompleter.class, activator = AbstractInstMgrCommand.HostsActivator.class)
-    protected String host;
 
     @Option(name = "path", required = true)
     private File path;
@@ -66,7 +64,7 @@ public class CreateSnapshotCommand extends AbstractInstMgrCommand {
             return CommandResult.FAILURE;
         }
 
-        ModelNode response = this.executeOp(commandInvocation.getCommandContext(), host);
+        ModelNode response = this.executeOp(commandInvocation.getCommandContext());
         ModelNode result = response.get(Util.RESULT);
         ctx.printLine(result.asString());
         return CommandResult.SUCCESS;

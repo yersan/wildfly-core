@@ -38,9 +38,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 @CommandDefinition(name = "history", description = "List previous installation states.")
 public class HistoryCommand extends AbstractInstMgrCommand {
 
-    @Option(name = "host", completer = AbstractInstMgrCommand.HostsCompleter.class, activator = AbstractInstMgrCommand.HostsActivator.class)
-    protected String host;
-
     @Option(name = "revision")
     private String revision;
 
@@ -53,7 +50,7 @@ public class HistoryCommand extends AbstractInstMgrCommand {
             return CommandResult.FAILURE;
         }
 
-        ModelNode response = this.executeOp(ctx, host);
+        ModelNode response = this.executeOp(ctx);
         printResponse(ctx, response);
         return CommandResult.SUCCESS;
     }

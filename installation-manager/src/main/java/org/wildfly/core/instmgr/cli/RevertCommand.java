@@ -53,8 +53,6 @@ public class RevertCommand extends AbstractInstMgrCommand {
     private File mavenRepoFile;
     @Option(name = "revision")
     private String revision;
-    @Option(name = "host", completer = AbstractInstMgrCommand.HostsCompleter.class, activator = AbstractInstMgrCommand.HostsActivator.class)
-    protected String host;
 
     @Override
     public CommandResult execute(CLICommandInvocation commandInvocation) throws CommandException, InterruptedException {
@@ -65,7 +63,7 @@ public class RevertCommand extends AbstractInstMgrCommand {
             return CommandResult.FAILURE;
         }
 
-        ModelNode response = this.executeOp(ctx, host);
+        ModelNode response = this.executeOp(ctx);
         printResponse(ctx, response);
 
         return CommandResult.SUCCESS;

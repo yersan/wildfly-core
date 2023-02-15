@@ -24,6 +24,7 @@ import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.completer.OptionCompleter;
 import org.aesh.command.impl.internal.ParsedCommand;
+import org.aesh.command.option.Option;
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.Util;
 import org.jboss.as.controller.PathAddress;
@@ -55,6 +56,9 @@ import static org.wildfly.core.instmgr.cli.UpdateCommand.DRY_RUN_OPTION;
 public abstract class AbstractInstMgrCommand implements Command<CLICommandInvocation> {
     static final PathElement CORE_SERVICE_INSTALLER = PathElement.pathElement(CORE_SERVICE, InstMgrGroupCommand.COMMAND_NAME);
 
+    @Option(name = "host", completer = AbstractInstMgrCommand.HostsCompleter.class, activator = AbstractInstMgrCommand.HostsActivator.class)
+    public String host;
+
     /**
      * General Execute Operation method.
      *
@@ -63,7 +67,7 @@ public abstract class AbstractInstMgrCommand implements Command<CLICommandInvoca
      * @return ModelNode with the result of a successful execution.
      * @throws CommandException If the operation was not success or an error occurred.
      */
-    protected ModelNode executeOp(CommandContext ctx, String host) throws CommandException {
+    protected ModelNode executeOp(CommandContext ctx) throws CommandException {
         if (host != null && !ctx.isDomainMode()) {
             throw new CommandException("The --host option is not available in the current context. "
                     + "Connection to the controller might be unavailable or not running in domain mode.");
