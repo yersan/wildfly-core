@@ -24,6 +24,7 @@ import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
 import org.jboss.as.cli.CommandContext;
+import org.jboss.as.cli.Util;
 import org.jboss.as.cli.impl.CLIModelControllerClient;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.Operation;
@@ -65,8 +66,9 @@ public class CreateSnapshotCommand extends AbstractInstMgrCommand implements Com
             return CommandResult.FAILURE;
         }
 
-        ModelNode modelNode = this.executeOp(commandInvocation.getCommandContext(), host);
-        printResponse(ctx, modelNode);
+        ModelNode response = this.executeOp(commandInvocation.getCommandContext(), host);
+        ModelNode result = response.get(Util.RESULT);
+        ctx.printLine(result.asString());
         return CommandResult.SUCCESS;
     }
 }

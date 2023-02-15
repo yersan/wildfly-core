@@ -42,6 +42,7 @@ class InstMgrResolver {
     static final String KEY_UPDATED_CHANNEL_MANIFEST = "installation-manager.messages.updated-channel.manifest";
     static final String KEY_UPDATED_CHANNEL_REPOSITORY = "installation-manager.messages.updated-channel.repositories";
     static final String KEY_CANDIDATE_SERVER_PREPARED_AT = "installation-manager.messages.candidate-server-prepared-at";
+    static final String KEY_CLONE_EXPORT_RESULT = "installation-manager.messages.clone-export.result";
 
 
     private static ResourceDescriptionResolver getResourceDescriptionResolver(final String... keyPrefixes) {

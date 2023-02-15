@@ -45,13 +45,12 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FIL
  */
 public class InstMgrCreateSnapshotHandler extends InstMgrOperationStepHandler {
     public static final String OPERATION_NAME = "clone-export";
-    private static final AttributeDefinition PATH =
-            new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.PATH, ModelType.STRING, true)
-                    .setAllowExpression(true)
-                    .setValidator(new StringLengthValidator(1, Integer.MAX_VALUE, true, true))
-                    .addArbitraryDescriptor(FILESYSTEM_PATH, ModelNode.TRUE)
-                    .setRequired(true)
-                    .build();
+    private static final AttributeDefinition PATH = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.PATH, ModelType.STRING, true)
+            .setAllowExpression(true)
+            .setValidator(new StringLengthValidator(1, Integer.MAX_VALUE, false, true))
+            .addArbitraryDescriptor(FILESYSTEM_PATH, ModelNode.TRUE)
+            .setRequired(true)
+            .build();
 
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, InstMgrResolver.RESOLVER)
             .addParameter(PATH)
@@ -73,10 +72,12 @@ public class InstMgrCreateSnapshotHandler extends InstMgrOperationStepHandler {
                 MavenOptions mavenOptions = new MavenOptions(null, false);
                 InstallationManager installationManager = imOptional.get().create(serverHome, mavenOptions);
                 Path snapshot = installationManager.createSnapshot(Paths.get(exportPath));
-                context.getResult().set(new ModelNode(snapshot.toString()));
+                context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_CLONE_EXPORT_RESULT), snapshot.toString()));
             }
+        } catch (IllegalArgumentException e) {
+           throw new OperationFailedException(e);
         } catch (Exception e) {
-            context.getFailureDescription().set(e.getLocalizedMessage());
+            throw new RuntimeException(e);
         }
         context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
     }
