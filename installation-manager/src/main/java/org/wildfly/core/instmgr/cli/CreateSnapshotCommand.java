@@ -24,6 +24,7 @@ import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
 import org.jboss.as.cli.CommandContext;
+import org.jboss.as.cli.impl.CLIModelControllerClient;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.Operation;
 import org.jboss.as.controller.client.OperationBuilder;
@@ -59,8 +60,8 @@ public class CreateSnapshotCommand extends AbstractInstMgrCommand implements Com
     public CommandResult execute(CLICommandInvocation commandInvocation) throws CommandException, InterruptedException {
         final CommandContext ctx = commandInvocation.getCommandContext();
         final ModelControllerClient client = ctx.getModelControllerClient();
-        if (client == null) {
-            ctx.print("<connect to the controller and re-run the version command to see the release info>\n");
+        if (client == null || (client instanceof CLIModelControllerClient && !((CLIModelControllerClient)client).isConnected())) {
+            ctx.printLine("You are disconnected at the moment. Type 'connect' to connect to the server or 'help' for the list of supported commands.");
             return CommandResult.FAILURE;
         }
 
