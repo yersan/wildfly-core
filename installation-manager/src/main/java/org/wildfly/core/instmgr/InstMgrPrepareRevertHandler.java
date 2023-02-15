@@ -98,13 +98,13 @@ public class InstMgrPrepareRevertHandler extends AbstractInstMgrUpdateHandler {
         final ModelNode repositoriesMn = operation.hasDefined(REPOSITORIES.getName()) ? REPOSITORIES.resolveModelAttribute(context, operation).asObject() : null;
         final String revision = REVISION.resolveModelAttribute(context, operation).asString();
 
-        try {
-            if (!imService.canPrepareServer()) {
-                throw InstMgrLogger.ROOT_LOGGER.serverAlreadyPrepared();
-            }
-            imService.beginCandidateServer();
-            addCompleteStep(context, imService, null);
+        if (!imService.canPrepareServer()) {
+            throw InstMgrLogger.ROOT_LOGGER.serverAlreadyPrepared();
+        }
+        imService.beginCandidateServer();
+        addCompleteStep(context, imService, null);
 
+        try {
             final Path homeDir = imService.getHomeDir();
             final MavenOptions mavenOptions = new MavenOptions(localRepository, noResolveLocalCache, offline);
             final InstallationManager im = imf.create(homeDir, mavenOptions);
@@ -129,7 +129,7 @@ public class InstMgrPrepareRevertHandler extends AbstractInstMgrUpdateHandler {
 
             Files.createDirectories(imService.getPreparedServerDir());
             im.prepareRevert(revision, imService.getPreparedServerDir(), repositories);
-            context.getResult().set("Candidate Server prepared at " + imService.getPreparedServerDir().normalize().toAbsolutePath());
+            context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_CANDIDATE_SERVER_PREPARED_AT), imService.getPreparedServerDir().normalize().toAbsolutePath()));
             imService.commitCandidateServer("prospero.sh", "revert apply");
 
             // @TODO Better Exception handling

@@ -19,6 +19,7 @@
 package org.wildfly.core.instmgr;
 
 import org.jboss.as.controller.services.path.PathManager;
+import org.jboss.logging.Logger;
 import org.jboss.msc.Service;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
@@ -31,6 +32,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
@@ -38,6 +41,7 @@ import java.util.function.Supplier;
  * This is the main service used by the installation manager management operation handlers.
  */
 class InstMgrService implements Service {
+    private final static Logger LOG = Logger.getLogger(InstMgrService.class);
     private final Supplier<PathManager> pathManagerSupplier;
     private PathManager pathManager;
     private AtomicBoolean started = new AtomicBoolean(false);
@@ -96,11 +100,13 @@ class InstMgrService implements Service {
     }
 
     void deleteTempDirs() throws IOException {
-        for (Path workDir : tempDirs.values()) {
+        for (Iterator<Map.Entry<String, Path>> it = tempDirs.entrySet().iterator(); it.hasNext(); ) {
+            Path workDir = it.next().getValue();
             Files.walk(workDir)
                     .sorted(Comparator.reverseOrder())
                     .map(Path::toFile)
                     .forEach(File::delete);
+            it.remove();
         }
     }
 
@@ -141,8 +147,13 @@ class InstMgrService implements Service {
         return prepareServerDir;
     }
 
-    boolean canPrepareServer() throws IOException {
-        return this.candidateStatus.getStatus() == InstMgrCandidateStatus.Status.CLEAN;
+    boolean canPrepareServer() {
+        try {
+            return this.candidateStatus.getStatus() == InstMgrCandidateStatus.Status.CLEAN;
+        } catch (IOException e) {
+            LOG.debug("Cannot load the prepared server status from a properties file", e);
+            return false;
+        }
     }
 
     void beginCandidateServer() {

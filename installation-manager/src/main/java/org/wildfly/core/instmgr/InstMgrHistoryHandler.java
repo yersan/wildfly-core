@@ -155,7 +155,7 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
                             }
                         }
                     } else {
-                        resulList = new ModelNode(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_CHANGES_FOUND)));
+                        resulList = new ModelNode(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_UPDATES_FOUND)));
                     }
                 }
                 context.getResult().set(resulList);

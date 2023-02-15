@@ -27,7 +27,8 @@ class InstMgrResolver {
     static final String KEY_REMOVED_ARTIFACT = "installation-manager.messages.removed-artifact";
     static final String KEY_INSTALLED_ARTIFACT = "installation-manager.messages.installed-artifact";
     static final String KEY_UPDATED_ARTIFACT = "installation-manager.messages.updated-artifact";
-    static final String KEY_NO_CHANGES_FOUND ="installation-manager.messages.no-changes-found";
+    static final String KEY_UPDATES_FOUND ="installation-manager.messages.updates-found";
+    static final String KEY_NO_UPDATES_FOUND ="installation-manager.messages.no-updates-found";
     static final String KEY_REMOVED_CHANNEL = "installation-manager.messages.removed-channel";
     static final String KEY_REMOVED_CHANNEL_NAME = "installation-manager.messages.removed-channel.name";
     static final String KEY_REMOVED_CHANNEL_MANIFEST = "installation-manager.messages.removed-channel.manifest";
@@ -40,6 +41,8 @@ class InstMgrResolver {
     static final String KEY_UPDATED_CHANNEL_NAME = "installation-manager.messages.updated-channel.name";
     static final String KEY_UPDATED_CHANNEL_MANIFEST = "installation-manager.messages.updated-channel.manifest";
     static final String KEY_UPDATED_CHANNEL_REPOSITORY = "installation-manager.messages.updated-channel.repositories";
+    static final String KEY_CANDIDATE_SERVER_PREPARED_AT = "installation-manager.messages.candidate-server-prepared-at";
+
 
     private static ResourceDescriptionResolver getResourceDescriptionResolver(final String... keyPrefixes) {
         StringBuilder sb = new StringBuilder(InstMgrConstants.INSTALLATION_MANAGER);

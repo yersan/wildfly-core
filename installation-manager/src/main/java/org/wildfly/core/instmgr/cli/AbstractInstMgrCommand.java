@@ -55,6 +55,14 @@ import static org.wildfly.core.instmgr.cli.UpdateCommand.DRY_RUN_OPTION;
 public abstract class AbstractInstMgrCommand implements Command<CLICommandInvocation> {
     static final PathElement CORE_SERVICE_INSTALLER = PathElement.pathElement(CORE_SERVICE, InstMgrGroupCommand.COMMAND_NAME);
 
+    /**
+     * General Execute Operation method.
+     *
+     * @param ctx
+     * @param host
+     * @return ModelNode with the result of a successful execution.
+     * @throws CommandException If the operation was not success or an error occurred.
+     */
     protected ModelNode executeOp(CommandContext ctx, String host) throws CommandException {
         if (host != null && !ctx.isDomainMode()) {
             throw new CommandException("The --host option is not available in the current context. "

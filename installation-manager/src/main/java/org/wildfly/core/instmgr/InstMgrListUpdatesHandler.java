@@ -129,16 +129,17 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
             final ModelNode updatesMn = new ModelNode().addEmptyList();
 
             if (!updates.isEmpty()) {
+                updatesMn.add(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATES_FOUND));
                 for (ArtifactChange artifactChange : updates) {
                     switch (artifactChange.getStatus()) {
                         case REMOVED:
-                            updatesMn.add(String.format("%1$-60s %2$-15s ==> []", artifactChange.getArtifactName(), artifactChange.getOldVersion()));
+                            updatesMn.add(String.format("    %1$-60s %2$-15s ==> []", artifactChange.getArtifactName(), artifactChange.getOldVersion()));
                             break;
                         case INSTALLED:
-                            updatesMn.add(String.format("%1$-60s [] ==> %2$-15s", artifactChange.getArtifactName(), artifactChange.getNewVersion()));
+                            updatesMn.add(String.format("    %1$-60s [] ==> %2$-15s", artifactChange.getArtifactName(), artifactChange.getNewVersion()));
                             break;
                         default:
-                            updatesMn.add(String.format("%1$-60s %2$-15s ==> %3$-15s", artifactChange.getArtifactName(), artifactChange.getOldVersion(), artifactChange.getNewVersion()));
+                            updatesMn.add(String.format("    %1$-60s %2$-15s ==> %3$-15s", artifactChange.getArtifactName(), artifactChange.getOldVersion(), artifactChange.getNewVersion()));
                     }
                 }
                 if (mavenRepoFileIndex != null) {
@@ -152,7 +153,7 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
                 }
             } else {
                 imService.deleteTempDir(listUpdatesWorkDir);
-                updatesMn.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_CHANGES_FOUND)));
+                updatesMn.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_UPDATES_FOUND)));
                 resultValue.get(InstMgrConstants.RETURN_CODE).set(InstMgrConstants.RETURN_CODE_NO_UPDATES);
                 resultValue.get(InstMgrConstants.UPDATES_RESULT).set(updatesMn);
             }

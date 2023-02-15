@@ -24,12 +24,13 @@ import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
 import org.aesh.command.option.OptionList;
 import org.aesh.readline.Prompt;
+import org.aesh.terminal.utils.Config;
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.Util;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.Operation;
-import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.dmr.ModelNode;
+import org.jboss.dmr.ModelType;
 import org.wildfly.core.cli.command.aesh.CLICommandInvocation;
 import org.wildfly.core.instmgr.InstMgrConstants;
 
@@ -83,80 +84,83 @@ public class UpdateCommand extends AbstractInstMgrCommand {
 
         ListUpdatesAction listUpdatesCmd = listUpdatesCmdBuilder.build();
         ModelNode response = listUpdatesCmd.executeOp(ctx, host);
-        ctx.printLine(response.toJSONString(false));
 
-        if (Util.isSuccess(response)) {
-            if (response.hasDefined(Util.RESULT)) {
-                ModelNode result = response.get(Util.RESULT);
+        if (response.hasDefined(Util.RESULT)) {
+            ModelNode result = response.get(Util.RESULT);
+            printUpdatesResult(ctx, result.get(InstMgrConstants.UPDATES_RESULT));
 
-                if (dryRun) {
-                    return CommandResult.SUCCESS;
-                }
-
-                int returnCode = result.get(InstMgrConstants.RETURN_CODE).asInt();
-                Path lstUpdatesWorkDir = null;
-                if (returnCode == InstMgrConstants.RETURN_CODE_UPDATES_WITH_WORK_DIR) {
-                    lstUpdatesWorkDir = Paths.get(result.get(InstMgrConstants.LIST_UPDATES_WORK_DIR).asString());
-                }
-
-                if (returnCode != InstMgrConstants.RETURN_CODE_NO_UPDATES) {
-                    if (!confirm) {
-                        String reply = null;
-
-                        try {
-                            while (reply == null) {
-                                reply = commandInvocation.inputLine(new Prompt("Would you like to proceed with preparing this update? [y/N]:"));
-                                if (reply != null && reply.equalsIgnoreCase("N")) {
-                                    // clean the cache if there is one
-                                    if (returnCode == InstMgrConstants.RETURN_CODE_UPDATES_WITH_WORK_DIR) {
-                                        CleanCommand cleanCommand = new CleanCommand(lstUpdatesWorkDir);
-                                        ModelNode cleanResult = cleanCommand.executeOp(ctx, host);
-                                        printResponse(ctx, cleanResult);
-                                    }
-
-                                    return CommandResult.SUCCESS;
-                                } else if (reply != null && reply.equalsIgnoreCase("y")) {
-                                    break;
-                                }
-                            }
-                        } catch (InterruptedException e) {
-                            // clean the cache if there is one
-                            if (returnCode == InstMgrConstants.RETURN_CODE_UPDATES_WITH_WORK_DIR) {
-                                CleanCommand cleanCommand = new CleanCommand(lstUpdatesWorkDir);
-                                ModelNode cleanResult = cleanCommand.executeOp(ctx, host);
-                                printResponse(ctx, cleanResult);
-                            }
-
-                            return CommandResult.FAILURE;
-                        }
-                    }
-
-                    // trigger an prepare-update
-                    PrepareUpdateAction.Builder prepareUpdateActionBuilder = new PrepareUpdateAction.Builder()
-                            .setNoResolveLocalCache(noResolveLocalCache)
-                            .setLocalCache(localCache)
-                            .setRepositories(repositories)
-                            .setMavenRepoFile(mavenRepoFile)
-                            .setOffline(offline)
-                            .setListUpdatesWorkDir(lstUpdatesWorkDir);
-
-                    PrepareUpdateAction prepareUpdateAction = prepareUpdateActionBuilder.build();
-                    ModelNode prepareUpdateResult = prepareUpdateAction.executeOp(ctx, host);
-                    if (Util.isSuccess(prepareUpdateResult)) {
-                        ctx.printLine(prepareUpdateResult.toJSONString(false));
-                    } else {
-                        final ModelNode fd = response.get(ModelDescriptionConstants.FAILURE_DESCRIPTION);
-                        if (!fd.isDefined()) {
-                            throw new CommandException("Update failed: " + response.asString());
-                        }
-                    }
-                }
-            } else {
-                ctx.printLine("Operation result is not available.");
+            if (dryRun) {
+                return CommandResult.SUCCESS;
             }
+
+            int returnCode = result.get(InstMgrConstants.RETURN_CODE).asInt();
+            Path lstUpdatesWorkDir = null;
+            if (returnCode == InstMgrConstants.RETURN_CODE_UPDATES_WITH_WORK_DIR) {
+                lstUpdatesWorkDir = Paths.get(result.get(InstMgrConstants.LIST_UPDATES_WORK_DIR).asString());
+            }
+
+            if (returnCode != InstMgrConstants.RETURN_CODE_NO_UPDATES) {
+                if (!confirm) {
+                    String reply = null;
+
+                    try {
+                        while (reply == null) {
+                            reply = commandInvocation.inputLine(new Prompt("Would you like to proceed with preparing this update? [y/N]:"));
+                            if (reply != null && reply.equalsIgnoreCase("N")) {
+                                // clean the cache if there is one
+                                if (returnCode == InstMgrConstants.RETURN_CODE_UPDATES_WITH_WORK_DIR) {
+                                    CleanCommand cleanCommand = new CleanCommand(lstUpdatesWorkDir);
+                                    cleanCommand.executeOp(ctx, host);
+                                }
+
+                                return CommandResult.SUCCESS;
+                            } else if (reply != null && reply.equalsIgnoreCase("y")) {
+                                break;
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        // In case of an error, clean the cache if there is one
+                        if (returnCode == InstMgrConstants.RETURN_CODE_UPDATES_WITH_WORK_DIR) {
+                            CleanCommand cleanCommand = new CleanCommand(lstUpdatesWorkDir);
+                            cleanCommand.executeOp(ctx, host);
+                        }
+
+                        return CommandResult.FAILURE;
+                    }
+                }
+
+                // trigger an prepare-update
+                PrepareUpdateAction.Builder prepareUpdateActionBuilder = new PrepareUpdateAction.Builder()
+                        .setNoResolveLocalCache(noResolveLocalCache)
+                        .setLocalCache(localCache)
+                        .setRepositories(repositories)
+                        .setMavenRepoFile(mavenRepoFile)
+                        .setOffline(offline)
+                        .setListUpdatesWorkDir(lstUpdatesWorkDir);
+
+                PrepareUpdateAction prepareUpdateAction = prepareUpdateActionBuilder.build();
+                ModelNode prepareUpdateResult = prepareUpdateAction.executeOp(ctx, host);
+                printUpdatesResult(ctx, prepareUpdateResult.get(Util.RESULT));
+            }
+        } else {
+            ctx.printLine("Operation result is not available.");
         }
 
         return CommandResult.SUCCESS;
+    }
+
+    private void printUpdatesResult(CommandContext ctx, ModelNode result) {
+        final StringBuilder builder = new StringBuilder();
+
+        if (result.getType() == ModelType.LIST) {
+            List<ModelNode> modelNodes = result.asList();
+            for (ModelNode value : modelNodes) {
+                builder.append(value.asString()).append(Config.getLineSeparator());
+            }
+        } else if (result.getType() == ModelType.STRING) {
+            builder.append(result.asString()).append(Config.getLineSeparator());
+        }
+        ctx.printLine(builder.toString());
     }
 
     @Override

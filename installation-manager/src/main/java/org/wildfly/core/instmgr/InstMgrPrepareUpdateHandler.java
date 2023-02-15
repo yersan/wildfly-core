@@ -96,13 +96,14 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
         final ModelNode repositoriesMn = operation.hasDefined(REPOSITORIES.getName()) ? REPOSITORIES.resolveModelAttribute(context, operation).asObject() : null;
 
         context.acquireControllerLock();
-        try {
-            if (!imService.canPrepareServer()) {
-                throw InstMgrLogger.ROOT_LOGGER.serverAlreadyPrepared();
-            }
-            imService.beginCandidateServer();
-            addCompleteStep(context, imService, null);
+        if (!imService.canPrepareServer()) {
+            throw InstMgrLogger.ROOT_LOGGER.serverAlreadyPrepared();
+        }
 
+        imService.beginCandidateServer();
+        addCompleteStep(context, imService, null);
+
+        try {
             final Path homeDir = imService.getHomeDir();
             final MavenOptions mavenOptions = new MavenOptions(localRepository, noResolveLocalCache, offline);
             final InstallationManager im = imf.create(homeDir, mavenOptions);
@@ -144,10 +145,10 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
                 // @TODO: put server in restart required?
                 // once put in restart required, the clean operation should revert it if it cleans the prepared server
                 // but we cannot revert the restart flag from a different Operation since there could be other Operations executed which could have been set this flag?
-                context.getResult().set("Candidate Server prepared at " + imService.getPreparedServerDir().normalize().toAbsolutePath());
+                context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_CANDIDATE_SERVER_PREPARED_AT), imService.getPreparedServerDir().normalize().toAbsolutePath()));
                 imService.commitCandidateServer("prospero.sh", "update apply");
             } else {
-                context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_CHANGES_FOUND)));
+                context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_UPDATES_FOUND)));
                 imService.resetCandidateStatus();
             }
         } catch (ZipException e) {

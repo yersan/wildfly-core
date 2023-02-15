@@ -63,7 +63,6 @@ public class InstMgrCleanHandler extends InstMgrOperationStepHandler {
                 imService.resetCandidateStatus();
             }
         } catch (Exception e) {
-            context.getFailureDescription().set(e.getLocalizedMessage());
             throw new RuntimeException(e);
         }
     }
