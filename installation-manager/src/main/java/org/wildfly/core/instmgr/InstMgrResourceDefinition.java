@@ -19,17 +19,21 @@
 package org.wildfly.core.instmgr;
 
 import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.ObjectListAttributeDefinition;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
+import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.operations.validation.ParametersValidator;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.wildfly.core.instmgr.logging.InstMgrLogger;
@@ -44,11 +48,16 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
+
 class InstMgrResourceDefinition extends SimpleResourceDefinition {
 
     static final String MANAGEMENT_EXECUTOR_CAP = "org.wildfly.management.executor";
@@ -60,6 +69,7 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
     private final ReadHandler readHandler;
     private final WriteHandler writeHandler;
     private final InstMgrService imService;
+
     private static final AttributeDefinition REPOSITORY_ID = new SimpleAttributeDefinitionBuilder(InstMgrConstants.ID, ModelType.STRING)
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
@@ -72,13 +82,13 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
             .setRequired(true)
             .build();
 
-    private static final AttributeDefinition REPOSITORY = new ObjectTypeAttributeDefinition.Builder(InstMgrConstants.REPOSITORY, REPOSITORY_ID, REPOSITORY_URL)
+    private static final ObjectTypeAttributeDefinition REPOSITORY = new ObjectTypeAttributeDefinition.Builder(InstMgrConstants.REPOSITORY, REPOSITORY_ID, REPOSITORY_URL)
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
             .setRequired(true)
             .build();
 
-    private static final AttributeDefinition CHANNEL_REPOSITORIES = new ObjectTypeAttributeDefinition.Builder(InstMgrConstants.REPOSITORIES, REPOSITORY)
+    private static final AttributeDefinition CHANNEL_REPOSITORIES = new ObjectListAttributeDefinition.Builder(InstMgrConstants.REPOSITORIES, REPOSITORY)
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
             .setRequired(true)
@@ -110,13 +120,13 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
             .setRuntimeServiceNotRequired()
             .build();
 
-    private static final AttributeDefinition CHANNEL = ObjectTypeAttributeDefinition.create(InstMgrConstants.CHANNEL, CHANNEL_NAME, CHANNEL_REPOSITORIES, CHANNEL_MANIFEST)
+    private static final ObjectTypeAttributeDefinition CHANNEL = ObjectTypeAttributeDefinition.create(InstMgrConstants.CHANNEL, CHANNEL_NAME, CHANNEL_REPOSITORIES, CHANNEL_MANIFEST)
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
             .setRequired(true)
             .build();
 
-    private static final AttributeDefinition CHANNELS = ObjectTypeAttributeDefinition.create(InstMgrConstants.CHANNELS, CHANNEL)
+    private static final AttributeDefinition CHANNELS = ObjectListAttributeDefinition.Builder.of(InstMgrConstants.CHANNELS, CHANNEL)
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
             .build();
@@ -165,10 +175,10 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
         resourceRegistration.registerReadWriteAttribute(CHANNELS, readHandler, writeHandler);
     }
 
-
-    private static final class WriteHandler implements OperationStepHandler {
+    private final class WriteHandler implements OperationStepHandler {
         private final ParametersValidator validator = new ParametersValidator();
         private final InstMgrService imService;
+
         public WriteHandler(InstMgrService imService) {
             this.imService = imService;
         }
@@ -183,6 +193,12 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
                     if (!name.equals(InstMgrConstants.CHANNELS)) {
                         throw unknownAttribute(operation);
                     }
+
+                    final String operationName = operation.require(OP).asString();
+                    if (!operationName.equals(WRITE_ATTRIBUTE_OPERATION)) {
+                        throw unsupportedOperation(operation);
+                    }
+
                     try {
                         Optional<InstallationManagerFactory> imOptional = InstallationManagerFinder.find();
                         if (imOptional.isPresent()) {
@@ -191,36 +207,50 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
                             MavenOptions mavenOptions = new MavenOptions(null, false);
                             InstallationManager installationManager = imOptional.get().create(serverHome, mavenOptions);
 
-                            final ModelNode mChannel = operation.require(ModelDescriptionConstants.VALUE).get(InstMgrConstants.CHANNEL);
-                            final String cName = mChannel.get(InstMgrConstants.CHANNEL_NAME).asString();
-                            final List<Repository> repositories = new ArrayList<>();
-
-                            List<ModelNode> mRepositories = mChannel.get(InstMgrConstants.REPOSITORIES).asList();
-                            for (ModelNode mRepository : mRepositories) {
-                                String id = mRepository.get(InstMgrConstants.REPOSITORY).get(InstMgrConstants.ID).asString();
-                                String url = mRepository.get(InstMgrConstants.REPOSITORY).get(InstMgrConstants.REPOSITORY_URL).asString();
-                                Repository repository = new Repository(id, url);
-                                repositories.add(repository);
+                            final Collection<Channel> exitingChannels = installationManager.listChannels();
+                            final Set<String> exitingChannelNames = new HashSet<>();
+                            for (Channel c : exitingChannels) {
+                                exitingChannelNames.add(c.getName());
                             }
 
-                            String manifestGav;
-                            URL manifestUrl;
-                            Channel c;
-                            if (mChannel.hasDefined(InstMgrConstants.MANIFEST)) {
-                                ModelNode mManifest = mChannel.get(InstMgrConstants.MANIFEST);
-                                if (mManifest.hasDefined(InstMgrConstants.MANIFEST_GAV)) {
-                                    manifestGav = mManifest.get(InstMgrConstants.MANIFEST_GAV).asString();
-                                    c = new Channel(cName, repositories, manifestGav);
-                                } else {
-                                    manifestUrl = new URL(mManifest.get(InstMgrConstants.REPOSITORY_URL).asString());
-                                    c = new Channel(cName, repositories, manifestUrl);
+                            final List<ModelNode> channelsListMn = operation.require(ModelDescriptionConstants.VALUE).asListOrEmpty();
+                            for (ModelNode mChannel : channelsListMn) {
+
+                                final String cName = mChannel.get(InstMgrConstants.CHANNEL_NAME).asString();
+                                final List<Repository> repositories = new ArrayList<>();
+
+                                // channel.repositories
+                                final List<ModelNode> mRepositories = mChannel.get(InstMgrConstants.REPOSITORIES).asListOrEmpty();
+                                for (ModelNode mRepository : mRepositories) {
+                                    String id = mRepository.get(InstMgrConstants.ID).asString();
+                                    String url = mRepository.get(InstMgrConstants.REPOSITORY_URL).asString();
+                                    Repository repository = new Repository(id, url);
+                                    repositories.add(repository);
                                 }
-                            } else {
-                                c = new Channel(cName, repositories);
+
+                                // channel.manifest
+                                String manifestGav;
+                                URL manifestUrl;
+                                Channel c;
+                                if (mChannel.hasDefined(InstMgrConstants.MANIFEST)) {
+                                    ModelNode mManifest = mChannel.get(InstMgrConstants.MANIFEST);
+                                    if (mManifest.hasDefined(InstMgrConstants.MANIFEST_GAV)) {
+                                        manifestGav = mManifest.get(InstMgrConstants.MANIFEST_GAV).asString();
+                                        c = new Channel(cName, repositories, manifestGav);
+                                    } else {
+                                        manifestUrl = new URL(mManifest.get(InstMgrConstants.REPOSITORY_URL).asString());
+                                        c = new Channel(cName, repositories, manifestUrl);
+                                    }
+                                } else {
+                                    c = new Channel(cName, repositories);
+                                }
+
+                                if (exitingChannelNames.contains(c.getName())) {
+                                    installationManager.changeChannel(c.getName(), c);
+                                } else {
+                                    installationManager.addChannel(c);
+                                }
                             }
-
-                            installationManager.addChannel(c);
-
                             context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
                         }
                     } catch (Exception e) {
@@ -229,13 +259,9 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
                 }
             }, OperationContext.Stage.RUNTIME);
         }
-
-        private static OperationFailedException unknownAttribute(final ModelNode operation) {
-            return InstMgrLogger.ROOT_LOGGER.unknownAttribute(operation.require(NAME).asString());
-        }
     }
 
-    private static final class ReadHandler implements OperationStepHandler {
+    private final class ReadHandler implements OperationStepHandler {
         private final ParametersValidator validator = new ParametersValidator();
         private final InstMgrService imService;
 
@@ -291,15 +317,19 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
                             context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
                         }
                     } catch (Exception e) {
-                        throw new OperationFailedException(e);
-//                   context.getFailureDescription().set(e.getLocalizedMessage());
+                        throw new RuntimeException(e);
                     }
                 }
             }, OperationContext.Stage.RUNTIME);
         }
+    }
 
-        private static OperationFailedException unknownAttribute(final ModelNode operation) {
-            return InstMgrLogger.ROOT_LOGGER.unknownAttribute(operation.require(NAME).asString());
-        }
+
+    private OperationFailedException unknownAttribute(final ModelNode operation) {
+        return InstMgrLogger.ROOT_LOGGER.unknownAttribute(operation.require(NAME).asString());
+    }
+
+    private OperationFailedException unsupportedOperation(final ModelNode operation) {
+        return InstMgrLogger.ROOT_LOGGER.unsupportedOperation(operation.require(OP).asString());
     }
 }

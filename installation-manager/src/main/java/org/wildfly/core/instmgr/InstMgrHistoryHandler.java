@@ -161,7 +161,7 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
                 context.getResult().set(resulList);
             }
         } catch (Exception e) {
-            context.getFailureDescription().set(e.getLocalizedMessage());
+           throw new RuntimeException(e);
         }
         context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
     }

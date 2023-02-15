@@ -19,6 +19,7 @@
 package org.wildfly.core.instmgr;
 
 import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.ObjectListAttributeDefinition;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
@@ -63,7 +64,7 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
             .setAlternatives(InstMgrConstants.MAVEN_REPO_FILE, InstMgrConstants.REPOSITORIES)
             .build();
 
-    protected static final AttributeDefinition REPOSITORIES = new ObjectTypeAttributeDefinition.Builder(InstMgrConstants.REPOSITORIES, REPOSITORY)
+    protected static final AttributeDefinition REPOSITORIES = new ObjectListAttributeDefinition.Builder(InstMgrConstants.REPOSITORIES, REPOSITORY)
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
             .setRequired(false)
@@ -93,7 +94,7 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
         final Path localRepository = pathLocalRepo != null ? Path.of(pathLocalRepo) : null;
         final Integer mavenRepoFileIndex = resolveAttribute(context, operation, MAVEN_REPO_FILE).asIntOrNull();
         final String listUpdatesWorkDir = resolveAttribute(context, operation, LIST_UPDATES_WORK_DIR).asStringOrNull();
-        final ModelNode repositoriesMn = operation.hasDefined(REPOSITORIES.getName()) ? REPOSITORIES.resolveModelAttribute(context, operation).asObject() : null;
+        final List<ModelNode> repositoriesMn = REPOSITORIES.resolveModelAttribute(context, operation).asListOrEmpty();
 
         context.acquireControllerLock();
         if (!imService.canPrepareServer()) {

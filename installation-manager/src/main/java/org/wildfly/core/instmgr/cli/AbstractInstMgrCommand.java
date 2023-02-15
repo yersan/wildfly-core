@@ -183,11 +183,11 @@ public abstract class AbstractInstMgrCommand implements Command<CLICommandInvoca
                 String urlStr;
                 String[] split = repoStr.split("::");
                 try {
-                    if (split.length == 0) {
+                    if (split.length == 1) {
                         new URL(repoStr).toURI();
                         idStr = "id0";
                         urlStr = repoStr;
-                    } else if (split.length == 0) {
+                    } else if (split.length == 2) {
                         idStr = split[0];
                         urlStr = split[1];
                     } else {

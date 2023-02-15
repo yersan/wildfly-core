@@ -47,4 +47,6 @@ public interface InstMgrLogger extends BasicLogger {
     @Message(id = 4, value = "There is an installation prepared and ready to be applied. The current prepared installation can be discarded by using the 'clean' operation.")
     OperationFailedException serverAlreadyPrepared();
 
+    @Message(id = 5, value = "The %s operation is not supported")
+    OperationFailedException unsupportedOperation(String asString);
 }

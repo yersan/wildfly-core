@@ -55,7 +55,7 @@ abstract class AbstractInstMgrUpdateHandler extends InstMgrOperationStepHandler 
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
             .build();
-    protected static final AttributeDefinition REPOSITORY = new ObjectTypeAttributeDefinition.Builder(InstMgrConstants.REPOSITORY, REPOSITORY_ID, REPOSITORY_URL)
+    protected static final ObjectTypeAttributeDefinition REPOSITORY = new ObjectTypeAttributeDefinition.Builder(InstMgrConstants.REPOSITORY, REPOSITORY_ID, REPOSITORY_URL)
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
             .setRequired(false)
@@ -82,15 +82,13 @@ abstract class AbstractInstMgrUpdateHandler extends InstMgrOperationStepHandler 
         super(imService, imf);
     }
 
-    protected List<Repository> toRepositories(ModelNode repositoriesMn) {
+    protected List<Repository> toRepositories(List<ModelNode> repositoriesMn) {
         final List<Repository> result = new ArrayList<>();
 
         if (repositoriesMn != null) {
-            final List<ModelNode> repositoriesLst = repositoriesMn.asListOrEmpty();
-            for (ModelNode repositoryMnEntry : repositoriesLst) {
-                ModelNode repositoryMn = repositoryMnEntry.get(REPOSITORY.getName());
-                String id = repositoryMn.get(REPOSITORY_ID.getName()).asStringOrNull();
-                String url = repositoryMn.get(REPOSITORY_URL.getName()).asStringOrNull();
+            for (ModelNode repoModelNode : repositoriesMn) {
+                String id = repoModelNode.get(REPOSITORY_ID.getName()).asStringOrNull();
+                String url = repoModelNode.get(REPOSITORY_URL.getName()).asStringOrNull();
                 result.add(new Repository(id, url));
             }
         }
