@@ -40,7 +40,7 @@ public class InstMgrCleanHandler extends InstMgrOperationStepHandler {
             .build();
 
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, InstMgrResolver.RESOLVER)
-            .withFlag(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
+            .withFlags(OperationEntry.Flag.HOST_CONTROLLER_ONLY, OperationEntry.Flag.HIDDEN)
             .addParameter(LIST_UPDATES_WORK_DIR)
             .setRuntimeOnly()
             .build();

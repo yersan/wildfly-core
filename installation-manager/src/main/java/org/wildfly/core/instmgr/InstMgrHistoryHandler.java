@@ -51,7 +51,7 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
 
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, InstMgrResolver.RESOLVER)
             .addParameter(REVISION)
-            .withFlag(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
+            .withFlags(OperationEntry.Flag.HOST_CONTROLLER_ONLY, OperationEntry.Flag.HIDDEN)
             .setRuntimeOnly()
             .build();
 
