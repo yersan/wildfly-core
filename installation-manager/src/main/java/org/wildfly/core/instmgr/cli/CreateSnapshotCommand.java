@@ -39,7 +39,7 @@ import java.io.File;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 
 @CommandDefinition(name = "clone-export", description = "Export the installation metadata.")
-public class CreateSnapshotCommand extends AbstractInstMgrCommand implements Command<CLICommandInvocation> {
+public class CreateSnapshotCommand extends AbstractInstMgrCommand {
     @Option(name = "host", completer = AbstractInstMgrCommand.HostsCompleter.class, activator = AbstractInstMgrCommand.HostsActivator.class)
     protected String host;
 

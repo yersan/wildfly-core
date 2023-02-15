@@ -36,7 +36,7 @@ import org.wildfly.core.instmgr.InstMgrHistoryHandler;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 
 @CommandDefinition(name = "history", description = "List previous installation states.")
-public class HistoryCommand extends AbstractInstMgrCommand implements Command<CLICommandInvocation> {
+public class HistoryCommand extends AbstractInstMgrCommand {
 
     @Option(name = "host", completer = AbstractInstMgrCommand.HostsCompleter.class, activator = AbstractInstMgrCommand.HostsActivator.class)
     protected String host;

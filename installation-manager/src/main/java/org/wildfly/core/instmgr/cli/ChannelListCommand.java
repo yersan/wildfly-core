@@ -18,7 +18,7 @@ import org.wildfly.core.instmgr.InstMgrConstants;
 import java.util.List;
 
 @CommandDefinition(name = "channel-list", description = "List channels subscribed to by the installation.")
-public class ChannelListCommand extends AbstractInstMgrCommand implements Command<CLICommandInvocation> {
+public class ChannelListCommand extends AbstractInstMgrCommand {
     @Option(name = "host", completer = AbstractInstMgrCommand.HostsCompleter.class, activator = AbstractInstMgrCommand.HostsActivator.class)
     protected String host;
 

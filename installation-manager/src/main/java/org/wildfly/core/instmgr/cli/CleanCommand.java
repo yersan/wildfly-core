@@ -38,7 +38,7 @@ import java.nio.file.Path;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 
 @CommandDefinition(name = "clean", description = "Clean installation manager content.")
-public class CleanCommand extends AbstractInstMgrCommand implements Command<CLICommandInvocation> {
+public class CleanCommand extends AbstractInstMgrCommand {
     @Option(name = "host", completer = AbstractInstMgrCommand.HostsCompleter.class, activator = AbstractInstMgrCommand.HostsActivator.class)
     protected String host;
     final Path lstUpdatesWorkDir;
