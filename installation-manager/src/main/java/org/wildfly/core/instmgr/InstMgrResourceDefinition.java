@@ -141,23 +141,23 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
     public void registerOperations(ManagementResourceRegistration resourceRegistration) {
         super.registerOperations(resourceRegistration);
 
-        InstMgrHistoryHandler history = new InstMgrHistoryHandler(imService, imf);
-        resourceRegistration.registerOperationHandler(InstMgrHistoryHandler.DEFINITION, history);
+        InstMgrHistoryHandler historyHandler = new InstMgrHistoryHandler(imService, imf);
+        resourceRegistration.registerOperationHandler(InstMgrHistoryHandler.DEFINITION, historyHandler);
 
-        InstMgrCreateSnapshotHandler createSnaphot = new InstMgrCreateSnapshotHandler(imService, imf);
-        resourceRegistration.registerOperationHandler(InstMgrCreateSnapshotHandler.DEFINITION, createSnaphot);
+        InstMgrCreateSnapshotHandler createSnapshotHandler = new InstMgrCreateSnapshotHandler(imService, imf);
+        resourceRegistration.registerOperationHandler(InstMgrCreateSnapshotHandler.DEFINITION, createSnapshotHandler);
 
-        InstMgrListUpdatesHandler lstUpdates = new InstMgrListUpdatesHandler(imService, imf);
-        resourceRegistration.registerOperationHandler(InstMgrListUpdatesHandler.DEFINITION, lstUpdates);
+        InstMgrListUpdatesHandler lstUpdatesHandler = new InstMgrListUpdatesHandler(imService, imf);
+        resourceRegistration.registerOperationHandler(InstMgrListUpdatesHandler.DEFINITION, lstUpdatesHandler);
 
         InstMgrCleanHandler clean = new InstMgrCleanHandler(imService, imf);
         resourceRegistration.registerOperationHandler(InstMgrCleanHandler.DEFINITION, clean);
 
-        InstMgrPrepareUpdateHandler prepUpdates = new InstMgrPrepareUpdateHandler(imService, imf);
-        resourceRegistration.registerOperationHandler(InstMgrPrepareUpdateHandler.DEFINITION, prepUpdates);
+        InstMgrPrepareUpdateHandler prepUpdatesHandler = new InstMgrPrepareUpdateHandler(imService, imf);
+        resourceRegistration.registerOperationHandler(InstMgrPrepareUpdateHandler.DEFINITION, prepUpdatesHandler);
 
-        InstMgrPrepareRevertHandler revert = new InstMgrPrepareRevertHandler(imService, imf);
-        resourceRegistration.registerOperationHandler(InstMgrPrepareRevertHandler.DEFINITION, revert);
+        InstMgrPrepareRevertHandler revertHandler = new InstMgrPrepareRevertHandler(imService, imf);
+        resourceRegistration.registerOperationHandler(InstMgrPrepareRevertHandler.DEFINITION, revertHandler);
     }
 
     @Override
@@ -175,7 +175,6 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
 
         @Override
         public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-            // validate ???
             validator.validate(operation);
             context.addStep(new OperationStepHandler() {
                 @Override
@@ -246,7 +245,6 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
 
         @Override
         public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-            // Validate ???
             validator.validate(operation);
             context.addStep(new OperationStepHandler() {
                 @Override
