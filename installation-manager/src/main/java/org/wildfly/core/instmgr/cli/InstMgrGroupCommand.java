@@ -31,7 +31,8 @@ import org.wildfly.core.cli.command.aesh.CLICommandInvocation;
         HistoryCommand.class,
         CreateSnapshotCommand.class,
         ChannelListCommand.class,
-        ChannelAddCommand.class
+        ChannelAddCommand.class,
+        ChannelEditCommand.class
 })
 public class InstMgrGroupCommand implements Command<CLICommandInvocation> {
     public static final String COMMAND_NAME = "installer";

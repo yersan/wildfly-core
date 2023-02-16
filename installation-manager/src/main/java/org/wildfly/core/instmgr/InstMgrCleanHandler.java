@@ -22,6 +22,7 @@ import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.registry.OperationEntry;
@@ -35,7 +36,7 @@ import org.wildfly.installationmanager.spi.InstallationManagerFactory;
 public class InstMgrCleanHandler extends InstMgrOperationStepHandler {
     static final String OPERATION_NAME = "clean";
     protected static final AttributeDefinition LIST_UPDATES_WORK_DIR = SimpleAttributeDefinitionBuilder.create(InstMgrConstants.LIST_UPDATES_WORK_DIR, ModelType.STRING)
-            .setRequired(false)
+            .setRequired(true)
             .setStorageRuntime()
             .build();
 
@@ -50,20 +51,25 @@ public class InstMgrCleanHandler extends InstMgrOperationStepHandler {
     }
 
     @Override
-    void executeRuntimeStep(OperationContext context, ModelNode operation, InstMgrService imService, InstallationManagerFactory imf) throws OperationFailedException {
-        context.acquireControllerLock();
+    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        final String listUpdatesWorkDir = LIST_UPDATES_WORK_DIR.resolveModelAttribute(context, operation).asStringOrNull();
 
-        final String listUpdatesWorkDir = resolveAttribute(context, operation, LIST_UPDATES_WORK_DIR).asStringOrNull();
-        try {
-            if (listUpdatesWorkDir != null) {
-                imService.deleteTempDir(listUpdatesWorkDir);
-            } else {
-                deleteDirIfExits(imService.getPreparedServerDir());
-                imService.deleteTempDirs();
-                imService.resetCandidateStatus();
+        context.acquireControllerLock();
+        context.addStep(new OperationStepHandler() {
+            @Override
+            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                try {
+                    if (listUpdatesWorkDir != null) {
+                        imService.deleteTempDir(listUpdatesWorkDir);
+                    } else {
+                        deleteDirIfExits(imService.getPreparedServerDir());
+                        imService.deleteTempDirs();
+                        imService.resetCandidateStatus();
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        }, OperationContext.Stage.RUNTIME);
     }
 }

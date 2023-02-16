@@ -22,6 +22,8 @@ import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
+import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
@@ -47,10 +49,14 @@ public class InstMgrCreateSnapshotHandler extends InstMgrOperationStepHandler {
     public static final String OPERATION_NAME = "clone-export";
     private static final AttributeDefinition PATH = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.PATH, ModelType.STRING, true)
             .setAllowExpression(true)
-            .setValidator(new StringLengthValidator(1, Integer.MAX_VALUE, false, true))
+            .setMinSize(1)
             .addArbitraryDescriptor(FILESYSTEM_PATH, ModelNode.TRUE)
             .setRequired(true)
             .build();
+
+    public static final AttributeDefinition RELATIVE_TO = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.RELATIVE_TO, ModelType.STRING, true)
+                    .setValidator(new StringLengthValidator(1, true))
+                    .build();
 
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, InstMgrResolver.RESOLVER)
             .addParameter(PATH)
@@ -63,22 +69,27 @@ public class InstMgrCreateSnapshotHandler extends InstMgrOperationStepHandler {
     }
 
     @Override
-    void executeRuntimeStep(OperationContext context, ModelNode operation, InstMgrService imService, InstallationManagerFactory imf) throws OperationFailedException {
-        final String exportPath = resolveAttribute(context, operation, PATH).asStringOrNull();
-        try {
-            Optional<InstallationManagerFactory> imOptional = InstallationManagerFinder.find();
-            if (imOptional.isPresent()) {
-                Path serverHome = imService.getHomeDir();
-                MavenOptions mavenOptions = new MavenOptions(null, false);
-                InstallationManager installationManager = imOptional.get().create(serverHome, mavenOptions);
-                Path snapshot = installationManager.createSnapshot(Paths.get(exportPath));
-                context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_CLONE_EXPORT_RESULT), snapshot.toString()));
+    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        final String exportPath = PATH.resolveModelAttribute(context, operation).asStringOrNull();
+        context.addStep(new OperationStepHandler() {
+            @Override
+            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                try {
+                    Optional<InstallationManagerFactory> imOptional = InstallationManagerFinder.find();
+                    if (imOptional.isPresent()) {
+                        Path serverHome = imService.getHomeDir();
+                        MavenOptions mavenOptions = new MavenOptions(null, false);
+                        InstallationManager installationManager = imOptional.get().create(serverHome, mavenOptions);
+                        Path snapshot = installationManager.createSnapshot(Paths.get(exportPath));
+                        context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_CLONE_EXPORT_RESULT), snapshot.toString()));
+                    }
+                } catch (IllegalArgumentException e) {
+                    throw new OperationFailedException(e);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
-        } catch (IllegalArgumentException e) {
-           throw new OperationFailedException(e);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
+        }, OperationContext.Stage.RUNTIME);
+
     }
 }

@@ -37,9 +37,6 @@ import java.util.stream.Stream;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FILESYSTEM_PATH;
 
-/**
- * Abstract Operation Handler to be used by the Installation Manager handlers.
- */
 abstract class AbstractInstMgrUpdateHandler extends InstMgrOperationStepHandler {
     protected static final AttributeDefinition OFFLINE = SimpleAttributeDefinitionBuilder.create(InstMgrConstants.OFFLINE, ModelType.BOOLEAN)
             .setStorageRuntime()

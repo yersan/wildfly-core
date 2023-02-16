@@ -20,10 +20,10 @@ package org.wildfly.core.instmgr;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ObjectListAttributeDefinition;
-import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.registry.OperationEntry;
@@ -87,81 +87,86 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
     }
 
     @Override
-    void executeRuntimeStep(OperationContext context, ModelNode operation, InstMgrService imService, InstallationManagerFactory imf) throws OperationFailedException {
-        final boolean offline = resolveAttribute(context, operation, OFFLINE).isDefined() ? resolveAttribute(context, operation, OFFLINE).asBoolean() : false;
-        final String pathLocalRepo = resolveAttribute(context, operation, LOCAL_CACHE).asStringOrNull();
-        final boolean noResolveLocalCache = resolveAttribute(context, operation, NO_RESOLVE_LOCAL_CACHE).isDefined() ? resolveAttribute(context, operation, NO_RESOLVE_LOCAL_CACHE).asBoolean() : false;
+    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        final boolean offline = OFFLINE.resolveModelAttribute(context, operation).asBoolean(false);
+        final String pathLocalRepo = LOCAL_CACHE.resolveModelAttribute(context, operation).asStringOrNull();
+        final boolean noResolveLocalCache = NO_RESOLVE_LOCAL_CACHE.resolveModelAttribute(context, operation).asBoolean(false);
         final Path localRepository = pathLocalRepo != null ? Path.of(pathLocalRepo) : null;
-        final Integer mavenRepoFileIndex = resolveAttribute(context, operation, MAVEN_REPO_FILE).asIntOrNull();
-        final String listUpdatesWorkDir = resolveAttribute(context, operation, LIST_UPDATES_WORK_DIR).asStringOrNull();
+        final Integer mavenRepoFileIndex = MAVEN_REPO_FILE.resolveModelAttribute(context, operation).asIntOrNull();
         final List<ModelNode> repositoriesMn = REPOSITORIES.resolveModelAttribute(context, operation).asListOrEmpty();
+        final String listUpdatesWorkDir = LIST_UPDATES_WORK_DIR.resolveModelAttribute(context, operation).asStringOrNull();
 
-        context.acquireControllerLock();
-        if (!imService.canPrepareServer()) {
-            throw InstMgrLogger.ROOT_LOGGER.serverAlreadyPrepared();
-        }
+        context.addStep(new OperationStepHandler() {
+            @Override
+            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                context.acquireControllerLock();
+                if (!imService.canPrepareServer()) {
+                    throw InstMgrLogger.ROOT_LOGGER.serverAlreadyPrepared();
+                }
 
-        imService.beginCandidateServer();
-        addCompleteStep(context, imService, null);
+                imService.beginCandidateServer();
+                addCompleteStep(context, imService, null);
 
-        try {
-            final Path homeDir = imService.getHomeDir();
-            final MavenOptions mavenOptions = new MavenOptions(localRepository, noResolveLocalCache, offline);
-            final InstallationManager im = imf.create(homeDir, mavenOptions);
+                try {
+                    final Path homeDir = imService.getHomeDir();
+                    final MavenOptions mavenOptions = new MavenOptions(localRepository, noResolveLocalCache, offline);
+                    final InstallationManager im = imf.create(homeDir, mavenOptions);
 
-            final List<Repository> repositories;
-            if (listUpdatesWorkDir != null) {
-                // We are coming from a previous list-updates management operation where a Maven Zip Repository
-                // has been uploaded and upzipped on a temp dir.
-                final Path mvnRepoWorkDir = imService.getTempDirByName(listUpdatesWorkDir);
-                addCompleteStep(context, imService, listUpdatesWorkDir);
+                    final List<Repository> repositories;
+                    if (listUpdatesWorkDir != null) {
+                        // We are coming from a previous list-updates management operation where a Maven Zip Repository
+                        // has been uploaded and upzipped on a temp dir.
+                        final Path mvnRepoWorkDir = imService.getTempDirByName(listUpdatesWorkDir);
+                        addCompleteStep(context, imService, listUpdatesWorkDir);
 
-                Path uploadedRepoZipRootDir = getUploadedMvnRepoRoot(mvnRepoWorkDir);
-                Repository uploadedMavenRepo = new Repository("id0", uploadedRepoZipRootDir.toUri().toString());
-                repositories = List.of(uploadedMavenRepo);
+                        Path uploadedRepoZipRootDir = getUploadedMvnRepoRoot(mvnRepoWorkDir);
+                        Repository uploadedMavenRepo = new Repository("id0", uploadedRepoZipRootDir.toUri().toString());
+                        repositories = List.of(uploadedMavenRepo);
 
-            } else if (mavenRepoFileIndex != null) {
-                // We are uploading a Maven Zip Repository. Store it in a temporal directory
-                // as "maven-repo-prepare-updates.zip" and unzip it.
-                final InputStream is = context.getAttachmentStream(mavenRepoFileIndex);
-                final Path prepareUpdateWorkDir = imService.createTempDir("prepare-updates-");
+                    } else if (mavenRepoFileIndex != null) {
+                        // We are uploading a Maven Zip Repository. Store it in a temporal directory
+                        // as "maven-repo-prepare-updates.zip" and unzip it.
+                        final InputStream is = context.getAttachmentStream(mavenRepoFileIndex);
+                        final Path prepareUpdateWorkDir = imService.createTempDir("prepare-updates-");
 
-                addCompleteStep(context, imService, prepareUpdateWorkDir.getFileName().toString());
+                        addCompleteStep(context, imService, prepareUpdateWorkDir.getFileName().toString());
 
-                Path uploadedRepoZipFileName = prepareUpdateWorkDir.resolve("maven-repo-prepare-updates.zip");
-                Files.copy(is, uploadedRepoZipFileName);
-                // @TODO Understand how the zip files are packed, we need to specify the root of the file as the repository. Need to understand if this maven repository is packaged in a subdirectory
-                unzip(uploadedRepoZipFileName.toFile(), prepareUpdateWorkDir.toFile());
+                        Path uploadedRepoZipFileName = prepareUpdateWorkDir.resolve("maven-repo-prepare-updates.zip");
+                        Files.copy(is, uploadedRepoZipFileName);
+                        // @TODO Understand how the zip files are packed, we need to specify the root of the file as the repository. Need to understand if this maven repository is packaged in a subdirectory
+                        unzip(uploadedRepoZipFileName.toFile(), prepareUpdateWorkDir.toFile());
 
-                Path uploadedRepoZipRootDir = getUploadedMvnRepoRoot(prepareUpdateWorkDir);
-                Repository uploadedMavenRepo = new Repository("id0", uploadedRepoZipRootDir.toUri().toString());
-                repositories = List.of(uploadedMavenRepo);
-            } else {
-                repositories = toRepositories(repositoriesMn);
+                        Path uploadedRepoZipRootDir = getUploadedMvnRepoRoot(prepareUpdateWorkDir);
+                        Repository uploadedMavenRepo = new Repository("id0", uploadedRepoZipRootDir.toUri().toString());
+                        repositories = List.of(uploadedMavenRepo);
+                    } else {
+                        repositories = toRepositories(repositoriesMn);
+                    }
+
+                    Files.createDirectories(imService.getPreparedServerDir());
+                    boolean prepared = im.prepareUpdate(imService.getPreparedServerDir(), repositories);
+                    if (prepared) {
+                        // @TODO: put server in restart required?
+                        // once put in restart required, the clean operation should revert it if it cleans the prepared server
+                        // but we cannot revert the restart flag from a different Operation since there could be other Operations executed which could have been set this flag?
+                        context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_CANDIDATE_SERVER_PREPARED_AT), imService.getPreparedServerDir().normalize().toAbsolutePath()));
+                        imService.commitCandidateServer("prospero.sh", "update apply");
+                    } else {
+                        context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_UPDATES_FOUND)));
+                        imService.resetCandidateStatus();
+                    }
+                } catch (ZipException e) {
+                    context.getFailureDescription().set(e.getLocalizedMessage());
+                    throw new OperationFailedException(e);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
-
-            Files.createDirectories(imService.getPreparedServerDir());
-            boolean prepared = im.prepareUpdate(imService.getPreparedServerDir(), repositories);
-            if (prepared) {
-                // @TODO: put server in restart required?
-                // once put in restart required, the clean operation should revert it if it cleans the prepared server
-                // but we cannot revert the restart flag from a different Operation since there could be other Operations executed which could have been set this flag?
-                context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_CANDIDATE_SERVER_PREPARED_AT), imService.getPreparedServerDir().normalize().toAbsolutePath()));
-                imService.commitCandidateServer("prospero.sh", "update apply");
-            } else {
-                context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_UPDATES_FOUND)));
-                imService.resetCandidateStatus();
-            }
-        } catch (ZipException e) {
-            context.getFailureDescription().set(e.getLocalizedMessage());
-            throw new OperationFailedException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        }, OperationContext.Stage.RUNTIME);
     }
 
     private void addCompleteStep(OperationContext context, InstMgrService imService, String workDir) {

@@ -20,10 +20,10 @@ package org.wildfly.core.instmgr;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ObjectListAttributeDefinition;
-import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.registry.OperationEntry;
@@ -81,96 +81,101 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
     }
 
     @Override
-    void executeRuntimeStep(OperationContext context, ModelNode operation, InstMgrService imService, InstallationManagerFactory imf) throws OperationFailedException {
-        final boolean offline = resolveAttribute(context, operation, OFFLINE).isDefined() ? resolveAttribute(context, operation, OFFLINE).asBoolean() : false;
-        final String pathLocalRepo = resolveAttribute(context, operation, LOCAL_CACHE).asStringOrNull();
-        final boolean noResolveLocalCache = resolveAttribute(context, operation, NO_RESOLVE_LOCAL_CACHE).isDefined() ? resolveAttribute(context, operation, NO_RESOLVE_LOCAL_CACHE).asBoolean() : false;
+    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        final boolean offline = OFFLINE.resolveModelAttribute(context, operation).asBoolean(false);
+        final String pathLocalRepo = LOCAL_CACHE.resolveModelAttribute(context, operation).asStringOrNull();
+        final boolean noResolveLocalCache = NO_RESOLVE_LOCAL_CACHE.resolveModelAttribute(context, operation).asBoolean(false);
         final Path localRepository = pathLocalRepo != null ? Path.of(pathLocalRepo) : null;
-        final Integer mavenRepoFileIndex = resolveAttribute(context, operation, MAVEN_REPO_FILE).asIntOrNull();
+        final Integer mavenRepoFileIndex = MAVEN_REPO_FILE.resolveModelAttribute(context, operation).asIntOrNull();
         final List<ModelNode> repositoriesMn = REPOSITORIES.resolveModelAttribute(context, operation).asListOrEmpty();
 
-        context.acquireControllerLock();
-        try {
-            final Path homeDir = imService.getHomeDir();
-            final MavenOptions mavenOptions = new MavenOptions(localRepository, noResolveLocalCache, offline);
-            final InstallationManager im = imf.create(homeDir, mavenOptions);
-            final Path listUpdatesWorkDir = imService.createTempDir("list-updates-");
+        context.addStep(new OperationStepHandler() {
+            @Override
+            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                context.acquireControllerLock();
+                try {
+                    final Path homeDir = imService.getHomeDir();
+                    final MavenOptions mavenOptions = new MavenOptions(localRepository, noResolveLocalCache, offline);
+                    final InstallationManager im = imf.create(homeDir, mavenOptions);
+                    final Path listUpdatesWorkDir = imService.createTempDir("list-updates-");
 
-            context.completeStep(new OperationContext.ResultHandler() {
-                @Override
-                public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                    if (resultAction == OperationContext.ResultAction.ROLLBACK) {
-                        try {
-                            imService.deleteTempDir(listUpdatesWorkDir);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
+                    context.completeStep(new OperationContext.ResultHandler() {
+                        @Override
+                        public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
+                            if (resultAction == OperationContext.ResultAction.ROLLBACK) {
+                                try {
+                                    imService.deleteTempDir(listUpdatesWorkDir);
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
                         }
+                    });
+
+                    final List<Repository> repositories;
+                    if (mavenRepoFileIndex != null) {
+                        final InputStream is = context.getAttachmentStream(mavenRepoFileIndex);
+                        Path uploadedRepoZipFile = listUpdatesWorkDir.resolve("maven-repo-list-updates.zip");
+                        Files.copy(is, uploadedRepoZipFile);
+                        // @TODO Understand how the zip files are packed, we need to specify the root of the file as the repository. Need to understand if this maven repository is packaged in a subdirectory
+                        unzip(uploadedRepoZipFile.toFile(), listUpdatesWorkDir.toFile());
+
+                        Path uploadedMvnRepoRoot = getUploadedMvnRepoRoot(listUpdatesWorkDir);
+                        Repository uploadedMavenRepo = new Repository("id0", uploadedMvnRepoRoot.toUri().toString());
+                        repositories = List.of(uploadedMavenRepo);
+                    } else {
+                        repositories = toRepositories(repositoriesMn);
                     }
-                }
-            });
-
-            final List<Repository> repositories;
-            if (mavenRepoFileIndex != null) {
-                final InputStream is = context.getAttachmentStream(mavenRepoFileIndex);
-                Path uploadedRepoZipFile = listUpdatesWorkDir.resolve("maven-repo-list-updates.zip");
-                Files.copy(is, uploadedRepoZipFile);
-                // @TODO Understand how the zip files are packed, we need to specify the root of the file as the repository. Need to understand if this maven repository is packaged in a subdirectory
-                unzip(uploadedRepoZipFile.toFile(), listUpdatesWorkDir.toFile());
-
-                Path uploadedMvnRepoRoot = getUploadedMvnRepoRoot(listUpdatesWorkDir);
-                Repository uploadedMavenRepo = new Repository("id0", uploadedMvnRepoRoot.toUri().toString());
-                repositories = List.of(uploadedMavenRepo);
-            } else {
-                repositories = toRepositories(repositoriesMn);
-            }
 
 
-            final List<ArtifactChange> updates = im.findUpdates(repositories);
-            final ModelNode resultValue = new ModelNode();
-            final ModelNode updatesMn = new ModelNode().addEmptyList();
+                    final List<ArtifactChange> updates = im.findUpdates(repositories);
+                    final ModelNode resultValue = new ModelNode();
+                    final ModelNode updatesMn = new ModelNode().addEmptyList();
 
-            if (!updates.isEmpty()) {
-                updatesMn.add(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATES_FOUND));
-                for (ArtifactChange artifactChange : updates) {
-                    switch (artifactChange.getStatus()) {
-                        case REMOVED:
-                            updatesMn.add(String.format("    %1$-60s %2$-15s ==> []", artifactChange.getArtifactName(), artifactChange.getOldVersion()));
-                            break;
-                        case INSTALLED:
-                            updatesMn.add(String.format("    %1$-60s [] ==> %2$-15s", artifactChange.getArtifactName(), artifactChange.getNewVersion()));
-                            break;
-                        default:
-                            updatesMn.add(String.format("    %1$-60s %2$-15s ==> %3$-15s", artifactChange.getArtifactName(), artifactChange.getOldVersion(), artifactChange.getNewVersion()));
+                    if (!updates.isEmpty()) {
+                        updatesMn.add(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATES_FOUND));
+                        for (ArtifactChange artifactChange : updates) {
+                            switch (artifactChange.getStatus()) {
+                                case REMOVED:
+                                    updatesMn.add(String.format("    %1$-60s %2$-15s ==> []", artifactChange.getArtifactName(), artifactChange.getOldVersion()));
+                                    break;
+                                case INSTALLED:
+                                    updatesMn.add(String.format("    %1$-60s [] ==> %2$-15s", artifactChange.getArtifactName(), artifactChange.getNewVersion()));
+                                    break;
+                                default:
+                                    updatesMn.add(String.format("    %1$-60s %2$-15s ==> %3$-15s", artifactChange.getArtifactName(), artifactChange.getOldVersion(), artifactChange.getNewVersion()));
+                            }
+                        }
+                        if (mavenRepoFileIndex != null) {
+                            resultValue.get(InstMgrConstants.RETURN_CODE).set(InstMgrConstants.RETURN_CODE_UPDATES_WITH_WORK_DIR);
+                            resultValue.get(InstMgrConstants.UPDATES_RESULT).set(updatesMn);
+                            resultValue.get(InstMgrConstants.LIST_UPDATES_WORK_DIR).set(listUpdatesWorkDir.getFileName().toString());
+                        } else {
+                            imService.deleteTempDir(listUpdatesWorkDir);
+                            resultValue.get(InstMgrConstants.RETURN_CODE).set(InstMgrConstants.RETURN_CODE_UPDATES_WITHOUT_WORK_DIR);
+                            resultValue.get(InstMgrConstants.UPDATES_RESULT).set(updatesMn);
+                        }
+                    } else {
+                        imService.deleteTempDir(listUpdatesWorkDir);
+                        updatesMn.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_UPDATES_FOUND)));
+                        resultValue.get(InstMgrConstants.RETURN_CODE).set(InstMgrConstants.RETURN_CODE_NO_UPDATES);
+                        resultValue.get(InstMgrConstants.UPDATES_RESULT).set(updatesMn);
                     }
+
+                    context.getResult().set(resultValue);
+
+                    // @TODO Better Exception handling
+                } catch (ZipException e) {
+                    context.getFailureDescription().set(e.getLocalizedMessage());
+                    throw new OperationFailedException(e);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
-                if (mavenRepoFileIndex != null) {
-                    resultValue.get(InstMgrConstants.RETURN_CODE).set(InstMgrConstants.RETURN_CODE_UPDATES_WITH_WORK_DIR);
-                    resultValue.get(InstMgrConstants.UPDATES_RESULT).set(updatesMn);
-                    resultValue.get(InstMgrConstants.LIST_UPDATES_WORK_DIR).set(listUpdatesWorkDir.getFileName().toString());
-                } else {
-                    imService.deleteTempDir(listUpdatesWorkDir);
-                    resultValue.get(InstMgrConstants.RETURN_CODE).set(InstMgrConstants.RETURN_CODE_UPDATES_WITHOUT_WORK_DIR);
-                    resultValue.get(InstMgrConstants.UPDATES_RESULT).set(updatesMn);
-                }
-            } else {
-                imService.deleteTempDir(listUpdatesWorkDir);
-                updatesMn.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_UPDATES_FOUND)));
-                resultValue.get(InstMgrConstants.RETURN_CODE).set(InstMgrConstants.RETURN_CODE_NO_UPDATES);
-                resultValue.get(InstMgrConstants.UPDATES_RESULT).set(updatesMn);
             }
-
-            context.getResult().set(resultValue);
-
-            // @TODO Better Exception handling
-        } catch (ZipException e) {
-            context.getFailureDescription().set(e.getLocalizedMessage());
-            throw new OperationFailedException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        }, OperationContext.Stage.RUNTIME);
     }
 }

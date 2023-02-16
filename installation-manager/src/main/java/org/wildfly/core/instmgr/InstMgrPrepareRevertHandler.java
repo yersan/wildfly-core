@@ -20,10 +20,10 @@ package org.wildfly.core.instmgr;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ObjectListAttributeDefinition;
-import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.registry.OperationEntry;
@@ -87,63 +87,68 @@ public class InstMgrPrepareRevertHandler extends AbstractInstMgrUpdateHandler {
         super(imService, imf);
     }
 
-    @Override
-    void executeRuntimeStep(OperationContext context, ModelNode operation, InstMgrService imService, InstallationManagerFactory imf) throws OperationFailedException {
-        context.acquireControllerLock();
 
-        final boolean offline = resolveAttribute(context, operation, OFFLINE).isDefined() ? resolveAttribute(context, operation, OFFLINE).asBoolean() : false;
-        final String pathLocalRepo = resolveAttribute(context, operation, LOCAL_CACHE).asStringOrNull();
-        final boolean noResolveLocalCache = resolveAttribute(context, operation, NO_RESOLVE_LOCAL_CACHE).isDefined() ? resolveAttribute(context, operation, NO_RESOLVE_LOCAL_CACHE).asBoolean() : false;
+    @Override
+    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        final boolean offline = OFFLINE.resolveModelAttribute(context, operation).asBoolean(false);
+        final String pathLocalRepo = LOCAL_CACHE.resolveModelAttribute(context, operation).asStringOrNull();
+        final boolean noResolveLocalCache = NO_RESOLVE_LOCAL_CACHE.resolveModelAttribute(context, operation).asBoolean(false);
         final Path localRepository = pathLocalRepo != null ? Path.of(pathLocalRepo) : null;
-        final Integer mavenRepoFileIndex = resolveAttribute(context, operation, MAVEN_REPO_FILE).asIntOrNull();
+        final Integer mavenRepoFileIndex = MAVEN_REPO_FILE.resolveModelAttribute(context, operation).asIntOrNull();
         final List<ModelNode> repositoriesMn = REPOSITORIES.resolveModelAttribute(context, operation).asListOrEmpty();
         final String revision = REVISION.resolveModelAttribute(context, operation).asString();
 
-        if (!imService.canPrepareServer()) {
-            throw InstMgrLogger.ROOT_LOGGER.serverAlreadyPrepared();
-        }
-        imService.beginCandidateServer();
-        addCompleteStep(context, imService, null);
+        context.addStep(new OperationStepHandler() {
+            @Override
+            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                context.acquireControllerLock();
+                if (!imService.canPrepareServer()) {
+                    throw InstMgrLogger.ROOT_LOGGER.serverAlreadyPrepared();
+                }
+                imService.beginCandidateServer();
+                addCompleteStep(context, imService, null);
 
-        try {
-            final Path homeDir = imService.getHomeDir();
-            final MavenOptions mavenOptions = new MavenOptions(localRepository, noResolveLocalCache, offline);
-            final InstallationManager im = imf.create(homeDir, mavenOptions);
+                try {
+                    final Path homeDir = imService.getHomeDir();
+                    final MavenOptions mavenOptions = new MavenOptions(localRepository, noResolveLocalCache, offline);
+                    final InstallationManager im = imf.create(homeDir, mavenOptions);
 
-            List<Repository> repositories;
-            if (mavenRepoFileIndex != null) {
-                final InputStream is = context.getAttachmentStream(mavenRepoFileIndex);
-                final Path preparationWorkDir = imService.createTempDir("prepare-revert-");
-                addCompleteStep(context, imService, preparationWorkDir.getFileName().toString());
+                    List<Repository> repositories;
+                    if (mavenRepoFileIndex != null) {
+                        final InputStream is = context.getAttachmentStream(mavenRepoFileIndex);
+                        final Path preparationWorkDir = imService.createTempDir("prepare-revert-");
+                        addCompleteStep(context, imService, preparationWorkDir.getFileName().toString());
 
-                Path uploadedRepoZipFileName = preparationWorkDir.resolve("maven-repo-prepare-updates.zip");
-                Files.copy(is, uploadedRepoZipFileName);
-                // @TODO Understand how the zip files are packed, we need to specify the root of the file as the repository. Need to understand if this maven repository is packaged in a subdirectory
-                unzip(uploadedRepoZipFileName.toFile(), preparationWorkDir.toFile());
+                        Path uploadedRepoZipFileName = preparationWorkDir.resolve("maven-repo-prepare-updates.zip");
+                        Files.copy(is, uploadedRepoZipFileName);
+                        // @TODO Understand how the zip files are packed, we need to specify the root of the file as the repository. Need to understand if this maven repository is packaged in a subdirectory
+                        unzip(uploadedRepoZipFileName.toFile(), preparationWorkDir.toFile());
 
-                Path uploadedRepoZipRootDir = getUploadedMvnRepoRoot(preparationWorkDir);
-                Repository uploadedMavenRepo = new Repository("id0", uploadedRepoZipRootDir.toUri().toString());
-                repositories = List.of(uploadedMavenRepo);
-            } else {
-                repositories = toRepositories(repositoriesMn);
+                        Path uploadedRepoZipRootDir = getUploadedMvnRepoRoot(preparationWorkDir);
+                        Repository uploadedMavenRepo = new Repository("id0", uploadedRepoZipRootDir.toUri().toString());
+                        repositories = List.of(uploadedMavenRepo);
+                    } else {
+                        repositories = toRepositories(repositoriesMn);
+                    }
+
+                    Files.createDirectories(imService.getPreparedServerDir());
+                    im.prepareRevert(revision, imService.getPreparedServerDir(), repositories);
+                    context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_CANDIDATE_SERVER_PREPARED_AT), imService.getPreparedServerDir().normalize().toAbsolutePath()));
+                    imService.commitCandidateServer("prospero.sh", "revert apply");
+
+                    // @TODO Better Exception handling
+                } catch (ZipException e) {
+                    context.getFailureDescription().set(e.getLocalizedMessage());
+                    throw new OperationFailedException(e);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
-
-            Files.createDirectories(imService.getPreparedServerDir());
-            im.prepareRevert(revision, imService.getPreparedServerDir(), repositories);
-            context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_CANDIDATE_SERVER_PREPARED_AT), imService.getPreparedServerDir().normalize().toAbsolutePath()));
-            imService.commitCandidateServer("prospero.sh", "revert apply");
-
-            // @TODO Better Exception handling
-        } catch (ZipException e) {
-            context.getFailureDescription().set(e.getLocalizedMessage());
-            throw new OperationFailedException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        }, OperationContext.Stage.RUNTIME);
     }
 
     private void addCompleteStep(OperationContext context, InstMgrService imService, String mavenRepoParentWorkdir) {

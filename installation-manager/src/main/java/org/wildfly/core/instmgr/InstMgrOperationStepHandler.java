@@ -18,13 +18,7 @@
 
 package org.wildfly.core.instmgr;
 
-import org.jboss.as.controller.AttributeDefinition;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
-import org.jboss.as.controller.PathAddress;
-import org.jboss.as.controller.ProcessType;
-import org.jboss.dmr.ModelNode;
 import org.wildfly.core.instmgr.logging.InstMgrLogger;
 import org.wildfly.installationmanager.spi.InstallationManagerFactory;
 
@@ -38,53 +32,17 @@ import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
-
 /**
  * Base class for installation-manager operation handlers.
  */
 abstract class InstMgrOperationStepHandler implements OperationStepHandler {
-    private final InstMgrService imService;
-    private final InstallationManagerFactory imf;
+    protected final InstMgrService imService;
+    protected final InstallationManagerFactory imf;
 
     InstMgrOperationStepHandler(InstMgrService imService, InstallationManagerFactory imf) {
         this.imService = imService;
         this.imf = imf;
     }
-
-    @Override
-    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-        if (requiresRuntime(context)) {
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    // Ensure the resource exist
-                    context.readResource(PathAddress.EMPTY_ADDRESS, false);
-                    executeRuntimeStep(context, operation);
-                }
-            }, OperationContext.Stage.RUNTIME);
-        }
-    }
-
-    protected boolean requiresRuntime(OperationContext context) {
-        ProcessType processType = context.getProcessType();
-
-        if (processType.isServer()) {
-            return context.isNormalServer();
-        } else if (processType.isHostController()) {
-            PathAddress currentAddress = context.getCurrentAddress();
-            return currentAddress.size() >= 2 && currentAddress.getElement(0).getKey().equals(HOST) && currentAddress.getElement(1).getKey().equals(CORE_SERVICE);
-        }
-        return false;
-    }
-
-    protected void executeRuntimeStep(OperationContext context, ModelNode operation) throws OperationFailedException {
-        this.executeRuntimeStep(context, operation, imService, imf);
-    }
-
-    abstract void executeRuntimeStep(OperationContext context, ModelNode operation, InstMgrService imService, InstallationManagerFactory imf) throws OperationFailedException;
-
 
     protected static void deleteDirIfExits(Path dir, boolean skipRootDir) throws IOException {
         if (dir != null && dir.toFile().exists()) {
@@ -98,10 +56,6 @@ abstract class InstMgrOperationStepHandler implements OperationStepHandler {
 
     protected static void deleteDirIfExits(Path dir) throws IOException {
         deleteDirIfExits(dir, false);
-    }
-
-    protected static <T extends AttributeDefinition> ModelNode resolveAttribute(OperationContext context, ModelNode operation, T attr) throws OperationFailedException {
-        return attr.resolveValue(context, attr.validateOperation(operation));
     }
 
     /**

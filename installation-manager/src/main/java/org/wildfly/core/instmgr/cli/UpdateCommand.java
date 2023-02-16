@@ -63,7 +63,7 @@ public class UpdateCommand extends AbstractInstMgrCommand {
     public CommandResult execute(CLICommandInvocation commandInvocation) throws CommandException, InterruptedException {
         final CommandContext ctx = commandInvocation.getCommandContext();
         final ModelControllerClient client = ctx.getModelControllerClient();
-        if (client == null || (client instanceof CLIModelControllerClient && !((CLIModelControllerClient)client).isConnected())) {
+        if (client == null) {
             ctx.printLine("You are disconnected at the moment. Type 'connect' to connect to the server or 'help' for the list of supported commands.");
             return CommandResult.FAILURE;
         }

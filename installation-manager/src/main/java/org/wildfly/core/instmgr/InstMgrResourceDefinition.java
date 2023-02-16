@@ -18,6 +18,7 @@
 
 package org.wildfly.core.instmgr;
 
+import org.jboss.as.controller.AbstractWriteAttributeHandler;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ObjectListAttributeDefinition;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
@@ -184,7 +185,7 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
 
         @Override
         public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-            List<ModelNode> modelNodes = CHANNELS.resolveValue(context, operation.get(VALUE)).asList();
+            List<ModelNode> channelsListMn = CHANNELS.resolveValue(context, operation.get(VALUE)).asList();
             context.addStep(new OperationStepHandler() {
                 @Override
                 public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
@@ -202,9 +203,7 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
                                 exitingChannelNames.add(c.getName());
                             }
 
-                            final List<ModelNode> channelsListMn = operation.require(ModelDescriptionConstants.VALUE).asListOrEmpty();
                             for (ModelNode mChannel : channelsListMn) {
-
                                 final String cName = mChannel.get(InstMgrConstants.CHANNEL_NAME).asString();
                                 final List<Repository> repositories = new ArrayList<>();
 
@@ -251,7 +250,6 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
     }
 
     private final class ReadHandler implements OperationStepHandler {
-        private final ParametersValidator validator = new ParametersValidator();
         private final InstMgrService imService;
 
         public ReadHandler(InstMgrService imService) {
@@ -260,14 +258,9 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
 
         @Override
         public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-            validator.validate(operation);
             context.addStep(new OperationStepHandler() {
                 @Override
                 public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    final String name = operation.require(NAME).asString();
-                    if (!name.equals(InstMgrConstants.CHANNELS)) {
-                        throw unknownAttribute(operation);
-                    }
                     try {
                         Optional<InstallationManagerFactory> imOptional = InstallationManagerFinder.find();
                         if (imOptional.isPresent()) {
@@ -326,7 +319,7 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
             }
 
             List<ModelNode> repositoriesMn = value.get(InstMgrConstants.REPOSITORIES).asListOrEmpty();
-            for (ModelNode repository: repositoriesMn) {
+            for (ModelNode repository : repositoriesMn) {
                 String repoUrl = repository.get(InstMgrConstants.REPOSITORY_URL).asStringOrNull();
                 if (repoUrl == null) {
                     throw new OperationFailedException(String.format("The channel % contains a repository without URL"));
@@ -348,7 +341,7 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
                 String url = value.get(InstMgrConstants.MANIFEST).get(InstMgrConstants.MANIFEST_URL).asStringOrNull();
 
                 if (gav != null) {
-                    if ( gav.contains("\\") || gav.contains("/")) {
+                    if (gav.contains("\\") || gav.contains("/")) {
                         throw new OperationFailedException(String.format("The channel % has an invalid manifest GAV: %"));
                     }
                     String[] parts = gav.split(":");
@@ -370,17 +363,5 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
                 }
             }
         }
-    }
-
-    private OperationFailedException unknownAttribute(final ModelNode operation) {
-        return InstMgrLogger.ROOT_LOGGER.unknownAttribute(operation.require(NAME).asString());
-    }
-
-    private OperationFailedException unsupportedOperation(final ModelNode operation) {
-        return InstMgrLogger.ROOT_LOGGER.unsupportedOperation(operation.require(OP).asString());
-    }
-
-    protected static <T extends AttributeDefinition> ModelNode resolveAttribute(OperationContext context, ModelNode operation, T attr) throws OperationFailedException {
-        return attr.resolveValue(context, attr.validateOperation(operation));
     }
 }
