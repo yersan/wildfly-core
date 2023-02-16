@@ -81,7 +81,7 @@ public class UpdateCommand extends AbstractInstMgrCommand {
                 .setOffline(offline);
 
         ListUpdatesAction listUpdatesCmd = listUpdatesCmdBuilder.build();
-        ModelNode response = listUpdatesCmd.executeOp(ctx);
+        ModelNode response = listUpdatesCmd.executeOp(ctx, this.host);
 
         if (response.hasDefined(Util.RESULT)) {
             ModelNode result = response.get(Util.RESULT);
@@ -107,8 +107,8 @@ public class UpdateCommand extends AbstractInstMgrCommand {
                             if (reply != null && reply.equalsIgnoreCase("N")) {
                                 // clean the cache if there is one
                                 if (returnCode == InstMgrConstants.RETURN_CODE_UPDATES_WITH_WORK_DIR) {
-                                    CleanCommand cleanCommand = new CleanCommand(lstUpdatesWorkDir);
-                                    cleanCommand.executeOp(ctx);
+                                    CleanCommand cleanCommand = new CleanCommand.Builder().setLstUpdatesWorkDir(lstUpdatesWorkDir).createCleanCommand();
+                                    cleanCommand.executeOp(ctx, this.host);
                                 }
 
                                 return CommandResult.SUCCESS;
@@ -119,8 +119,8 @@ public class UpdateCommand extends AbstractInstMgrCommand {
                     } catch (InterruptedException e) {
                         // In case of an error, clean the cache if there is one
                         if (returnCode == InstMgrConstants.RETURN_CODE_UPDATES_WITH_WORK_DIR) {
-                            CleanCommand cleanCommand = new CleanCommand(lstUpdatesWorkDir);
-                            cleanCommand.executeOp(ctx);
+                            CleanCommand cleanCommand = new CleanCommand.Builder().setLstUpdatesWorkDir(lstUpdatesWorkDir).createCleanCommand();
+                            cleanCommand.executeOp(ctx, this.host);
                         }
 
                         return CommandResult.FAILURE;
@@ -137,7 +137,7 @@ public class UpdateCommand extends AbstractInstMgrCommand {
                         .setListUpdatesWorkDir(lstUpdatesWorkDir);
 
                 PrepareUpdateAction prepareUpdateAction = prepareUpdateActionBuilder.build();
-                ModelNode prepareUpdateResult = prepareUpdateAction.executeOp(ctx);
+                ModelNode prepareUpdateResult = prepareUpdateAction.executeOp(ctx, this.host);
                 printUpdatesResult(ctx, prepareUpdateResult.get(Util.RESULT));
             }
         } else {

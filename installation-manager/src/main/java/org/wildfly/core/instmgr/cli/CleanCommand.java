@@ -40,11 +40,11 @@ public class CleanCommand extends AbstractInstMgrCommand {
     final Path lstUpdatesWorkDir;
 
     public CleanCommand() {
-        this.lstUpdatesWorkDir=null;
+        this.lstUpdatesWorkDir = null;
     }
 
-    public CleanCommand(Path lstUpdatesWorkDir) {
-        this.lstUpdatesWorkDir = lstUpdatesWorkDir;
+    public CleanCommand(Builder builder) {
+        this.lstUpdatesWorkDir = builder.lstUpdatesWorkDir;
     }
 
     @Override
@@ -67,7 +67,20 @@ public class CleanCommand extends AbstractInstMgrCommand {
             return CommandResult.FAILURE;
         }
 
-        this.executeOp(commandInvocation.getCommandContext());
+        this.executeOp(commandInvocation.getCommandContext(), this.host);
         return CommandResult.SUCCESS;
+    }
+
+    public static class Builder {
+        private Path lstUpdatesWorkDir;
+
+        public Builder setLstUpdatesWorkDir(Path lstUpdatesWorkDir) {
+            this.lstUpdatesWorkDir = lstUpdatesWorkDir;
+            return this;
+        }
+
+        public CleanCommand createCleanCommand() {
+            return new CleanCommand(this);
+        }
     }
 }

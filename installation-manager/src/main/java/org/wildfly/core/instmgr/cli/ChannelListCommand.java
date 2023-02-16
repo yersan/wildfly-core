@@ -1,10 +1,8 @@
 package org.wildfly.core.instmgr.cli;
 
-import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
-import org.aesh.command.option.Option;
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.Util;
 import org.jboss.as.cli.impl.CLIModelControllerClient;
@@ -15,7 +13,12 @@ import org.jboss.dmr.ModelNode;
 import org.wildfly.core.cli.command.aesh.CLICommandInvocation;
 import org.wildfly.core.instmgr.InstMgrConstants;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 
 @CommandDefinition(name = "channel-list", description = "List channels subscribed to by the installation.")
 public class ChannelListCommand extends AbstractInstMgrCommand {
@@ -38,7 +41,7 @@ public class ChannelListCommand extends AbstractInstMgrCommand {
             return CommandResult.FAILURE;
         }
 
-        ModelNode response = this.executeOp(commandInvocation.getCommandContext());
+        ModelNode response = this.executeOp(commandInvocation.getCommandContext(), this.host);
         ModelNode result = response.get(Util.RESULT);
         List<ModelNode> channelsMn = result.get(InstMgrConstants.CHANNELS).asListOrEmpty();
 
@@ -68,4 +71,26 @@ public class ChannelListCommand extends AbstractInstMgrCommand {
         }
         return CommandResult.SUCCESS;
     }
+
+    /**
+     * Returns a Set with the current channel names available on the server installation
+     *
+     * @param ctx
+     * @param host
+     * @return
+     * @throws CommandException
+     */
+    Set<String> getAllChannelNames(CommandContext ctx, String host) throws CommandException {
+        final Set<String> existingChannelNames = new HashSet<>();
+        ModelNode listCmdResponse = this.executeOp(ctx, host);
+        if (listCmdResponse.hasDefined(RESULT)) {
+            ModelNode result = listCmdResponse.get(RESULT);
+            List<ModelNode> channels = result.get(InstMgrConstants.CHANNELS).asListOrEmpty();
+            for (ModelNode channel : channels) {
+                existingChannelNames.add(channel.get(NAME).asString());
+            }
+        }
+        return existingChannelNames;
+    }
+
 }

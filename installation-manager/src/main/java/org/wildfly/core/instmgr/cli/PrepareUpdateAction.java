@@ -18,6 +18,7 @@
 
 package org.wildfly.core.instmgr.cli;
 
+import org.aesh.command.CommandException;
 import org.jboss.as.controller.client.Operation;
 import org.jboss.as.controller.client.OperationBuilder;
 import org.jboss.dmr.ModelNode;
@@ -51,7 +52,7 @@ public class PrepareUpdateAction extends AbstractInstMgrCommand {
     }
 
     @Override
-    protected Operation buildOperation() {
+    protected Operation buildOperation() throws CommandException {
         final ModelNode op = new ModelNode();
         final OperationBuilder operationBuilder = OperationBuilder.create(op);
 
@@ -62,7 +63,7 @@ public class PrepareUpdateAction extends AbstractInstMgrCommand {
             operationBuilder.addFileAsAttachment(mavenRepoFile);
         }
 
-        addRepositories(op, this.repositories);
+        addRepositoriesToModelNode(op, this.repositories);
 
         if (localCache != null) {
             op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.normalize().toAbsolutePath().toString());

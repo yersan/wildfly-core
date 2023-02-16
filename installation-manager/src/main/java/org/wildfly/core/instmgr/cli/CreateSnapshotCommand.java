@@ -18,7 +18,6 @@
 
 package org.wildfly.core.instmgr.cli;
 
-import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
@@ -64,7 +63,7 @@ public class CreateSnapshotCommand extends AbstractInstMgrCommand {
             return CommandResult.FAILURE;
         }
 
-        ModelNode response = this.executeOp(commandInvocation.getCommandContext());
+        ModelNode response = this.executeOp(commandInvocation.getCommandContext(), this.host);
         ModelNode result = response.get(Util.RESULT);
         ctx.printLine(result.asString());
         return CommandResult.SUCCESS;

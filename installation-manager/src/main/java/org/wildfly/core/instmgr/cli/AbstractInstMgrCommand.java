@@ -40,7 +40,10 @@ import org.wildfly.core.cli.command.aesh.activator.DomainOptionActivator;
 import org.wildfly.core.instmgr.InstMgrConstants;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,17 +60,16 @@ public abstract class AbstractInstMgrCommand implements Command<CLICommandInvoca
     static final PathElement CORE_SERVICE_INSTALLER = PathElement.pathElement(CORE_SERVICE, InstMgrGroupCommand.COMMAND_NAME);
 
     @Option(name = "host", completer = AbstractInstMgrCommand.HostsCompleter.class, activator = AbstractInstMgrCommand.HostsActivator.class)
-    public String host;
+    protected String host;
 
     /**
      * General Execute Operation method.
      *
      * @param ctx
-     * @param host
      * @return ModelNode with the result of a successful execution.
      * @throws CommandException If the operation was not success or an error occurred.
      */
-    protected ModelNode executeOp(CommandContext ctx) throws CommandException {
+    protected ModelNode executeOp(CommandContext ctx, String host) throws CommandException {
         if (host != null && !ctx.isDomainMode()) {
             throw new CommandException("The --host option is not available in the current context. "
                     + "Connection to the controller might be unavailable or not running in domain mode.");
@@ -99,7 +101,7 @@ public abstract class AbstractInstMgrCommand implements Command<CLICommandInvoca
         return response;
     }
 
-    protected abstract Operation buildOperation();
+    protected abstract Operation buildOperation() throws CommandException;
 
     @Override
     public CommandResult execute(CLICommandInvocation commandInvocation) throws CommandException, InterruptedException {
@@ -178,33 +180,107 @@ public abstract class AbstractInstMgrCommand implements Command<CLICommandInvoca
         ctx.printDMR(clone);
     }
 
-    protected void addRepositories(ModelNode op, List<String> repositories) {
-        if (repositories != null && !repositories.isEmpty()) {
-            ModelNode repositoriesMn = new ModelNode().addEmptyList();
-            for (String repoStr : repositories) {
-                ModelNode repositoryMn = new ModelNode();
-                String idStr;
-                String urlStr;
-                String[] split = repoStr.split("::");
-                try {
-                    if (split.length == 1) {
-                        new URL(repoStr).toURI();
-                        idStr = "id0";
-                        urlStr = repoStr;
-                    } else if (split.length == 2) {
-                        idStr = split[0];
-                        urlStr = split[1];
-                    } else {
-                        throw new IllegalArgumentException();
-                    }
-                    repositoryMn.get(InstMgrConstants.ID).set(idStr);
-                    repositoryMn.get(InstMgrConstants.REPOSITORY_URL).set(urlStr);
-                    repositoriesMn.add(repositoryMn);
-                } catch (Exception w) {
-                    throw new IllegalArgumentException("Invalid Repository URL. Valid values are either URLs or ID::URL");
+    /**
+     * Convert a list of repositories passed as a command argument into a Model Node object and add it to the Operation
+     * passed as an argument.
+     *
+     * @param op           The Model Node of the Operation
+     * @param repositories The List of repositories
+     * @Throws MalformedURLException If there is an invalid URL
+     * @Throws IllegalArgumentException If the format of the repositories in the List is invalid.
+     */
+    static void addRepositoriesToModelNode(ModelNode op, List<String> repositories) throws CommandException {
+        if (repositories == null || repositories.isEmpty()) {
+            return;
+        }
+
+        ModelNode repositoriesMn = new ModelNode().addEmptyList();
+        for (String repoStr : repositories) {
+            ModelNode repositoryMn = new ModelNode();
+            String idStr;
+            String urlStr;
+            String[] split = repoStr.split("::");
+            try {
+                if (split.length == 1) {
+                    new URL(repoStr).toURI();
+                    idStr = "id0";
+                    urlStr = repoStr;
+                } else if (split.length == 2) {
+                    idStr = split[0];
+                    urlStr = split[1];
+                } else {
+                    throw new IllegalArgumentException();
+                }
+                repositoryMn.get(InstMgrConstants.ID).set(idStr);
+                repositoryMn.get(InstMgrConstants.REPOSITORY_URL).set(urlStr);
+                repositoriesMn.add(repositoryMn);
+            } catch (Exception w) {
+                throw new CommandException("Invalid Repository URL. Valid values are either URLs or ID::URL");
+            }
+        }
+        op.get(InstMgrConstants.REPOSITORIES).set(repositoriesMn);
+    }
+
+    static void addManifestToModelNode(ModelNode channel, String manifest) {
+        if (manifest == null || "".equals(manifest)) {
+            return;
+        }
+
+        try {
+            ModelNode manifestMn = new ModelNode();
+            if (isValidUrl(manifest)) {
+                manifestMn.get(InstMgrConstants.MANIFEST_URL).set(manifest);
+            } else if (isValidCoordinate(manifest)) {
+                manifestMn.get(InstMgrConstants.MANIFEST_GAV).set(manifest);
+            } else {
+                String validUrlFromPath = isValidUrlFromPath(manifest);
+                if (validUrlFromPath != null) {
+                    manifestMn.get(InstMgrConstants.MANIFEST_URL).set(validUrlFromPath);
+                } else {
+                    throw new IllegalArgumentException("Invalid manifest format. It can be an URL, Maven GAV or path");
                 }
             }
-            op.get(InstMgrConstants.REPOSITORIES).set(repositoriesMn);
+
+            channel.get(InstMgrConstants.MANIFEST).set(manifestMn);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid manifest format. It can be an URL, Maven GAV or path");
         }
+    }
+
+    static boolean isValidUrl(String urlGavOrPath) {
+        try {
+            new URL(urlGavOrPath);
+        } catch (MalformedURLException e) {
+            // no valid URL
+            return false;
+        }
+        return true;
+    }
+
+    static String isValidUrlFromPath(String urlGavOrPath) {
+        try {
+            return Paths.get(urlGavOrPath).toUri().toURL().toString();
+        } catch (MalformedURLException | InvalidPathException e) {
+            // no valid URL/path
+            return null;
+        }
+    }
+
+    static boolean isValidCoordinate(String gav) {
+        if (gav.contains("\\") || gav.contains("/")) {
+            return false;
+        }
+
+        String[] parts = gav.split(":");
+        for (String part : parts) {
+            if (part == null || "".equals(part)) {
+                return false;
+            }
+        }
+        if (parts.length != 2 && parts.length != 3) { // GA or GAV
+            return false;
+        }
+
+        return true;
     }
 }

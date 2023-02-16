@@ -34,7 +34,6 @@ import org.wildfly.core.instmgr.InstMgrConstants;
 import org.wildfly.core.instmgr.InstMgrPrepareRevertHandler;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.List;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
@@ -63,14 +62,14 @@ public class RevertCommand extends AbstractInstMgrCommand {
             return CommandResult.FAILURE;
         }
 
-        ModelNode response = this.executeOp(ctx);
+        ModelNode response = this.executeOp(ctx, this.host);
         printResponse(ctx, response);
 
         return CommandResult.SUCCESS;
     }
 
     @Override
-    protected Operation buildOperation() {
+    protected Operation buildOperation() throws CommandException {
         final ModelNode op = new ModelNode();
         final OperationBuilder operationBuilder = OperationBuilder.create(op);
 
@@ -81,7 +80,7 @@ public class RevertCommand extends AbstractInstMgrCommand {
             operationBuilder.addFileAsAttachment(mavenRepoFile);
         }
 
-        addRepositories(op, this.repositories);
+        addRepositoriesToModelNode(op, this.repositories);
 
         if (localCache != null) {
             op.get(InstMgrConstants.LOCAL_CACHE, localCache.toPath().normalize().toAbsolutePath().toString());

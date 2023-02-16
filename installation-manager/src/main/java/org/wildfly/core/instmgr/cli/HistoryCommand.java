@@ -18,7 +18,6 @@
 
 package org.wildfly.core.instmgr.cli;
 
-import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
@@ -50,7 +49,7 @@ public class HistoryCommand extends AbstractInstMgrCommand {
             return CommandResult.FAILURE;
         }
 
-        ModelNode response = this.executeOp(ctx);
+        ModelNode response = this.executeOp(ctx, this.host);
         printResponse(ctx, response);
         return CommandResult.SUCCESS;
     }
