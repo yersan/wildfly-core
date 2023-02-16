@@ -22,7 +22,6 @@ public interface InstMgrConstants {
     String CHANNEL = "channel";
     String CHANNELS = "channels";
     String CHANNEL_NAME = "name";
-    String ID = "id";
     String INSTALLATION_MANAGER = "installation-manager";
     String LIST_UPDATES_WORK_DIR = "work-dir";
     String LOCAL_CACHE = "local-cache";
@@ -35,6 +34,7 @@ public interface InstMgrConstants {
     String REPOSITORIES = "repositories";
     String REPOSITORY = "repository";
     String REPOSITORY_URL = "url";
+    String REPOSITORY_ID = "id";
     String RETURN_CODE = "return-code";
     String REVISION = "revision";
     String TOOL_NAME = "installer";

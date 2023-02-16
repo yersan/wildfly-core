@@ -202,7 +202,7 @@ public abstract class AbstractInstMgrCommand implements Command<CLICommandInvoca
             String[] split = repoStr.split("::");
             try {
                 if (split.length == 1) {
-                    new URL(repoStr).toURI();
+                    new URL(repoStr);
                     idStr = "id0";
                     urlStr = repoStr;
                 } else if (split.length == 2) {
@@ -211,7 +211,7 @@ public abstract class AbstractInstMgrCommand implements Command<CLICommandInvoca
                 } else {
                     throw new IllegalArgumentException();
                 }
-                repositoryMn.get(InstMgrConstants.ID).set(idStr);
+                repositoryMn.get(InstMgrConstants.REPOSITORY_ID).set(idStr);
                 repositoryMn.get(InstMgrConstants.REPOSITORY_URL).set(urlStr);
                 repositoriesMn.add(repositoryMn);
             } catch (Exception w) {

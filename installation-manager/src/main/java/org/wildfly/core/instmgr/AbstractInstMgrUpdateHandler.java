@@ -47,7 +47,7 @@ abstract class AbstractInstMgrUpdateHandler extends InstMgrOperationStepHandler 
             .setDefaultValue(ModelNode.FALSE)
             .setRequired(false)
             .build();
-    protected static final AttributeDefinition REPOSITORY_ID = new SimpleAttributeDefinitionBuilder(InstMgrConstants.ID, ModelType.STRING)
+    protected static final AttributeDefinition REPOSITORY_ID = new SimpleAttributeDefinitionBuilder(InstMgrConstants.REPOSITORY_ID, ModelType.STRING)
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
             .build();
@@ -97,9 +97,9 @@ abstract class AbstractInstMgrUpdateHandler extends InstMgrOperationStepHandler 
     }
 
     protected Path getUploadedMvnRepoRoot(Path mavenRepoParentWorkdir) throws Exception {
-        try (Stream<Path> content = Files.list(mavenRepoParentWorkdir)){
+        try (Stream<Path> content = Files.list(mavenRepoParentWorkdir)) {
             // We should have two files here, one the directory and the other the
-            List<Path> entries = content.filter( e -> e.toFile().isDirectory()).collect(Collectors.toList());
+            List<Path> entries = content.filter(e -> e.toFile().isDirectory()).collect(Collectors.toList());
             if (entries.size() != 1) {
                 InstMgrLogger.ROOT_LOGGER.invalidZipEntry();
             }

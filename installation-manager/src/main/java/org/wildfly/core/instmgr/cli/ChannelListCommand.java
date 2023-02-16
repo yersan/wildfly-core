@@ -63,7 +63,7 @@ public class ChannelListCommand extends AbstractInstMgrCommand {
                 ctx.printLine("  " + "repositories:");
                 List<ModelNode> repositoriesMn = channel.get(InstMgrConstants.REPOSITORIES).asListOrEmpty();
                 for (ModelNode repository : repositoriesMn) {
-                    ctx.printLine("  " + "  " + "id: " + repository.get(InstMgrConstants.ID));
+                    ctx.printLine("  " + "  " + "id: " + repository.get(InstMgrConstants.REPOSITORY_ID));
                     ctx.printLine("  " + "  " + "url: " + repository.get(InstMgrConstants.REPOSITORY_URL));
                 }
             }

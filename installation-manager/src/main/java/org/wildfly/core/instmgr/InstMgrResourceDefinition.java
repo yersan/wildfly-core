@@ -22,18 +22,16 @@ import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ObjectListAttributeDefinition;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
-import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
+import org.jboss.as.controller.operations.validation.ParameterValidator;
 import org.jboss.as.controller.operations.validation.ParametersValidator;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
-import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.wildfly.core.instmgr.logging.InstMgrLogger;
@@ -44,6 +42,7 @@ import org.wildfly.installationmanager.Repository;
 import org.wildfly.installationmanager.spi.InstallationManager;
 import org.wildfly.installationmanager.spi.InstallationManagerFactory;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -56,7 +55,7 @@ import java.util.Set;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
 
 class InstMgrResourceDefinition extends SimpleResourceDefinition {
 
@@ -70,7 +69,7 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
     private final WriteHandler writeHandler;
     private final InstMgrService imService;
 
-    private static final AttributeDefinition REPOSITORY_ID = new SimpleAttributeDefinitionBuilder(InstMgrConstants.ID, ModelType.STRING)
+    private static final AttributeDefinition REPOSITORY_ID = new SimpleAttributeDefinitionBuilder(InstMgrConstants.REPOSITORY_ID, ModelType.STRING)
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
             .setRequired(true)
@@ -127,6 +126,7 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
             .build();
 
     private static final AttributeDefinition CHANNELS = ObjectListAttributeDefinition.Builder.of(InstMgrConstants.CHANNELS, CHANNEL)
+            .setValidator(new ChannelValidator())
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
             .build();
@@ -176,7 +176,6 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
     }
 
     private final class WriteHandler implements OperationStepHandler {
-        private final ParametersValidator validator = new ParametersValidator();
         private final InstMgrService imService;
 
         public WriteHandler(InstMgrService imService) {
@@ -185,20 +184,10 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
 
         @Override
         public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-            validator.validate(operation);
+            List<ModelNode> modelNodes = CHANNELS.resolveValue(context, operation.get(VALUE)).asList();
             context.addStep(new OperationStepHandler() {
                 @Override
                 public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    final String name = operation.require(NAME).asString();
-                    if (!name.equals(InstMgrConstants.CHANNELS)) {
-                        throw unknownAttribute(operation);
-                    }
-
-                    final String operationName = operation.require(OP).asString();
-                    if (!operationName.equals(WRITE_ATTRIBUTE_OPERATION)) {
-                        throw unsupportedOperation(operation);
-                    }
-
                     try {
                         Optional<InstallationManagerFactory> imOptional = InstallationManagerFinder.find();
                         if (imOptional.isPresent()) {
@@ -222,7 +211,7 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
                                 // channel.repositories
                                 final List<ModelNode> mRepositories = mChannel.get(InstMgrConstants.REPOSITORIES).asListOrEmpty();
                                 for (ModelNode mRepository : mRepositories) {
-                                    String id = mRepository.get(InstMgrConstants.ID).asString();
+                                    String id = mRepository.get(InstMgrConstants.REPOSITORY_ID).asString();
                                     String url = mRepository.get(InstMgrConstants.REPOSITORY_URL).asString();
                                     Repository repository = new Repository(id, url);
                                     repositories.add(repository);
@@ -254,7 +243,7 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
                             context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
                         }
                     } catch (Exception e) {
-                        throw new OperationFailedException(e);
+                        throw new RuntimeException(e);
                     }
                 }
             }, OperationContext.Stage.RUNTIME);
@@ -297,7 +286,7 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
                                 ModelNode mRepositories = new ModelNode().addEmptyList();
                                 for (Repository repository : channel.getRepositories()) {
                                     ModelNode mRepository = new ModelNode();
-                                    mRepository.get(InstMgrConstants.ID).set(repository.getId());
+                                    mRepository.get(InstMgrConstants.REPOSITORY_ID).set(repository.getId());
                                     mRepository.get(InstMgrConstants.REPOSITORY_URL).set(repository.getUrl());
                                     mRepositories.add(mRepository);
                                 }
@@ -325,11 +314,73 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
     }
 
 
+    static class ChannelValidator implements ParameterValidator {
+        @Override
+        public void validateParameter(String parameterName, ModelNode value) throws OperationFailedException {
+            if (!value.hasDefined("name")) {
+                throw new OperationFailedException(String.format("Channel name is mandatory"));
+            }
+            // validate repositories
+            if (!value.hasDefined(InstMgrConstants.REPOSITORIES)) {
+                throw new OperationFailedException(String.format("The channel % does not define any repositories"));
+            }
+
+            List<ModelNode> repositoriesMn = value.get(InstMgrConstants.REPOSITORIES).asListOrEmpty();
+            for (ModelNode repository: repositoriesMn) {
+                String repoUrl = repository.get(InstMgrConstants.REPOSITORY_URL).asStringOrNull();
+                if (repoUrl == null) {
+                    throw new OperationFailedException(String.format("The channel % contains a repository without URL"));
+                }
+                try {
+                    new URL(repoUrl);
+                } catch (MalformedURLException e) {
+                    throw new OperationFailedException(String.format("The channel % has an invalid repository URL: %s"));
+                }
+                String repoId = repository.get(InstMgrConstants.REPOSITORY_ID).asStringOrNull();
+                if (repoId == null) {
+                    throw new OperationFailedException(String.format("The channel % contains a repository without ID"));
+                }
+            }
+
+            // validate manifest
+            if (value.hasDefined(InstMgrConstants.MANIFEST)) {
+                String gav = value.get(InstMgrConstants.MANIFEST).get(InstMgrConstants.MANIFEST_GAV).asStringOrNull();
+                String url = value.get(InstMgrConstants.MANIFEST).get(InstMgrConstants.MANIFEST_URL).asStringOrNull();
+
+                if (gav != null) {
+                    if ( gav.contains("\\") || gav.contains("/")) {
+                        throw new OperationFailedException(String.format("The channel % has an invalid manifest GAV: %"));
+                    }
+                    String[] parts = gav.split(":");
+                    for (String part : parts) {
+                        if (part == null || "".equals(part)) {
+                            throw new OperationFailedException(String.format("The channel % has an invalid manifest GAV: %"));
+                        }
+                    }
+                    if (parts.length != 2 && parts.length != 3) { // GA or GAV
+                        throw new OperationFailedException(String.format("The channel % has an invalid manifest GAV: %"));
+                    }
+                }
+                if (url != null) {
+                    try {
+                        new URL(url);
+                    } catch (MalformedURLException e) {
+                        throw new OperationFailedException(String.format("The channel % has an invalid manifest URL: %"));
+                    }
+                }
+            }
+        }
+    }
+
     private OperationFailedException unknownAttribute(final ModelNode operation) {
         return InstMgrLogger.ROOT_LOGGER.unknownAttribute(operation.require(NAME).asString());
     }
 
     private OperationFailedException unsupportedOperation(final ModelNode operation) {
         return InstMgrLogger.ROOT_LOGGER.unsupportedOperation(operation.require(OP).asString());
+    }
+
+    protected static <T extends AttributeDefinition> ModelNode resolveAttribute(OperationContext context, ModelNode operation, T attr) throws OperationFailedException {
+        return attr.resolveValue(context, attr.validateOperation(operation));
     }
 }
