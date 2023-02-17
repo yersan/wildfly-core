@@ -18,7 +18,6 @@
 
 package org.wildfly.core.instmgr;
 
-import org.jboss.as.controller.AbstractWriteAttributeHandler;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ObjectListAttributeDefinition;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
@@ -29,13 +28,10 @@ import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.capability.RuntimeCapability;
-import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.operations.validation.ParameterValidator;
-import org.jboss.as.controller.operations.validation.ParametersValidator;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
-import org.wildfly.core.instmgr.logging.InstMgrLogger;
 import org.wildfly.installationmanager.Channel;
 import org.wildfly.installationmanager.InstallationManagerFinder;
 import org.wildfly.installationmanager.MavenOptions;
@@ -54,8 +50,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
 
 class InstMgrResourceDefinition extends SimpleResourceDefinition {

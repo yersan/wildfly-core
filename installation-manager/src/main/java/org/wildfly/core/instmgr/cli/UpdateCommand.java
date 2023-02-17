@@ -27,7 +27,6 @@ import org.aesh.readline.Prompt;
 import org.aesh.terminal.utils.Config;
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.Util;
-import org.jboss.as.cli.impl.CLIModelControllerClient;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.Operation;
 import org.jboss.dmr.ModelNode;

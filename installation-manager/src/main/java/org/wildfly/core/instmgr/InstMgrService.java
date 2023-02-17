@@ -41,7 +41,7 @@ import java.util.function.Supplier;
  * This is the main service used by the installation manager management operation handlers.
  */
 class InstMgrService implements Service {
-    private final static Logger LOG = Logger.getLogger(InstMgrService.class);
+    private static final Logger LOG = Logger.getLogger(InstMgrService.class);
     private final Supplier<PathManager> pathManagerSupplier;
     private PathManager pathManager;
     private AtomicBoolean started = new AtomicBoolean(false);

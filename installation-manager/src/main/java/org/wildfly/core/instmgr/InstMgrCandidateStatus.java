@@ -30,9 +30,9 @@ import java.util.Properties;
  */
 class InstMgrCandidateStatus {
     private Path properties;
-    public final String INST_MGR_STATUS_KEY = "INST_MGR_STATUS";
-    public final String INST_MGR_SCRIPT_NAME_KEY = "INST_MGR_SCRIPT_NAME";
-    public final String INST_MGR_ACTION_KEY = "INST_MGR_ACTION";
+    public static final String INST_MGR_STATUS_KEY = "INST_MGR_STATUS";
+    public static final String INST_MGR_SCRIPT_NAME_KEY = "INST_MGR_SCRIPT_NAME";
+    public static final String INST_MGR_ACTION_KEY = "INST_MGR_ACTION";
 
     public enum Status {ERROR, CLEAN, PREPARING, PREPARED}
 
