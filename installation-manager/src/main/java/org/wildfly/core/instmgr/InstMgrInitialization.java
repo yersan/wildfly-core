@@ -22,6 +22,7 @@ import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.ModelControllerServiceInitialization;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.PlaceholderResource;
 import org.jboss.as.controller.registry.Resource;
@@ -41,7 +42,11 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOS
 public final class InstMgrInitialization implements ModelControllerServiceInitialization {
 
     @Override
-    public void initializeStandalone(ServiceTarget target, ManagementModel managementModel) {
+    public void initializeStandalone(ServiceTarget target, ManagementModel managementModel, ProcessType processType) {
+        if (processType == ProcessType.EMBEDDED_SERVER) {
+            return;
+        }
+
         Optional<InstallationManagerFactory> im = InstallationManagerFinder.find();
         if (im.isPresent()) {
             final InstMgrService imService = createImService(target);
@@ -56,7 +61,11 @@ public final class InstMgrInitialization implements ModelControllerServiceInitia
     }
 
     @Override
-    public void initializeHost(ServiceTarget target, ManagementModel managementModel, String hostName) {
+    public void initializeHost(ServiceTarget target, ManagementModel managementModel, String hostName, ProcessType processType) {
+        if (processType == ProcessType.EMBEDDED_HOST_CONTROLLER) {
+            return;
+        }
+
         Optional<InstallationManagerFactory> im = InstallationManagerFinder.find();
         if (im.isPresent()) {
             final PathElement host = PathElement.pathElement(HOST, hostName);

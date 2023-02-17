@@ -22,7 +22,28 @@ import org.aesh.command.Command;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.GroupCommandDefinition;
+import org.aesh.command.impl.internal.ParsedCommand;
+import org.jboss.as.cli.CommandContext;
+import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.client.ModelControllerClient;
+import org.jboss.dmr.ModelNode;
 import org.wildfly.core.cli.command.aesh.CLICommandInvocation;
+import org.wildfly.core.cli.command.aesh.activator.AbstractCommandActivator;
+import org.wildfly.core.instmgr.InstMgrConstants;
+
+import java.io.IOException;
+import java.util.List;
+
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADDRESS;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CHILD_TYPE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.QUERY;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_CHILDREN_NAMES_OPERATION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SELECT;
 
 @GroupCommandDefinition(name = InstMgrGroupCommand.COMMAND_NAME, description = "", groupCommands = {
         UpdateCommand.class,
@@ -33,12 +54,47 @@ import org.wildfly.core.cli.command.aesh.CLICommandInvocation;
         ChannelListCommand.class,
         ChannelAddCommand.class,
         ChannelEditCommand.class
-})
+}, activator = InstMgrGroupCommand.InstMgrGroupCommandActivator.class)
 public class InstMgrGroupCommand implements Command<CLICommandInvocation> {
     public static final String COMMAND_NAME = "installer";
 
     @Override
     public CommandResult execute(CLICommandInvocation commandInvocation) throws CommandException, InterruptedException {
         throw new CommandException("Command action is missing.");
+    }
+
+    public final class InstMgrGroupCommandActivator extends AbstractCommandActivator {
+
+        @Override
+        public boolean isActivated(ParsedCommand command) {
+            try {
+                final CommandContext ctx = getCommandContext();
+                final ModelControllerClient client = ctx.getModelControllerClient();
+                if (client != null) {
+                    ModelNode op = new ModelNode();
+                    op.get(OP).set(QUERY);
+                    if (ctx.isDomainMode()) {
+                        // /host=*:query(select=[core-service])
+                        op.get(ADDRESS).set(PathAddress.pathAddress(PathElement.pathElement(HOST, "*")).toModelNode());
+                    } else {
+                        op.get(ADDRESS).set(PathAddress.EMPTY_ADDRESS.toModelNode());
+                    }
+                    ModelNode select = new ModelNode().addEmptyList();
+                    select.add(CORE_SERVICE);
+                    op.get(SELECT).set(select);
+                    ModelNode response = client.execute(op);
+                    List<ModelNode> hosts = response.get(RESULT).asListOrEmpty();
+                    for (ModelNode hostResult : hosts) {
+                        if (hostResult.get(RESULT, CORE_SERVICE).has(InstMgrConstants.TOOL_NAME)) {
+                            return true;
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                // Log it?
+                return false;
+            }
+            return false;
+        }
     }
 }
