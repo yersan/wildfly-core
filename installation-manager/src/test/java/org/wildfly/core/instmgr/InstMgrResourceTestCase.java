@@ -2,6 +2,7 @@ package org.wildfly.core.instmgr;
 
 import org.jboss.as.controller.AbstractControllerService;
 import org.jboss.as.controller.ManagementModel;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.operations.global.GlobalNotifications;
@@ -17,8 +18,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.wildfly.core.instmgr.spi.ProsperoInstallationManager;
+import org.wildfly.core.instmgr.spi.ProsperoInstallationManagerFactory;
 import org.wildfly.installationmanager.Channel;
+import org.wildfly.installationmanager.InstallationManagerFinder;
 import org.wildfly.installationmanager.Repository;
+import org.wildfly.installationmanager.spi.InstallationManager;
+import org.wildfly.installationmanager.spi.InstallationManagerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -35,9 +41,11 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.COR
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INCLUDE_RUNTIME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OPERATIONS;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PATH;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_DESCRIPTION_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RECURSIVE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
 
@@ -286,5 +294,14 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
             }
         }
         Assert.assertTrue(found);
+    }
+
+    @Test
+    public void testCreateSnapShot() throws OperationFailedException {
+        PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
+        ModelNode op = Util.createEmptyOperation(InstMgrCreateSnapshotHandler.OPERATION_NAME, pathElements);
+        op.get(PATH).set(JBOSS_HOME.toString());
+        ModelNode result = executeForResult(op);
+        Assert.assertTrue(result.asString().contains(JBOSS_HOME + "/test.zip"));
     }
 }

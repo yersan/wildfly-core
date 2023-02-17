@@ -24,9 +24,19 @@ import org.wildfly.installationmanager.spi.InstallationManagerFactory;
 
 import java.nio.file.Path;
 
+import static org.mockito.Mockito.mock;
+
 public class ProsperoInstallationManagerFactory implements InstallationManagerFactory {
+
+    public static InstallationManager mockInstallationManager;
+
+    public ProsperoInstallationManagerFactory() {
+        System.out.println("ProsperoInstallationManagerFactory: " + this.toString());
+    }
+
     @Override
     public InstallationManager create(Path installationDir, MavenOptions mavenOptions) throws Exception {
+
         return new ProsperoInstallationManager(installationDir, mavenOptions);
     }
 

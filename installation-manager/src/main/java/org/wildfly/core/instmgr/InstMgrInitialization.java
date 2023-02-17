@@ -47,7 +47,7 @@ public final class InstMgrInitialization implements ModelControllerServiceInitia
             return;
         }
 
-        Optional<InstallationManagerFactory> im = InstallationManagerFinder.find();
+        Optional<InstallationManagerFactory> im = InstallationManagerFinder.reloadAndFind();
         if (im.isPresent()) {
             final InstMgrService imService = createImService(target);
             managementModel.getRootResource().registerChild(InstMgrResourceDefinition.getPath(InstMgrConstants.TOOL_NAME), PlaceholderResource.INSTANCE);
@@ -66,7 +66,7 @@ public final class InstMgrInitialization implements ModelControllerServiceInitia
             return;
         }
 
-        Optional<InstallationManagerFactory> im = InstallationManagerFinder.find();
+        Optional<InstallationManagerFactory> im = InstallationManagerFinder.reloadAndFind();
         if (im.isPresent()) {
             final PathElement host = PathElement.pathElement(HOST, hostName);
             final ManagementResourceRegistration hostRegistration = managementModel.getRootResourceRegistration().getSubModel(PathAddress.EMPTY_ADDRESS.append(host));

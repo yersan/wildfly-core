@@ -38,10 +38,14 @@ import java.util.Iterator;
 import java.util.List;
 
 public class ProsperoInstallationManager implements InstallationManager {
-
+    public static MavenOptions mavenOptions;
+    public static Path installationDir;
     public static List<Channel> lstChannels;
 
     public static void initData() {
+        installationDir = null;
+        mavenOptions = null;
+
         lstChannels = new ArrayList<>();
 
         List<Repository> repoList = new ArrayList<>();
@@ -64,7 +68,7 @@ public class ProsperoInstallationManager implements InstallationManager {
     }
 
     public ProsperoInstallationManager(Path installationDir, MavenOptions mavenOptions) throws Exception {
-
+        this.mavenOptions = mavenOptions;
     }
 
     @Override
@@ -130,7 +134,7 @@ public class ProsperoInstallationManager implements InstallationManager {
 
     @Override
     public Path createSnapshot(Path targetPath) throws Exception {
-        return null;
+        return targetPath.resolve("test.zip");
     }
 
     @Override
