@@ -27,7 +27,6 @@ import java.nio.file.Path;
 public class ProsperoInstallationManagerFactory implements InstallationManagerFactory {
     @Override
     public InstallationManager create(Path installationDir, MavenOptions mavenOptions) throws Exception {
-//        verifyInstallationDirectory(installationDir);
         return new ProsperoInstallationManager(installationDir, mavenOptions);
     }
 
@@ -35,13 +34,4 @@ public class ProsperoInstallationManagerFactory implements InstallationManagerFa
     public String getName() {
         return "prospero";
     }
-
-//    private void verifyInstallationDirectory(Path path) {
-//        File dotGalleonDir = path.resolve(InstallationMetadata.GALLEON_INSTALLATION_DIR).toFile();
-//        File channelsFile = path.resolve(InstallationMetadata.METADATA_DIR)
-//                .resolve(InstallationMetadata.INSTALLER_CHANNELS_FILE_NAME).toFile();
-//        if (!dotGalleonDir.isDirectory() || !channelsFile.isFile()) {
-//            throw Messages.MESSAGES.invalidInstallationDir(path);
-//        }
-//    }
 }

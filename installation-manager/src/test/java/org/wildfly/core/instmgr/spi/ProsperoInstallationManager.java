@@ -27,14 +27,41 @@ import org.wildfly.installationmanager.OperationNotAvailableException;
 import org.wildfly.installationmanager.Repository;
 import org.wildfly.installationmanager.spi.InstallationManager;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 public class ProsperoInstallationManager implements InstallationManager {
 
+    public static List<Channel> lstChannels;
+
+    public static void initData() {
+        lstChannels = new ArrayList<>();
+
+        List<Repository> repoList = new ArrayList<>();
+        repoList.add(new Repository("id0", "http://localhost"));
+        repoList.add(new Repository("id2", "file://dummy"));
+        lstChannels.add(new Channel("channel-test-0", repoList, "org.test.groupid:org.test.artifactid:1.0.0.Final"));
+
+        repoList = new ArrayList<>();
+        repoList.add(new Repository("id1", "file://dummy"));
+        try {
+            lstChannels.add(new Channel("channel-test-1", repoList, new URL("file://dummy")));
+        } catch (MalformedURLException e) {
+            // ignored
+        }
+
+        repoList = new ArrayList<>();
+        repoList.add(new Repository("id0", "http://localhost"));
+        repoList.add(new Repository("id2", "file://dummy"));
+        lstChannels.add(new Channel("channel-test-2", repoList));
+    }
 
     public ProsperoInstallationManager(Path installationDir, MavenOptions mavenOptions) throws Exception {
 
@@ -77,7 +104,7 @@ public class ProsperoInstallationManager implements InstallationManager {
 
     @Override
     public Collection<Channel> listChannels() throws Exception {
-        return Collections.emptyList();
+        return lstChannels;
     }
 
     @Override
@@ -87,12 +114,18 @@ public class ProsperoInstallationManager implements InstallationManager {
 
     @Override
     public void addChannel(Channel channel) throws Exception {
-
+        lstChannels.add(channel);
     }
 
     @Override
     public void changeChannel(String channelName, Channel newChannel) throws Exception {
-
+        for (Iterator<Channel> it = lstChannels.iterator(); it.hasNext();){
+            Channel c = it.next();
+            if (c.getName().equals(newChannel.getName())) {
+                it.remove();
+            }
+        }
+        lstChannels.add(newChannel);
     }
 
     @Override
