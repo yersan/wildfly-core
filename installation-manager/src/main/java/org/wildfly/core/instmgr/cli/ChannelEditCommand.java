@@ -44,7 +44,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRI
 public class ChannelEditCommand  extends AbstractInstMgrCommand {
     @Option(name = "channel-name", required = true)
     String channelName;
-    @Option(name = "manifest", required = true)
+    @Option(name = "manifest")
     String manifest;
     @OptionList(name = "repositories", required = true)
     private List<String> repositories;
