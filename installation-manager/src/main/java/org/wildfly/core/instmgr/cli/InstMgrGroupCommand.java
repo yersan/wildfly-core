@@ -71,19 +71,26 @@ public class InstMgrGroupCommand implements Command<CLICommandInvocation> {
                 if (client != null) {
                     ModelNode op = new ModelNode();
                     op.get(OP).set(QUERY);
-                    if (ctx.isDomainMode()) {
-                        // /host=*:query(select=[core-service])
-                        op.get(ADDRESS).set(PathAddress.pathAddress(PathElement.pathElement(HOST, "*")).toModelNode());
-                    } else {
-                        op.get(ADDRESS).set(PathAddress.EMPTY_ADDRESS.toModelNode());
-                    }
                     ModelNode select = new ModelNode().addEmptyList();
                     select.add(CORE_SERVICE);
                     op.get(SELECT).set(select);
-                    ModelNode response = client.execute(op);
-                    List<ModelNode> hosts = response.get(RESULT).asListOrEmpty();
-                    for (ModelNode hostResult : hosts) {
-                        if (hostResult.get(RESULT, CORE_SERVICE).has(InstMgrConstants.TOOL_NAME)) {
+
+                    if (ctx.isDomainMode()) {
+                        // /host=*:query(select=[core-service])
+                        op.get(ADDRESS).set(PathAddress.pathAddress(PathElement.pathElement(HOST, "*")).toModelNode());
+
+                        ModelNode response = client.execute(op);
+                        List<ModelNode> hosts = response.get(RESULT).asListOrEmpty();
+                        for (ModelNode hostResult : hosts) {
+                            if (hostResult.get(RESULT, CORE_SERVICE).has(InstMgrConstants.TOOL_NAME)) {
+                                return true;
+                            }
+                        }
+                    } else {
+                        op.get(ADDRESS).set(PathAddress.EMPTY_ADDRESS.toModelNode());
+                        ModelNode response = client.execute(op);
+                        ModelNode result = response.get(RESULT);
+                        if (result.get(CORE_SERVICE).has(InstMgrConstants.TOOL_NAME)) {
                             return true;
                         }
                     }
