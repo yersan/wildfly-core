@@ -28,6 +28,7 @@ import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
+import org.wildfly.core.instmgr.logging.InstMgrLogger;
 import org.wildfly.installationmanager.ArtifactChange;
 import org.wildfly.installationmanager.Channel;
 import org.wildfly.installationmanager.ChannelChange;
@@ -40,7 +41,6 @@ import org.wildfly.installationmanager.spi.InstallationManagerFactory;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
     public static final String OPERATION_NAME = "history";
@@ -51,6 +51,7 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, InstMgrResolver.RESOLVER)
             .addParameter(REVISION)
             .withFlags(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
+            .setReplyType(ModelType.LIST)
             .setRuntimeOnly()
             .build();
 
@@ -81,28 +82,34 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
                         List<ArtifactChange> artifactChanges = changes.artifactChanges();
                         List<ChannelChange> channelChanges = changes.channelChanges();
 
-                        if (!artifactChanges.isEmpty() || !channelChanges.isEmpty()) {
-
+                        if (!artifactChanges.isEmpty()) {
+                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_HISTORY_ARTIFACTS_UPDATES)));
                             for (ArtifactChange artifactChange : artifactChanges) {
                                 switch (artifactChange.getStatus()) {
                                     case REMOVED:
-                                        resulList.add(String.format("%1$-60s %2$-15s ==> []", artifactChange.getArtifactName(), artifactChange.getOldVersion()));
+                                        resulList.add(String.format("%1$-65s %2$-15s ==> []", artifactChange.getArtifactName(), artifactChange.getOldVersion()));
                                         break;
                                     case INSTALLED:
-                                        resulList.add(String.format("%1$-60s [] ==> %2$-15s", artifactChange.getArtifactName(), artifactChange.getNewVersion()));
+                                        resulList.add(String.format("%1$-65s [] ==> %2$-15s", artifactChange.getArtifactName(), artifactChange.getNewVersion()));
+                                        break;
+                                    case UPDATED:
+                                        resulList.add(String.format("%1$-65s %2$-15s ==> %3$-15s", artifactChange.getArtifactName(), artifactChange.getOldVersion(), artifactChange.getNewVersion()));
                                         break;
                                     default:
-                                        resulList.add(String.format("%1$-60s %2$-15s ==> %3$-15s", artifactChange.getArtifactName(), artifactChange.getOldVersion(), artifactChange.getNewVersion()));
+                                        InstMgrLogger.ROOT_LOGGER.unexpectedArtifactChange(artifactChange.toString());
                                 }
                             }
+                            resulList.add("\n");
+                        }
 
+                        if (!channelChanges.isEmpty()) {
+                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_HISTORY_CONFIGURATION_CHANGES)));
                             for (ChannelChange channelChange : channelChanges) {
                                 switch (channelChange.getStatus()) {
                                     case REMOVED: {
                                         Channel channel = channelChange.getOldChannel().get();
                                         String name = channel.getName();
                                         resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REMOVED_CHANNEL), name));
-                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REMOVED_CHANNEL_NAME), name));
 
                                         String manifest = getManifest(channel);
                                         if (!"".equals(manifest)) {
@@ -110,8 +117,9 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
                                         }
 
                                         List<Repository> repositories = channel.getRepositories();
+                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REPOSITORIES)));
                                         for (Repository repository : repositories) {
-                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REMOVED_CHANNEL_REPOSITORY), repository.asFormattedString()));
+                                            resulList.add("%1$65s ==> []", repository.asFormattedString());
                                         }
                                         break;
                                     }
@@ -119,7 +127,6 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
                                         Channel channel = channelChange.getNewChannel().get();
                                         String name = channel.getName();
                                         resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_ADDED_CHANNEL), name));
-                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_ADDED_CHANNEL_NAME), name));
 
                                         String manifest = getManifest(channel);
                                         if (!"".equals(manifest)) {
@@ -127,18 +134,18 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
                                         }
 
                                         List<Repository> repositories = channel.getRepositories();
+                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REPOSITORIES)));
                                         for (Repository repository : repositories) {
-                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_ADDED_CHANNEL_REPOSITORY), repository.asFormattedString()));
+                                            resulList.add(String.format("                                                                [] ==> %s", repository.asFormattedString()));
                                         }
                                         break;
                                     }
-                                    default: {
+                                    case MODIFIED: {
                                         // @TODO Do we have channel modifications? There is no command for it on Prospero side
                                         Channel oldChannel = channelChange.getOldChannel().get();
                                         Channel newChannel = channelChange.getNewChannel().get();
 
                                         resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL), oldChannel.getName()));
-                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL_NAME), oldChannel.getName(), newChannel.getName()));
 
                                         String oldManifest = getManifest(oldChannel);
                                         String newManifest = getManifest(newChannel);
@@ -147,24 +154,33 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
                                             resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL_MANIFEST), oldManifest, newManifest));
                                         }
 
+                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REPOSITORIES)));
                                         List<Repository> oldRepositoriesLst = oldChannel.getRepositories();
-                                        List<String> oldRepositories = oldRepositoriesLst.stream()
-                                                .map(p -> p.asFormattedString())
-                                                .collect(Collectors.toList());
+                                        for (Repository repository : oldRepositoriesLst) {
+                                            resulList.add(String.format("%1$65s ==> []", repository.asFormattedString()));
+                                        }
 
                                         List<Repository> newRepositoriesLst = newChannel.getRepositories();
-                                        List<String> newRepositories = newRepositoriesLst.stream()
-                                                .map(p -> p.asFormattedString())
-                                                .collect(Collectors.toList());
-                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL_REPOSITORY), String.join(",", oldRepositories), String.join(",", newRepositories)));
+                                        for (Repository repository : newRepositoriesLst) {
+                                            resulList.add(String.format("                                                                [] ==> %s", repository.asFormattedString()));
+                                        }
+                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REPOSITORIES)));
+                                        break;
+                                    }
+                                    default: {
+                                        InstMgrLogger.ROOT_LOGGER.unexpectedConfigurationChange(channelChange.toString());
                                     }
                                 }
                             }
-                        } else {
-                            resulList = new ModelNode(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_UPDATES_FOUND)));
                         }
                     }
+
+                    if (resulList.asListOrEmpty().isEmpty()) {
+                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_UPDATES_FOUND)));
+                    }
                     context.getResult().set(resulList);
+                } catch (RuntimeException e) {
+                    throw e;
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }

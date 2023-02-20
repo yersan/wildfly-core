@@ -32,6 +32,7 @@ import org.jboss.as.controller.operations.validation.ParameterValidator;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
+import org.wildfly.core.instmgr.logging.InstMgrLogger;
 import org.wildfly.installationmanager.Channel;
 import org.wildfly.installationmanager.InstallationManagerFinder;
 import org.wildfly.installationmanager.MavenOptions;
@@ -50,6 +51,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
 
 class InstMgrResourceDefinition extends SimpleResourceDefinition {
@@ -304,28 +306,29 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
     static class ChannelValidator implements ParameterValidator {
         @Override
         public void validateParameter(String parameterName, ModelNode value) throws OperationFailedException {
-            if (!value.hasDefined("name")) {
-                throw new OperationFailedException(String.format("Channel name is mandatory"));
+            if (!value.hasDefined(NAME)) {
+                throw InstMgrLogger.ROOT_LOGGER.missingChannelName();
             }
+            String channelName = value.get(NAME).asString();
             // validate repositories
             if (!value.hasDefined(InstMgrConstants.REPOSITORIES)) {
-                throw new OperationFailedException(String.format("The channel % does not define any repositories"));
+                throw InstMgrLogger.ROOT_LOGGER.noRepositoriesDefinedForChannel(channelName);
             }
 
             List<ModelNode> repositoriesMn = value.get(InstMgrConstants.REPOSITORIES).asListOrEmpty();
             for (ModelNode repository : repositoriesMn) {
                 String repoUrl = repository.get(InstMgrConstants.REPOSITORY_URL).asStringOrNull();
                 if (repoUrl == null) {
-                    throw new OperationFailedException(String.format("The channel % contains a repository without URL"));
+                    throw InstMgrLogger.ROOT_LOGGER.noRepositoryURLDefined(channelName);
                 }
                 try {
                     new URL(repoUrl);
                 } catch (MalformedURLException e) {
-                    throw new OperationFailedException(String.format("The channel % has an invalid repository URL: %s"));
+                    throw InstMgrLogger.ROOT_LOGGER.invalidRepositoryURLForChannel(repoUrl, channelName);
                 }
                 String repoId = repository.get(InstMgrConstants.REPOSITORY_ID).asStringOrNull();
                 if (repoId == null) {
-                    throw new OperationFailedException(String.format("The channel % contains a repository without ID"));
+                    throw InstMgrLogger.ROOT_LOGGER.noRepositoryIDDefined(channelName);
                 }
             }
 
@@ -336,23 +339,23 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
 
                 if (gav != null) {
                     if (gav.contains("\\") || gav.contains("/")) {
-                        throw new OperationFailedException(String.format("The channel % has an invalid manifest GAV: %"));
+                        throw InstMgrLogger.ROOT_LOGGER.invalidGAVManifestForChannel(gav, channelName);
                     }
                     String[] parts = gav.split(":");
                     for (String part : parts) {
                         if (part == null || "".equals(part)) {
-                            throw new OperationFailedException(String.format("The channel % has an invalid manifest GAV: %"));
+                            throw InstMgrLogger.ROOT_LOGGER.invalidGAVManifestForChannel(gav, channelName);
                         }
                     }
                     if (parts.length != 2 && parts.length != 3) { // GA or GAV
-                        throw new OperationFailedException(String.format("The channel % has an invalid manifest GAV: %"));
+                        throw InstMgrLogger.ROOT_LOGGER.invalidGAVManifestForChannel(gav, channelName);
                     }
                 }
                 if (url != null) {
                     try {
                         new URL(url);
                     } catch (MalformedURLException e) {
-                        throw new OperationFailedException(String.format("The channel % has an invalid manifest URL: %"));
+                        throw InstMgrLogger.ROOT_LOGGER.invalidURLManifestForChannel(url, channelName);
                     }
                 }
             }

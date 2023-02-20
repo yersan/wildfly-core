@@ -24,26 +24,22 @@ import org.jboss.as.controller.descriptions.StandardResourceDescriptionResolver;
 class InstMgrResolver {
 
     static final ResourceDescriptionResolver RESOLVER = InstMgrResolver.getResourceDescriptionResolver();
-    static final String KEY_REMOVED_ARTIFACT = "installation-manager.messages.removed-artifact";
-    static final String KEY_INSTALLED_ARTIFACT = "installation-manager.messages.installed-artifact";
-    static final String KEY_UPDATED_ARTIFACT = "installation-manager.messages.updated-artifact";
     static final String KEY_UPDATES_FOUND ="installation-manager.messages.updates-found";
     static final String KEY_NO_UPDATES_FOUND ="installation-manager.messages.no-updates-found";
+
+    static final String KEY_REPOSITORIES ="installation-manager.messages.repositories";
     static final String KEY_REMOVED_CHANNEL = "installation-manager.messages.removed-channel";
-    static final String KEY_REMOVED_CHANNEL_NAME = "installation-manager.messages.removed-channel.name";
     static final String KEY_REMOVED_CHANNEL_MANIFEST = "installation-manager.messages.removed-channel.manifest";
-    static final String KEY_REMOVED_CHANNEL_REPOSITORY = "installation-manager.messages.removed-channel.repository";
     static final String KEY_ADDED_CHANNEL = "installation-manager.messages.added-channel";
-    static final String KEY_ADDED_CHANNEL_NAME = "installation-manager.messages.added-channel.name";
-    static final String KEY_ADDED_CHANNEL_MANIFEST = "installation-manager.messages.added-channel";
-    static final String KEY_ADDED_CHANNEL_REPOSITORY = "installation-manager.messages.added-channel";
+    static final String KEY_ADDED_CHANNEL_MANIFEST = "installation-manager.messages.added-channel.manifest";
     static final String KEY_UPDATED_CHANNEL = "installation-manager.messages.updated-channel";
-    static final String KEY_UPDATED_CHANNEL_NAME = "installation-manager.messages.updated-channel.name";
     static final String KEY_UPDATED_CHANNEL_MANIFEST = "installation-manager.messages.updated-channel.manifest";
-    static final String KEY_UPDATED_CHANNEL_REPOSITORY = "installation-manager.messages.updated-channel.repositories";
+
     static final String KEY_CANDIDATE_SERVER_PREPARED_AT = "installation-manager.messages.candidate-server-prepared-at";
     static final String KEY_CLONE_EXPORT_RESULT = "installation-manager.messages.clone-export.result";
 
+    static final String KEY_HISTORY_ARTIFACTS_UPDATES = "installation-manager.messages.history.artifacts-updates";
+    static final String KEY_HISTORY_CONFIGURATION_CHANGES = "installation-manager.messages.history.configuration-changes";
 
     private static ResourceDescriptionResolver getResourceDescriptionResolver(final String... keyPrefixes) {
         StringBuilder sb = new StringBuilder(InstMgrConstants.INSTALLATION_MANAGER);

@@ -31,7 +31,10 @@ import org.wildfly.core.cli.command.aesh.CLICommandInvocation;
 import org.wildfly.core.instmgr.InstMgrConstants;
 import org.wildfly.core.instmgr.InstMgrHistoryHandler;
 
+import java.util.List;
+
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 
 @CommandDefinition(name = "history", description = "List previous installation states.")
 public class HistoryCommand extends AbstractInstMgrCommand {
@@ -49,7 +52,11 @@ public class HistoryCommand extends AbstractInstMgrCommand {
         }
 
         ModelNode response = this.executeOp(ctx, this.host);
-        printResponse(ctx, response);
+        List<ModelNode> result = response.get(RESULT).asListOrEmpty();
+        for (ModelNode resultMn : result) {
+            ctx.printLine(resultMn.asString());
+        }
+
         return CommandResult.SUCCESS;
     }
 
