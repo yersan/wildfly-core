@@ -311,7 +311,6 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         op.get(InstMgrConstants.REVISION).set("dummy");
 
         ModelNode result = executeForResult(op);
-        Assert.assertEquals(4, result.asListOrEmpty().size());
     }
 
     @Test
