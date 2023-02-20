@@ -119,7 +119,7 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
                                         List<Repository> repositories = channel.getRepositories();
                                         resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REPOSITORIES)));
                                         for (Repository repository : repositories) {
-                                            resulList.add("%1$65s ==> []", repository.asFormattedString());
+                                            resulList.add("\t\t%s ==> []", repository.asFormattedString());
                                         }
                                         break;
                                     }
@@ -136,7 +136,7 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
                                         List<Repository> repositories = channel.getRepositories();
                                         resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REPOSITORIES)));
                                         for (Repository repository : repositories) {
-                                            resulList.add(String.format("                                                                [] ==> %s", repository.asFormattedString()));
+                                            resulList.add(String.format("\t\t[] ==> %s", repository.asFormattedString()));
                                         }
                                         break;
                                     }
@@ -151,20 +151,21 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
                                         String newManifest = getManifest(newChannel);
 
                                         if (!"".equals(oldManifest) || !"".equals(newManifest)) {
-                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL_MANIFEST), oldManifest, newManifest));
+                                            String oldManifestPrintable = "".equals(oldManifest) ? "[]" : oldManifest;
+                                            String newManifestPrintable = "".equals(newManifest) ? "[]" : newManifest;
+                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL_MANIFEST), oldManifestPrintable, newManifestPrintable));
                                         }
 
                                         resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REPOSITORIES)));
                                         List<Repository> oldRepositoriesLst = oldChannel.getRepositories();
                                         for (Repository repository : oldRepositoriesLst) {
-                                            resulList.add(String.format("%1$65s ==> []", repository.asFormattedString()));
+                                            resulList.add(String.format("\t\t%s ==> []", repository.asFormattedString()));
                                         }
 
                                         List<Repository> newRepositoriesLst = newChannel.getRepositories();
                                         for (Repository repository : newRepositoriesLst) {
-                                            resulList.add(String.format("                                                                [] ==> %s", repository.asFormattedString()));
+                                            resulList.add(String.format("\t\t[] ==> %s", repository.asFormattedString()));
                                         }
-                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REPOSITORIES)));
                                         break;
                                     }
                                     default: {
