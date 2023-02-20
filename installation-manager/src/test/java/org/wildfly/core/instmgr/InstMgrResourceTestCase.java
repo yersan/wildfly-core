@@ -2,7 +2,6 @@ package org.wildfly.core.instmgr;
 
 import org.jboss.as.controller.AbstractControllerService;
 import org.jboss.as.controller.ManagementModel;
-import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.operations.global.GlobalNotifications;
@@ -17,13 +16,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.wildfly.core.instmgr.spi.ProsperoInstallationManager;
-import org.wildfly.core.instmgr.spi.ProsperoInstallationManagerFactory;
+import org.wildfly.core.instmgr.spi.TestInstallationManager;
 import org.wildfly.installationmanager.Channel;
-import org.wildfly.installationmanager.InstallationManagerFinder;
 import org.wildfly.installationmanager.Repository;
-import org.wildfly.installationmanager.spi.InstallationManager;
-import org.wildfly.installationmanager.spi.InstallationManagerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,7 +28,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -45,7 +39,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PAT
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_DESCRIPTION_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RECURSIVE;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
 
@@ -63,7 +56,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
     @Before
     @Override
     public void setupController() throws InterruptedException, IOException {
-        ProsperoInstallationManager.initData();
+        TestInstallationManager.initData();
         JBOSS_HOME.resolve("bin").toFile().mkdirs();
         Files.createFile(INSTALLATION_MANAGER_PROPERTIES);
         try (FileOutputStream out = new FileOutputStream(INSTALLATION_MANAGER_PROPERTIES.toString())) {
@@ -84,6 +77,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
                     .map(Path::toFile)
                     .forEach(File::delete);
         }
+        Files.deleteIfExists(INSTALLATION_MANAGER_PROPERTIES);
     }
 
     @Override
@@ -132,7 +126,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
     }
 
     @Test
-    public void testCanReadChannels() throws Exception {
+    public void testReadChannels() throws Exception {
         PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
         ModelNode op = Util.createEmptyOperation(READ_RESOURCE_OPERATION, pathElements);
         op.get(INCLUDE_RUNTIME).set(true);
@@ -156,7 +150,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         Assert.assertEquals("http://localhost", repository.get(InstMgrConstants.REPOSITORY_URL).asString());
 
         repository = repositories.get(1);
-        Assert.assertEquals("id2", repository.get(InstMgrConstants.REPOSITORY_ID).asString());
+        Assert.assertEquals("id1", repository.get(InstMgrConstants.REPOSITORY_ID).asString());
         Assert.assertEquals("file://dummy", repository.get(InstMgrConstants.REPOSITORY_URL).asString());
 
         ModelNode manifest = channel.get(InstMgrConstants.MANIFEST);
@@ -241,7 +235,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         Assert.assertEquals(4, currentChannels.size());
 
         boolean found = false;
-        for (Channel storedChannel : ProsperoInstallationManager.lstChannels) {
+        for (Channel storedChannel : TestInstallationManager.lstChannels) {
             if (storedChannel.getName().equals("channel-test-added")) {
                 List<Repository> storedRepositories = storedChannel.getRepositories();
                 for (Repository storedRepo : storedRepositories) {
@@ -282,7 +276,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         executeCheckNoFailure(op);
 
         found = false;
-        for (Channel storedChannel : ProsperoInstallationManager.lstChannels) {
+        for (Channel storedChannel : TestInstallationManager.lstChannels) {
             if (storedChannel.getName().equals("channel-test-1")) {
                 List<Repository> storedRepositories = storedChannel.getRepositories();
                 for (Repository storedRepo : storedRepositories) {
@@ -297,11 +291,41 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
     }
 
     @Test
-    public void testCreateSnapShot() throws OperationFailedException {
+    public void testRemoveChannels() throws Exception {
+
+    }
+
+    @Test
+    public void testHistoryChannels() throws Exception {
+        PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
+        ModelNode op = Util.createEmptyOperation(InstMgrHistoryHandler.OPERATION_NAME, pathElements);
+
+        ModelNode result = executeForResult(op);
+        Assert.assertEquals(4, result.asListOrEmpty().size());
+    }
+
+    @Test
+    public void testRevisionDetails() throws Exception {
+        PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
+        ModelNode op = Util.createEmptyOperation(InstMgrHistoryHandler.OPERATION_NAME, pathElements);
+        op.get(InstMgrConstants.REVISION).set("dummy");
+
+        ModelNode result = executeForResult(op);
+        Assert.assertEquals(4, result.asListOrEmpty().size());
+    }
+
+    @Test
+    public void testCreateSnapShot() throws Exception {
         PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
         ModelNode op = Util.createEmptyOperation(InstMgrCreateSnapshotHandler.OPERATION_NAME, pathElements);
         op.get(PATH).set(JBOSS_HOME.toString());
+
         ModelNode result = executeForResult(op);
-        Assert.assertTrue(result.asString().contains(JBOSS_HOME + "/test.zip"));
+        Assert.assertTrue(result.asString().contains(JBOSS_HOME + "/generated.zip"));
+
+        op.get(PATH).set(JBOSS_HOME.resolve("customFile.zip").toString());
+
+        result = executeForResult(op);
+        Assert.assertTrue(result.asString().contains(JBOSS_HOME.resolve("customFile.zip").toString()));
     }
 }

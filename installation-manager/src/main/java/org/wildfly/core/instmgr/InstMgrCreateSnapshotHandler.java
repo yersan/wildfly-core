@@ -54,8 +54,8 @@ public class InstMgrCreateSnapshotHandler extends InstMgrOperationStepHandler {
             .build();
 
     public static final AttributeDefinition RELATIVE_TO = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.RELATIVE_TO, ModelType.STRING, true)
-                    .setValidator(new StringLengthValidator(1, true))
-                    .build();
+            .setValidator(new StringLengthValidator(1, true))
+            .build();
 
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, InstMgrResolver.RESOLVER)
             .addParameter(PATH)
@@ -74,14 +74,11 @@ public class InstMgrCreateSnapshotHandler extends InstMgrOperationStepHandler {
             @Override
             public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
                 try {
-                    Optional<InstallationManagerFactory> imOptional = InstallationManagerFinder.find();
-                    if (imOptional.isPresent()) {
-                        Path serverHome = imService.getHomeDir();
-                        MavenOptions mavenOptions = new MavenOptions(null, false);
-                        InstallationManager installationManager = imOptional.get().create(serverHome, mavenOptions);
-                        Path snapshot = installationManager.createSnapshot(Paths.get(exportPath));
-                        context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_CLONE_EXPORT_RESULT), snapshot.toString()));
-                    }
+                    Path serverHome = imService.getHomeDir();
+                    MavenOptions mavenOptions = new MavenOptions(null, false);
+                    InstallationManager installationManager = imf.create(serverHome, mavenOptions);
+                    Path snapshot = installationManager.createSnapshot(Paths.get(exportPath));
+                    context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_CLONE_EXPORT_RESULT), snapshot.toString()));
                 } catch (IllegalArgumentException e) {
                     throw new OperationFailedException(e);
                 } catch (Exception e) {

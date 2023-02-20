@@ -33,7 +33,6 @@ import org.wildfly.installationmanager.Channel;
 import org.wildfly.installationmanager.ChannelChange;
 import org.wildfly.installationmanager.HistoryResult;
 import org.wildfly.installationmanager.InstallationChanges;
-import org.wildfly.installationmanager.InstallationManagerFinder;
 import org.wildfly.installationmanager.MavenOptions;
 import org.wildfly.installationmanager.Repository;
 import org.wildfly.installationmanager.spi.InstallationManager;
@@ -41,7 +40,6 @@ import org.wildfly.installationmanager.spi.InstallationManagerFactory;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
@@ -67,102 +65,106 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
             @Override
             public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
                 try {
-                    Optional<InstallationManagerFactory> imOptional = InstallationManagerFinder.find();
-                    if (imOptional.isPresent()) {
-                        Path serverHome = imService.getHomeDir();
-                        MavenOptions mavenOptions = new MavenOptions(null, false);
-                        InstallationManager installationManager = imOptional.get().create(serverHome, mavenOptions);
-                        ModelNode resulList = new ModelNode().addEmptyList();
 
-                        if (revision == null) {
-                            List<HistoryResult> history = installationManager.history();
-                            for (HistoryResult hr : history) {
-                                resulList.add(String.format("[%s] %s - %s", hr.getName(), hr.timestamp().toString(), hr.getType().toLowerCase()));
+                    Path serverHome = imService.getHomeDir();
+                    MavenOptions mavenOptions = new MavenOptions(null, false);
+                    InstallationManager installationManager = imf.create(serverHome, mavenOptions);
+                    ModelNode resulList = new ModelNode().addEmptyList();
+
+                    if (revision == null) {
+                        List<HistoryResult> history = installationManager.history();
+                        for (HistoryResult hr : history) {
+                            resulList.add(String.format("[%s] %s - %s", hr.getName(), hr.timestamp().toString(), hr.getType().toLowerCase()));
+                        }
+                    } else {
+                        InstallationChanges changes = installationManager.revisionDetails(revision);
+                        List<ArtifactChange> artifactChanges = changes.artifactChanges();
+                        List<ChannelChange> channelChanges = changes.channelChanges();
+
+                        if (!artifactChanges.isEmpty() || !channelChanges.isEmpty()) {
+
+                            for (ArtifactChange artifactChange : artifactChanges) {
+                                switch (artifactChange.getStatus()) {
+                                    case REMOVED:
+                                        resulList.add(String.format("%1$-60s %2$-15s ==> []", artifactChange.getArtifactName(), artifactChange.getOldVersion()));
+                                        break;
+                                    case INSTALLED:
+                                        resulList.add(String.format("%1$-60s [] ==> %2$-15s", artifactChange.getArtifactName(), artifactChange.getNewVersion()));
+                                        break;
+                                    default:
+                                        resulList.add(String.format("%1$-60s %2$-15s ==> %3$-15s", artifactChange.getArtifactName(), artifactChange.getOldVersion(), artifactChange.getNewVersion()));
+                                }
+                            }
+
+                            for (ChannelChange channelChange : channelChanges) {
+                                switch (channelChange.getStatus()) {
+                                    case REMOVED: {
+                                        Channel channel = channelChange.getOldChannel().get();
+                                        String name = channel.getName();
+                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REMOVED_CHANNEL), name));
+                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REMOVED_CHANNEL_NAME), name));
+
+                                        String manifest = getManifest(channel);
+                                        if (!"".equals(manifest)) {
+                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REMOVED_CHANNEL_MANIFEST), manifest));
+                                        }
+
+                                        List<Repository> repositories = channel.getRepositories();
+                                        for (Repository repository : repositories) {
+                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REMOVED_CHANNEL_REPOSITORY), repository.asFormattedString()));
+                                        }
+                                        break;
+                                    }
+                                    case ADDED: {
+                                        Channel channel = channelChange.getNewChannel().get();
+                                        String name = channel.getName();
+                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_ADDED_CHANNEL), name));
+                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_ADDED_CHANNEL_NAME), name));
+
+                                        String manifest = getManifest(channel);
+                                        if (!"".equals(manifest)) {
+                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_ADDED_CHANNEL_MANIFEST), manifest));
+                                        }
+
+                                        List<Repository> repositories = channel.getRepositories();
+                                        for (Repository repository : repositories) {
+                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_ADDED_CHANNEL_REPOSITORY), repository.asFormattedString()));
+                                        }
+                                        break;
+                                    }
+                                    default: {
+                                        // @TODO Do we have channel modifications? There is no command for it on Prospero side
+                                        Channel oldChannel = channelChange.getOldChannel().get();
+                                        Channel newChannel = channelChange.getNewChannel().get();
+
+                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL), oldChannel.getName()));
+                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL_NAME), oldChannel.getName(), newChannel.getName()));
+
+                                        String oldManifest = getManifest(oldChannel);
+                                        String newManifest = getManifest(newChannel);
+
+                                        if (!"".equals(oldManifest) || !"".equals(newManifest)) {
+                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL_MANIFEST), oldManifest, newManifest));
+                                        }
+
+                                        List<Repository> oldRepositoriesLst = oldChannel.getRepositories();
+                                        List<String> oldRepositories = oldRepositoriesLst.stream()
+                                                .map(p -> p.asFormattedString())
+                                                .collect(Collectors.toList());
+
+                                        List<Repository> newRepositoriesLst = newChannel.getRepositories();
+                                        List<String> newRepositories = newRepositoriesLst.stream()
+                                                .map(p -> p.asFormattedString())
+                                                .collect(Collectors.toList());
+                                        resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL_REPOSITORY), String.join(",", oldRepositories), String.join(",", newRepositories)));
+                                    }
+                                }
                             }
                         } else {
-                            InstallationChanges changes = installationManager.revisionDetails(revision);
-                            List<ArtifactChange> artifactChanges = changes.artifactChanges();
-                            List<ChannelChange> channelChanges = changes.channelChanges();
-
-                            if (!artifactChanges.isEmpty() || !channelChanges.isEmpty()) {
-
-                                for (ArtifactChange artifactChange : artifactChanges) {
-                                    switch (artifactChange.getStatus()) {
-                                        case REMOVED:
-                                            resulList.add(String.format("%1$-60s %2$-15s ==> []", artifactChange.getArtifactName(), artifactChange.getOldVersion()));
-                                            break;
-                                        case INSTALLED:
-                                            resulList.add(String.format("%1$-60s [] ==> %2$-15s", artifactChange.getArtifactName(), artifactChange.getNewVersion()));
-                                            break;
-                                        default:
-                                            resulList.add(String.format("%1$-60s %2$-15s ==> %3$-15s", artifactChange.getArtifactName(), artifactChange.getOldVersion(), artifactChange.getNewVersion()));
-                                    }
-                                }
-
-                                for (ChannelChange channelChange : channelChanges) {
-                                    switch (channelChange.getStatus()) {
-                                        case REMOVED: {
-                                            Channel channel = channelChange.getOldChannel().get();
-                                            String name = channel.getName();
-                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REMOVED_CHANNEL), name));
-                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REMOVED_CHANNEL_NAME), name));
-
-                                            String manifest = getManifest(channel);
-                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REMOVED_CHANNEL_MANIFEST), manifest));
-
-                                            List<Repository> repositories = channel.getRepositories();
-                                            for (Repository repository : repositories) {
-                                                resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REMOVED_CHANNEL_REPOSITORY), repository.asFormattedString()));
-                                            }
-                                            break;
-                                        }
-                                        case ADDED: {
-                                            Channel channel = channelChange.getNewChannel().get();
-                                            String name = channel.getName();
-                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_ADDED_CHANNEL), name));
-                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_ADDED_CHANNEL_NAME), name));
-
-                                            String manifest = getManifest(channel);
-                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_ADDED_CHANNEL_MANIFEST), manifest));
-
-                                            List<Repository> repositories = channel.getRepositories();
-                                            for (Repository repository : repositories) {
-                                                resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_ADDED_CHANNEL_REPOSITORY), repository.asFormattedString()));
-                                            }
-                                            break;
-                                        }
-                                        default: {
-                                            // @TODO Do we have channel modifications? There is no command for it on Prospero side
-                                            Channel oldChannel = channelChange.getOldChannel().get();
-                                            Channel newChannel = channelChange.getNewChannel().get();
-
-                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL), oldChannel.getName()));
-                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL_NAME), oldChannel.getName(), newChannel.getName()));
-
-
-                                            String oldManifest = getManifest(oldChannel);
-                                            String newManifest = getManifest(newChannel);
-                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL_MANIFEST), oldManifest, newManifest));
-
-                                            List<Repository> oldRepositoriesLst = oldChannel.getRepositories();
-                                            List<String> oldRepositories = oldRepositoriesLst.stream()
-                                                    .map(p -> p.asFormattedString())
-                                                    .collect(Collectors.toList());
-
-                                            List<Repository> newRepositoriesLst = newChannel.getRepositories();
-                                            List<String> newRepositories = newRepositoriesLst.stream()
-                                                    .map(p -> p.asFormattedString())
-                                                    .collect(Collectors.toList());
-                                            resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_UPDATED_CHANNEL_REPOSITORY), String.join(",", oldRepositories), String.join(",", newRepositories)));
-                                        }
-                                    }
-                                }
-                            } else {
-                                resulList = new ModelNode(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_UPDATES_FOUND)));
-                            }
+                            resulList = new ModelNode(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_UPDATES_FOUND)));
                         }
-                        context.getResult().set(resulList);
                     }
+                    context.getResult().set(resulList);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -170,11 +172,11 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
         }, OperationContext.Stage.RUNTIME);
     }
 
-    private static String getManifest(Channel channel) {
-        String manifest;
+    private String getManifest(Channel channel) {
+        String manifest = "";
         if (channel.getManifestUrl().isPresent()) {
             manifest = channel.getManifestUrl().get().toString();
-        } else {
+        } else if (channel.getManifestCoordinate().isPresent()) {
             manifest = channel.getManifestCoordinate().get();
         }
         return manifest;

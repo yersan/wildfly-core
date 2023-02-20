@@ -1,1 +1,1 @@
-org.wildfly.core.instmgr.spi.ProsperoInstallationManagerFactory
+org.wildfly.core.instmgr.spi.TestInstallationManagerFactory
