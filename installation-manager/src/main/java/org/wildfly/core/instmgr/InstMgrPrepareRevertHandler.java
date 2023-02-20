@@ -79,7 +79,7 @@ public class InstMgrPrepareRevertHandler extends AbstractInstMgrUpdateHandler {
             .addParameter(LOCAL_CACHE)
             .addParameter(NO_RESOLVE_LOCAL_CACHE)
             .addParameter(MAVEN_REPO_FILE)
-            .withFlags(OperationEntry.Flag.HOST_CONTROLLER_ONLY, OperationEntry.Flag.HIDDEN)
+            .withFlags(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
             .setRuntimeOnly()
             .build();
 

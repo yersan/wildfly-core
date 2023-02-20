@@ -78,7 +78,7 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
             .addParameter(NO_RESOLVE_LOCAL_CACHE)
             .addParameter(MAVEN_REPO_FILE)
             .addParameter(LIST_UPDATES_WORK_DIR)
-            .withFlags(OperationEntry.Flag.HOST_CONTROLLER_ONLY, OperationEntry.Flag.HIDDEN)
+            .withFlags(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
             .setRuntimeOnly()
             .build();
 
