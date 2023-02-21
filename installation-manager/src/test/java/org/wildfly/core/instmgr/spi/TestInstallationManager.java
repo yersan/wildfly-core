@@ -44,6 +44,11 @@ public class TestInstallationManager implements InstallationManager {
     public static Path installationDir;
     public static List<Channel> lstChannels;
 
+    public static List<Repository> findUpdatesRepositories;
+    public static List<ArtifactChange> findUpdatesChanges;
+
+    public static boolean noUpdatesFound;
+
     public static InstallationChanges installationChanges;
     public static HashMap<String, HistoryResult> history;
 
@@ -83,7 +88,7 @@ public class TestInstallationManager implements InstallationManager {
         artifactChanges.add(updated);
 
         // Changes Sample Data: Channels
-        List<ChannelChange> channelChanges  = new ArrayList<>();
+        List<ChannelChange> channelChanges = new ArrayList<>();
         List<Repository> channelChangeBaseRepositories = new ArrayList<>();
         channelChangeBaseRepositories.add(new Repository("id0", "http://channelchange.com"));
         channelChangeBaseRepositories.add(new Repository("id1", "file://channelchange"));
@@ -103,13 +108,24 @@ public class TestInstallationManager implements InstallationManager {
         channelChanges.add(cChangeModified);
         installationChanges = new InstallationChanges(artifactChanges, channelChanges);
 
-
         // History sample data
         history = new HashMap<>();
-        history.put("update", new HistoryResult("update", Instant.now(), "update" ));
-        history.put("install", new HistoryResult("install", Instant.now(), "install" ));
-        history.put("rollback", new HistoryResult("rollback", Instant.now(), "rollback" ));
-        history.put("config_change", new HistoryResult("config_change", Instant.now(), "config_change" ));
+        history.put("update", new HistoryResult("update", Instant.now(), "update"));
+        history.put("install", new HistoryResult("install", Instant.now(), "install"));
+        history.put("rollback", new HistoryResult("rollback", Instant.now(), "rollback"));
+        history.put("config_change", new HistoryResult("config_change", Instant.now(), "config_change"));
+
+
+        // List Updates sample Data
+
+        findUpdatesChanges = new ArrayList<>();
+        findUpdatesChanges.add(new ArtifactChange("1.0.0.Final", "5.0.0.Final", "org.findupdates:findupdates.installed", ArtifactChange.Status.INSTALLED));
+        findUpdatesChanges.add(new ArtifactChange("3.0.0.Final", "1.0.1.Final", "org.findupdates:findupdates.removed", ArtifactChange.Status.REMOVED));
+        findUpdatesChanges.add(new ArtifactChange("1.0.0.Final", "1.0.1.Final", "org.findupdates:findupdates.updated", ArtifactChange.Status.UPDATED));
+
+        findUpdatesRepositories = new ArrayList<>();
+
+        noUpdatesFound = false;
     }
 
     public TestInstallationManager(Path installationDir, MavenOptions mavenOptions) throws Exception {
@@ -124,7 +140,7 @@ public class TestInstallationManager implements InstallationManager {
 
     @Override
     public InstallationChanges revisionDetails(String revision) throws Exception {
-       return installationChanges;
+        return installationChanges;
     }
 
     @Override
@@ -139,7 +155,11 @@ public class TestInstallationManager implements InstallationManager {
 
     @Override
     public List<ArtifactChange> findUpdates(List<Repository> repositories) throws Exception {
-        return Collections.emptyList();
+        if (noUpdatesFound) {
+            return new ArrayList<>();
+        }
+        findUpdatesRepositories = new ArrayList<>(repositories);
+        return findUpdatesChanges;
     }
 
     @Override
@@ -149,7 +169,7 @@ public class TestInstallationManager implements InstallationManager {
 
     @Override
     public void removeChannel(String channelName) throws Exception {
-        for (Iterator<Channel> it = lstChannels.iterator(); it.hasNext();){
+        for (Iterator<Channel> it = lstChannels.iterator(); it.hasNext(); ) {
             Channel c = it.next();
             if (c.getName().equals(channelName)) {
                 it.remove();
@@ -164,7 +184,7 @@ public class TestInstallationManager implements InstallationManager {
 
     @Override
     public void changeChannel(String channelName, Channel newChannel) throws Exception {
-        for (Iterator<Channel> it = lstChannels.iterator(); it.hasNext();){
+        for (Iterator<Channel> it = lstChannels.iterator(); it.hasNext(); ) {
             Channel c = it.next();
             if (c.getName().equals(newChannel.getName())) {
                 it.remove();

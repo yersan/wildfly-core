@@ -36,6 +36,8 @@ import org.jboss.as.controller.ResourceBuilder;
 import org.jboss.as.controller.ResourceDefinition;
 import org.jboss.as.controller.RunningMode;
 import org.jboss.as.controller.RunningModeControl;
+import org.jboss.as.controller.client.Operation;
+import org.jboss.as.controller.client.OperationResponse;
 import org.jboss.as.controller.descriptions.NonResolvingResourceDescriptionResolver;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.persistence.AbstractConfigurationPersister;
@@ -135,6 +137,10 @@ public abstract class AbstractControllerTestBase {
         return executeCheckNoFailure(operation).get(RESULT);
     }
 
+    public ModelNode executeForResult(Operation operation) throws OperationFailedException {
+        return executeCheckNoFailure(operation).get(RESULT);
+    }
+
     public void executeForFailure(ModelNode operation) {
         try {
             ModelNode result = executeForResult(operation);
@@ -146,6 +152,16 @@ public abstract class AbstractControllerTestBase {
 
     public ModelNode executeCheckNoFailure(ModelNode operation) throws OperationFailedException {
         ModelNode rsp = getController().execute(operation, null, null, null);
+        if (FAILED.equals(rsp.get(OUTCOME).asString())) {
+            ModelNode fd = rsp.get(FAILURE_DESCRIPTION);
+            throw new OperationFailedException(fd.toString(), fd);
+        }
+        return rsp;
+    }
+
+    public ModelNode executeCheckNoFailure(Operation operation) throws OperationFailedException {
+        OperationResponse response = getController().execute(operation, null, null);
+        ModelNode rsp = response.getResponseNode();
         if (FAILED.equals(rsp.get(OUTCOME).asString())) {
             ModelNode fd = rsp.get(FAILURE_DESCRIPTION);
             throw new OperationFailedException(fd.toString(), fd);

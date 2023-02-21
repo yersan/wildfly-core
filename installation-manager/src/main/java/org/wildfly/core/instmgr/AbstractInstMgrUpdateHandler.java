@@ -20,14 +20,18 @@ package org.wildfly.core.instmgr;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
+import org.jboss.as.controller.operations.validation.ParameterValidator;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.wildfly.core.instmgr.logging.InstMgrLogger;
 import org.wildfly.installationmanager.Repository;
 import org.wildfly.installationmanager.spi.InstallationManagerFactory;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -56,6 +60,28 @@ abstract class AbstractInstMgrUpdateHandler extends InstMgrOperationStepHandler 
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
             .setRequired(false)
+            .setValidator(new ParameterValidator() {
+                @Override
+                public void validateParameter(String parameterName, ModelNode value) throws OperationFailedException {
+                    if (parameterName.equals(REPOSITORY.getName())) {
+                        if (value.isDefined()) {
+                            String repoUrl = value.get(InstMgrConstants.REPOSITORY_URL).asStringOrNull();
+                            if (repoUrl == null) {
+                                throw InstMgrLogger.ROOT_LOGGER.noRepositoryURLDefined();
+                            }
+                            try {
+                                new URL(repoUrl);
+                            } catch (MalformedURLException e) {
+                                throw InstMgrLogger.ROOT_LOGGER.invalidRepositoryURL(repoUrl);
+                            }
+                            String repoId = value.get(InstMgrConstants.REPOSITORY_ID).asStringOrNull();
+                            if (repoId == null) {
+                                throw InstMgrLogger.ROOT_LOGGER.noRepositoryIDDefined();
+                            }
+                        }
+                    }
+                }
+            })
             .build();
     protected static final SimpleAttributeDefinition LOCAL_CACHE = new SimpleAttributeDefinitionBuilder(InstMgrConstants.LOCAL_CACHE, ModelType.STRING)
             .setStorageRuntime()

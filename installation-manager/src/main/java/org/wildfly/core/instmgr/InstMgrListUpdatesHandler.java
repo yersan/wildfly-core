@@ -26,9 +26,11 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
+import org.jboss.as.controller.operations.validation.ParameterValidator;
 import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
+import org.wildfly.core.instmgr.logging.InstMgrLogger;
 import org.wildfly.installationmanager.ArtifactChange;
 import org.wildfly.installationmanager.MavenOptions;
 import org.wildfly.installationmanager.Repository;
@@ -89,6 +91,14 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
         final Integer mavenRepoFileIndex = MAVEN_REPO_FILE.resolveModelAttribute(context, operation).asIntOrNull();
         final List<ModelNode> repositoriesMn = REPOSITORIES.resolveModelAttribute(context, operation).asListOrEmpty();
 
+        if (pathLocalRepo != null && noResolveLocalCache) {
+            throw InstMgrLogger.ROOT_LOGGER.localCacheWithNoResolveLocalCache();
+        }
+
+        if (mavenRepoFileIndex != null && !repositoriesMn.isEmpty()) {
+            throw InstMgrLogger.ROOT_LOGGER.mavenRepoFileWithRepositories();
+        }
+
         context.addStep(new OperationStepHandler() {
             @Override
             public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
@@ -126,7 +136,6 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
                     } else {
                         repositories = toRepositories(repositoriesMn);
                     }
-
 
                     final List<ArtifactChange> updates = im.findUpdates(repositories);
                     final ModelNode resultValue = new ModelNode();

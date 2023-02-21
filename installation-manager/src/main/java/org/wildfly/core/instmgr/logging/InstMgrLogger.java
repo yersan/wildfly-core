@@ -21,13 +21,10 @@ package org.wildfly.core.instmgr.logging;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
-import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 
 import java.io.IOException;
-
-import static org.jboss.logging.Logger.Level.WARN;
 
 
 /**
@@ -54,30 +51,45 @@ public interface InstMgrLogger extends BasicLogger {
     OperationFailedException unsupportedOperation(String asString);
 
     //
-    @Message(id = 6, value = "Invalid status change found for the artifact: \"%s\"")
+    @Message(id = 6, value = "Invalid status change found for the artifact: '%s'")
     RuntimeException unexpectedArtifactChange(String artifact);
 
-    @Message(id = 7, value = "Invalid status change found for the configuration change: \"%s\"")
+    @Message(id = 7, value = "Invalid status change found for the configuration change: '%s'")
     RuntimeException unexpectedConfigurationChange(String channel);
 
     @Message(id = 8, value = "Channel name is mandatory")
     OperationFailedException missingChannelName();
 
     @Message(id = 9, value = "No repositories are defined in the '%s' channel.")
-    OperationFailedException noRepositoriesDefinedForChannel(String channelName);
+    OperationFailedException noChannelRepositoriesDefined(String channelName);
 
     @Message(id = 10, value = "The '%s' channel's repository does not have any defined URL.")
-    OperationFailedException noRepositoryURLDefined(String channelName);
+    OperationFailedException noChannelRepositoryURLDefined(String channelName);
 
     @Message(id = 11, value = "The repository URL '%s' for '%s' channel is invalid.")
-    OperationFailedException invalidRepositoryURLForChannel(String repoUrl, String channelName);
+    OperationFailedException invalidChannelRepositoryURL(String repoUrl, String channelName);
 
     @Message(id = 12, value = "The '%s' channel's repository does not have any defined ID")
-    OperationFailedException noRepositoryIDDefined(String channelName);
+    OperationFailedException noChannelRepositoryIDDefined(String channelName);
 
     @Message(id = 13, value = "The GAV manifest '%s' for '%s' channel is invalid.")
-    OperationFailedException invalidGAVManifestForChannel(String gav, String channelName);
+    OperationFailedException invalidChannelManifestGAV(String gav, String channelName);
 
     @Message(id = 14, value = "The URL manifest '%s' for '%s' channel is invalid.")
-    OperationFailedException invalidURLManifestForChannel(String url, String channelName);
+    OperationFailedException invalidChannelManifestURL(String url, String channelName);
+
+    @Message(id = 15, value = "'local-cache' cannot be used when 'no-resolve-local-cache' is enabled.")
+    OperationFailedException localCacheWithNoResolveLocalCache();
+
+    @Message(id = 16, value = "You cannot use 'maven-repo-file' in conjunction with 'repositories' because they are mutually exclusive.")
+    OperationFailedException mavenRepoFileWithRepositories();
+
+    @Message(id=17, value = "Repository does not have any defined URL.")
+    OperationFailedException noRepositoryURLDefined();
+
+    @Message(id=18, value = "Repository does not have any defined ID.")
+    OperationFailedException noRepositoryIDDefined();
+
+    @Message(id=19, value = "Invalid format for the repository URL: '%s'")
+    OperationFailedException invalidRepositoryURL(String repoUrl);
 }

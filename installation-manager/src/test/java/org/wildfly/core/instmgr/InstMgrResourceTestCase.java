@@ -2,7 +2,10 @@ package org.wildfly.core.instmgr;
 
 import org.jboss.as.controller.AbstractControllerService;
 import org.jboss.as.controller.ManagementModel;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.client.Operation;
+import org.jboss.as.controller.client.OperationBuilder;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.operations.global.GlobalNotifications;
 import org.jboss.as.controller.operations.global.GlobalOperationHandlers;
@@ -18,23 +21,33 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.wildfly.core.instmgr.spi.TestInstallationManager;
+import org.wildfly.core.instmgr.spi.TestInstallationManagerFactory;
 import org.wildfly.installationmanager.ArtifactChange;
 import org.wildfly.installationmanager.Channel;
 import org.wildfly.installationmanager.ChannelChange;
+import org.wildfly.installationmanager.MavenOptions;
 import org.wildfly.installationmanager.Repository;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILURE_DESCRIPTION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INCLUDE_RUNTIME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OPERATIONS;
@@ -52,7 +65,8 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
     private static final ServiceName PATH_MANAGER_SVC = AbstractControllerService.PATH_MANAGER_CAPABILITY.getCapabilityServiceName();
     PathManagerService pathManagerService;
 
-    static final Path JBOSS_HOME = Paths.get(System.getProperty("basedir", ".")).resolve("target").resolve("InstMgrResourceTestCase").normalize().toAbsolutePath();
+    static final Path TARGET_DIR = Paths.get(System.getProperty("basedir", ".")).resolve("target");
+    static final Path JBOSS_HOME = TARGET_DIR.resolve("InstMgrResourceTestCase").normalize().toAbsolutePath();
     static final Path JBOSS_CONTROLLER_TEMP_DIR = JBOSS_HOME.resolve("temp");
     static final Path INSTALLATION_MANAGER_PROPERTIES = JBOSS_HOME.resolve("bin").resolve("installation-manager.properties");
 
@@ -61,6 +75,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
     public void setupController() throws InterruptedException, IOException {
         TestInstallationManager.initData();
         JBOSS_HOME.resolve("bin").toFile().mkdirs();
+        Files.deleteIfExists(INSTALLATION_MANAGER_PROPERTIES);
         Files.createFile(INSTALLATION_MANAGER_PROPERTIES);
         try (FileOutputStream out = new FileOutputStream(INSTALLATION_MANAGER_PROPERTIES.toString())) {
             final Properties prop = new Properties();
@@ -455,5 +470,118 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
 
         result = executeForResult(op);
         Assert.assertTrue(result.asString().contains(JBOSS_HOME.resolve("customFile.zip").toString()));
+    }
+
+    @Test
+    public void testCleanCommand() throws Exception {
+
+    }
+
+    @Test
+    public void testListMavenOptions() throws Exception {
+        PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
+        ModelNode op = Util.createEmptyOperation(InstMgrListUpdatesHandler.OPERATION_NAME, pathElements);
+        op.get(InstMgrConstants.OFFLINE).set(true);
+        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(true);
+
+        executeForResult(op);
+
+        Assert.assertTrue(TestInstallationManagerFactory.mavenOptions.isOffline());
+        Assert.assertNull(TestInstallationManagerFactory.mavenOptions.getLocalRepository());
+
+
+        op = Util.createEmptyOperation(InstMgrListUpdatesHandler.OPERATION_NAME, pathElements);
+        op.get(InstMgrConstants.OFFLINE).set(false);
+        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(false);
+
+        executeForResult(op);
+
+        Assert.assertFalse(TestInstallationManagerFactory.mavenOptions.isOffline());
+        Assert.assertEquals(MavenOptions.LOCAL_MAVEN_REPO, TestInstallationManagerFactory.mavenOptions.getLocalRepository());
+    }
+
+    @Test
+    public void listUpdatesCannotUseLocalCacheWithNoResolveLocalCache() throws OperationFailedException {
+        PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
+        Path localCache = Paths.get("dummy").resolve("something");
+        ModelNode op = Util.createEmptyOperation(InstMgrListUpdatesHandler.OPERATION_NAME, pathElements);
+        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(true);
+        op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.toString());
+
+        ModelNode failed = executeCheckForFailure(op);
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0015:"));
+
+        op = Util.createEmptyOperation(InstMgrListUpdatesHandler.OPERATION_NAME, pathElements);
+        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(false);
+        op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.toString());
+
+        executeForResult(op);
+
+        Assert.assertFalse(TestInstallationManagerFactory.mavenOptions.isOffline());
+        Assert.assertEquals(localCache, TestInstallationManagerFactory.mavenOptions.getLocalRepository());
+    }
+
+    @Test
+    public void listUpdatesCannotUseMavenRepoFileWithRepositories() throws OperationFailedException {
+        PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
+        ModelNode op = Util.createEmptyOperation(InstMgrListUpdatesHandler.OPERATION_NAME, pathElements);
+        op.get(InstMgrConstants.MAVEN_REPO_FILE).set(0);
+
+        ModelNode repositories = new ModelNode();
+        ModelNode repository = new ModelNode();
+        repository.get(InstMgrConstants.REPOSITORY_ID).set("id0");
+        repository.get(InstMgrConstants.REPOSITORY_URL).set("https://localhost");
+        repositories.add(repository);
+        op.get(InstMgrConstants.REPOSITORIES).set(repositories);
+
+        ModelNode failed = executeCheckForFailure(op);
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0016:"));
+    }
+
+    @Test
+    public void listUpdatesUploadMavenZip() throws OperationFailedException, IOException, URISyntaxException {
+        Path target = TARGET_DIR.resolve("installation-manager.zip");
+        File source = new File(getClass().getResource("test-repo").getFile());
+        zipDir(source.toPath().toAbsolutePath(), target);
+
+        PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
+        ModelNode op = Util.createEmptyOperation(InstMgrListUpdatesHandler.OPERATION_NAME, pathElements);
+        op.get(InstMgrConstants.MAVEN_REPO_FILE).set(0);
+        OperationBuilder operationBuilder = OperationBuilder.create(op);
+        operationBuilder.addFileAsAttachment(target);
+        Operation build = operationBuilder.build();
+        executeForResult(build);
+
+        // verify we are using a repository pointing out to the maven zip file
+        Assert.assertEquals(1, TestInstallationManager.findUpdatesRepositories.size());
+        Repository mavenZipRepo = TestInstallationManager.findUpdatesRepositories.get(0);
+        Assert.assertEquals("id0", mavenZipRepo.getId());
+        Assert.assertTrue(mavenZipRepo.getUrl().toString().matches("file://(.)*list-updates-(.)*maven_root(.)*"));
+        Assert.assertTrue(new File(new URL(mavenZipRepo.getUrl()).toURI()).isDirectory());
+        Assert.assertTrue(new File(new URL(mavenZipRepo.getUrl()).toURI()).exists());
+    }
+
+
+    public static void zipDir(Path sourcePath, Path target) throws IOException {
+        try (FileOutputStream fos = new FileOutputStream(target.toFile()); ZipOutputStream zos = new ZipOutputStream(fos)) {
+            Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
+                    if (!sourcePath.equals(dir)) {
+                        zos.putNextEntry(new ZipEntry(sourcePath.relativize(dir) + "/"));
+                        zos.closeEntry();
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+                    zos.putNextEntry(new ZipEntry(sourcePath.relativize(file).toString()));
+                    Files.copy(file, zos);
+                    zos.closeEntry();
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        }
     }
 }

@@ -312,23 +312,23 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
             String channelName = value.get(NAME).asString();
             // validate repositories
             if (!value.hasDefined(InstMgrConstants.REPOSITORIES)) {
-                throw InstMgrLogger.ROOT_LOGGER.noRepositoriesDefinedForChannel(channelName);
+                throw InstMgrLogger.ROOT_LOGGER.noChannelRepositoriesDefined(channelName);
             }
 
             List<ModelNode> repositoriesMn = value.get(InstMgrConstants.REPOSITORIES).asListOrEmpty();
             for (ModelNode repository : repositoriesMn) {
                 String repoUrl = repository.get(InstMgrConstants.REPOSITORY_URL).asStringOrNull();
                 if (repoUrl == null) {
-                    throw InstMgrLogger.ROOT_LOGGER.noRepositoryURLDefined(channelName);
+                    throw InstMgrLogger.ROOT_LOGGER.noChannelRepositoryURLDefined(channelName);
                 }
                 try {
                     new URL(repoUrl);
                 } catch (MalformedURLException e) {
-                    throw InstMgrLogger.ROOT_LOGGER.invalidRepositoryURLForChannel(repoUrl, channelName);
+                    throw InstMgrLogger.ROOT_LOGGER.invalidChannelRepositoryURL(repoUrl, channelName);
                 }
                 String repoId = repository.get(InstMgrConstants.REPOSITORY_ID).asStringOrNull();
                 if (repoId == null) {
-                    throw InstMgrLogger.ROOT_LOGGER.noRepositoryIDDefined(channelName);
+                    throw InstMgrLogger.ROOT_LOGGER.noChannelRepositoryIDDefined(channelName);
                 }
             }
 
@@ -339,23 +339,23 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
 
                 if (gav != null) {
                     if (gav.contains("\\") || gav.contains("/")) {
-                        throw InstMgrLogger.ROOT_LOGGER.invalidGAVManifestForChannel(gav, channelName);
+                        throw InstMgrLogger.ROOT_LOGGER.invalidChannelManifestGAV(gav, channelName);
                     }
                     String[] parts = gav.split(":");
                     for (String part : parts) {
                         if (part == null || "".equals(part)) {
-                            throw InstMgrLogger.ROOT_LOGGER.invalidGAVManifestForChannel(gav, channelName);
+                            throw InstMgrLogger.ROOT_LOGGER.invalidChannelManifestGAV(gav, channelName);
                         }
                     }
                     if (parts.length != 2 && parts.length != 3) { // GA or GAV
-                        throw InstMgrLogger.ROOT_LOGGER.invalidGAVManifestForChannel(gav, channelName);
+                        throw InstMgrLogger.ROOT_LOGGER.invalidChannelManifestGAV(gav, channelName);
                     }
                 }
                 if (url != null) {
                     try {
                         new URL(url);
                     } catch (MalformedURLException e) {
-                        throw InstMgrLogger.ROOT_LOGGER.invalidURLManifestForChannel(url, channelName);
+                        throw InstMgrLogger.ROOT_LOGGER.invalidChannelManifestURL(url, channelName);
                     }
                 }
             }

@@ -27,9 +27,13 @@ import java.nio.file.Path;
 public class TestInstallationManagerFactory implements InstallationManagerFactory {
 
     public static InstallationManager installationManager;
+    public static Path installationDir;
+    public static MavenOptions mavenOptions;
 
     @Override
     public InstallationManager create(Path installationDir, MavenOptions mavenOptions) throws Exception {
+        this.installationDir = installationDir;
+        this.mavenOptions = mavenOptions;
         installationManager = new TestInstallationManager(installationDir, mavenOptions);
         return installationManager;
     }
