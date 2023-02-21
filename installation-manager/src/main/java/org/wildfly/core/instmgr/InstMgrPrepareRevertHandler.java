@@ -140,6 +140,8 @@ public class InstMgrPrepareRevertHandler extends AbstractInstMgrUpdateHandler {
                 } catch (ZipException e) {
                     context.getFailureDescription().set(e.getLocalizedMessage());
                     throw new OperationFailedException(e);
+                } catch (RuntimeException e) {
+                    throw e;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } catch (IllegalAccessException e) {
