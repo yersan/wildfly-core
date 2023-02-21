@@ -150,6 +150,7 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
                         // once put in restart required, the clean operation should revert it if it cleans the prepared server
                         // but we cannot revert the restart flag from a different Operation since there could be other Operations executed which could have been set this flag?
                         context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_CANDIDATE_SERVER_PREPARED_AT), imService.getPreparedServerDir().normalize().toAbsolutePath()));
+                        // @TODO: We must change the script name for the Product. Get it from the SPI
                         imService.commitCandidateServer("prospero.sh", "update apply");
                     } else {
                         context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_NO_UPDATES_FOUND)));

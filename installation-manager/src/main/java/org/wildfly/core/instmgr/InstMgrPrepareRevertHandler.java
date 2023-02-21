@@ -134,6 +134,7 @@ public class InstMgrPrepareRevertHandler extends AbstractInstMgrUpdateHandler {
                     Files.createDirectories(imService.getPreparedServerDir());
                     im.prepareRevert(revision, imService.getPreparedServerDir(), repositories);
                     context.getResult().set(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_CANDIDATE_SERVER_PREPARED_AT), imService.getPreparedServerDir().normalize().toAbsolutePath()));
+                    // @TODO: We must change the script name for the Product. Get it from the SPI
                     imService.commitCandidateServer("prospero.sh", "revert apply");
 
                     // @TODO Better Exception handling
