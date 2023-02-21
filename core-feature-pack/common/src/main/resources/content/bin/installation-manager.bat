@@ -32,23 +32,27 @@ if "%INST_MGR_STATUS%" neq "PREPARED" (
 call "%INSTALLATION_HOME%\bin\%INST_MGR_SCRIPT_NAME%" %INST_MGR_ACTION% --dir="%INSTALLATION_HOME%" --update-dir="%PREPARED_INSTALLATION%"
 
 set IM_RESULT=%errorlevel%
-if %IM_RESULT% equ 0 (
+
+set "_tmp="
+if %IM_RESULT% equ 0 set "_tmp=1"
+if %IM_RESULT% equ 1 set "_tmp=1"
+
+if _tmp equ 1 (
     echo INFO: The Candidate Server was successfully applied.
     rmdir /S /Q "%PREPARED_INSTALLATION%"
     echo INST_MGR_STATUS=CLEAN > %PROPS_FILE%
-
     goto EOF
 )
-if %IM_RESULT% equ 1 (
-    echo ERROR: The operation was unsuccessful. The candidate server was not installed correctly.
-)
-if %IM_RESULT% equ 2 (
+if %IM_RESULT% equ -1 (
     echo ERROR: The Candidate Server installation failed. Invalid arguments were provided.
+    goto EOF
+)
+if %IM_RESULT% equ -2 (
+    echo ERROR: The operation was unsuccessful. The candidate server was not installed correctly.
+    goto EOF
 )
 
 echo ERROR: An unknown error occurred during the execution of the installation manager.
-
-exit /B %IM_RESULT%
 
 :EOF
 
