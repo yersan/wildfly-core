@@ -53,6 +53,7 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
             .withFlags(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
             .setReplyType(ModelType.LIST)
             .setRuntimeOnly()
+            .setReplyValueType(ModelType.OBJECT)
             .build();
 
     InstMgrHistoryHandler(InstMgrService imService, InstallationManagerFactory imf) {
@@ -67,15 +68,20 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
             public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
                 try {
 
+                    // @TODO Change the Handler and return a complex object instead of the lines expected. That will allow to any client to print the output as they want.
+
                     Path serverHome = imService.getHomeDir();
                     MavenOptions mavenOptions = new MavenOptions(null, false);
                     InstallationManager installationManager = imf.create(serverHome, mavenOptions);
                     ModelNode resulList = new ModelNode().addEmptyList();
-
                     if (revision == null) {
                         List<HistoryResult> history = installationManager.history();
                         for (HistoryResult hr : history) {
-                            resulList.add(String.format("[%s] %s - %s", hr.getName(), hr.timestamp().toString(), hr.getType().toLowerCase()));
+                            ModelNode entry = new ModelNode();
+                            entry.get(InstMgrConstants.HASH).set(hr.getName());
+                            entry.get(InstMgrConstants.TIMESTAMP).set(hr.timestamp().toString());
+                            entry.get(InstMgrConstants.TYPE).set(hr.getType().toLowerCase());
+                            resulList.add(entry);
                         }
                     } else {
                         InstallationChanges changes = installationManager.revisionDetails(revision);
@@ -119,7 +125,7 @@ public class InstMgrHistoryHandler extends InstMgrOperationStepHandler {
                                         List<Repository> repositories = channel.getRepositories();
                                         resulList.add(String.format(InstMgrResolver.getString(InstMgrResolver.KEY_REPOSITORIES)));
                                         for (Repository repository : repositories) {
-                                            resulList.add("\t\t%s ==> []", repository.asFormattedString());
+                                            resulList.add(String.format("\t\t%s ==> []", repository.asFormattedString()));
                                         }
                                         break;
                                     }

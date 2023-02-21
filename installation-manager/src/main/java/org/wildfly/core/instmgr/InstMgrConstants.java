@@ -42,4 +42,7 @@ public interface InstMgrConstants {
     int RETURN_CODE_NO_UPDATES = 2;
     int RETURN_CODE_UPDATES_WITHOUT_WORK_DIR = 1;
     int RETURN_CODE_UPDATES_WITH_WORK_DIR = 0;
+    String HASH = "hash";
+    String TIMESTAMP = "timestamp";
+    String TYPE = "type";
 }

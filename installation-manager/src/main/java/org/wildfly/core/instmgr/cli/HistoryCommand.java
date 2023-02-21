@@ -53,8 +53,14 @@ public class HistoryCommand extends AbstractInstMgrCommand {
 
         ModelNode response = this.executeOp(ctx, this.host);
         List<ModelNode> result = response.get(RESULT).asListOrEmpty();
-        for (ModelNode resultMn : result) {
-            ctx.printLine(resultMn.asString());
+        if (revision != null) {
+            for (ModelNode resultMn : result) {
+                ctx.printLine(resultMn.asString());
+            }
+        } else {
+            for (ModelNode resultMn : result) {
+                ctx.printLine(String.format("[%s] %s - %s", resultMn.get(InstMgrConstants.HASH).asString(), resultMn.get(InstMgrConstants.TIMESTAMP).asString(), resultMn.get(InstMgrConstants.TYPE).asString()));
+            }
         }
 
         return CommandResult.SUCCESS;

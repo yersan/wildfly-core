@@ -302,6 +302,12 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
 
         ModelNode result = executeForResult(op);
         Assert.assertEquals(4, result.asListOrEmpty().size());
+        List<ModelNode> entries = result.asListOrEmpty();
+        for (ModelNode entry : entries) {
+            Assert.assertTrue(entry.hasDefined(InstMgrConstants.HASH));
+            Assert.assertTrue(entry.hasDefined(InstMgrConstants.TIMESTAMP));
+            Assert.assertTrue(entry.hasDefined(InstMgrConstants.TYPE));
+        }
     }
 
     @Test
@@ -311,6 +317,37 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         op.get(InstMgrConstants.REVISION).set("dummy");
 
         ModelNode result = executeForResult(op);
+        List<ModelNode> lines = result.asListOrEmpty();
+        StringBuilder printedOut = new StringBuilder();
+        for (ModelNode line : lines) {
+            printedOut.append(line.asString()).append("\n");
+        }
+        Assert.assertEquals(
+                "Artifact Updates:\n" +
+                        "org.test.groupid1:org.test.artifact1                              [] ==> 1.0.1.Final    \n" +
+                        "org.test.groupid1:org.test.artifact1                              1.0.0.Final     ==> []\n" +
+                        "org.test.groupid1:org.test.artifact1                              1.0.0.Final     ==> 1.0.1.Final    \n" +
+                        "\n" +
+                        "\n" +
+                        "Configuration changes:\n" +
+                        "[Added channel] channel-test-0:\n" +
+                        "\tManifest: [] ==> org.channelchange.groupid:org.channelchange.artifactid:1.0.0.Final\n" +
+                        "\tRepositories:\n" +
+                        "\t\t[] ==> id=id0::url=http://channelchange.com\n" +
+                        "\t\t[] ==> id=id1::url=file://channelchange\n" +
+                        "[Removed channel] channel-test-0:\n" +
+                        "\tManifest: org.channelchange.groupid:org.channelchange.artifactid:1.0.0.Final ==> []\n" +
+                        "\tRepositories:\n" +
+                        "\t\tid=id0::url=http://channelchange.com ==> []\n" +
+                        "\t\tid=id1::url=file://channelchange ==> []\n" +
+                        "[Updated channel] channel-test-0:\n" +
+                        "\tManifest: org.channelchange.groupid:org.channelchange.artifactid:1.0.0.Final ==> org.channelchange.groupid:org.channelchange.artifactid:1.0.1.Final\n" +
+                        "\tRepositories:\n" +
+                        "\t\tid=id0::url=http://channelchange.com ==> []\n" +
+                        "\t\tid=id1::url=file://channelchange ==> []\n" +
+                        "\t\t[] ==> id=id0::url=http://channelchange.com\n" +
+                        "\t\t[] ==> id=id1::url=file://channelchange\n",
+                printedOut.toString());
     }
 
     @Test
