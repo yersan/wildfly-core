@@ -53,10 +53,10 @@ public interface InstMgrConstants {
     String HISTORY_DETAILED_CHANNEL_NAME = "channel-name";
     String HISTORY_DETAILED_CHANNEL_STATUS = "status";
     String HISTORY_DETAILED_CHANNEL_MANIFEST = "manifest";
-    String HISTORY_DETAILED_CHANNEL_OLD_MANIFEST = "manifest-old";
-    String HISTORY_DETAILED_CHANNEL_NEW_MANIFEST = "manifest-new";
+    String HISTORY_DETAILED_CHANNEL_OLD_MANIFEST = "old-manifest";
+    String HISTORY_DETAILED_CHANNEL_NEW_MANIFEST = "new-manifest";
     String HISTORY_DETAILED_CHANNEL_REPOSITORIES = "repositories";
-    String HISTORY_DETAILED_CHANNEL_OLD_REPOSITORY = "repository-old";
-    String HISTORY_DETAILED_CHANNEL_NEW_REPOSITORY = "repository-new";
+    String HISTORY_DETAILED_CHANNEL_OLD_REPOSITORY = "old-repository";
+    String HISTORY_DETAILED_CHANNEL_NEW_REPOSITORY = "new-repository";
     String HISTORY_RESULT_DETAILED_CHANNEL_CHANGES = "channel-changes";
 }
