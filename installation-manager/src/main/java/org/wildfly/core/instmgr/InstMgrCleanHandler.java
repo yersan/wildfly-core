@@ -36,7 +36,7 @@ import org.wildfly.installationmanager.spi.InstallationManagerFactory;
 public class InstMgrCleanHandler extends InstMgrOperationStepHandler {
     static final String OPERATION_NAME = "clean";
     protected static final AttributeDefinition LIST_UPDATES_WORK_DIR = SimpleAttributeDefinitionBuilder.create(InstMgrConstants.LIST_UPDATES_WORK_DIR, ModelType.STRING)
-            .setRequired(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
