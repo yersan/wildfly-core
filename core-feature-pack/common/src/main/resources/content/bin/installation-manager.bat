@@ -29,7 +29,7 @@ if "%INST_MGR_STATUS%" neq "PREPARED" (
     goto EOF
 )
 
-call "%INSTALLATION_HOME%\bin\%INST_MGR_SCRIPT_NAME%" %INST_MGR_ACTION% --dir="%INSTALLATION_HOME%" --update-dir="%PREPARED_INSTALLATION%"
+call "%INSTALLATION_HOME%\bin\%INST_MGR_SCRIPT_NAME%" %INST_MGR_ACTION% --dir="%INSTALLATION_HOME%" --update-dir="%PREPARED_INSTALLATION%" --yes
 
 set IM_RESULT=%errorlevel%
 
@@ -55,4 +55,3 @@ if %IM_RESULT% equ -2 (
 echo ERROR: An unknown error occurred during the execution of the installation manager.
 
 :EOF
-
