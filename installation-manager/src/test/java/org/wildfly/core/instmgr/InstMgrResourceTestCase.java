@@ -10,6 +10,7 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.services.path.PathManagerService;
 import org.jboss.as.controller.services.path.PathResourceDefinition;
 import org.jboss.dmr.ModelNode;
+import org.jboss.dmr.ModelType;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.StabilityMonitor;
 import org.junit.After;
@@ -17,7 +18,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.wildfly.core.instmgr.spi.TestInstallationManager;
+import org.wildfly.installationmanager.ArtifactChange;
 import org.wildfly.installationmanager.Channel;
+import org.wildfly.installationmanager.ChannelChange;
 import org.wildfly.installationmanager.Repository;
 
 import java.io.File;
@@ -302,11 +305,12 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
 
         ModelNode result = executeForResult(op);
         Assert.assertEquals(4, result.asListOrEmpty().size());
+        Assert.assertTrue(result.getType() == ModelType.LIST);
         List<ModelNode> entries = result.asListOrEmpty();
         for (ModelNode entry : entries) {
-            Assert.assertTrue(entry.hasDefined(InstMgrConstants.HASH));
-            Assert.assertTrue(entry.hasDefined(InstMgrConstants.TIMESTAMP));
-            Assert.assertTrue(entry.hasDefined(InstMgrConstants.TYPE));
+            Assert.assertTrue(entry.hasDefined(InstMgrConstants.HISTORY_RESULT_HASH));
+            Assert.assertTrue(entry.hasDefined(InstMgrConstants.HISTORY_RESULT_TIMESTAMP));
+            Assert.assertTrue(entry.hasDefined(InstMgrConstants.HISTORY_RESULT_TYPE));
         }
     }
 
@@ -317,37 +321,125 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         op.get(InstMgrConstants.REVISION).set("dummy");
 
         ModelNode result = executeForResult(op);
-        List<ModelNode> lines = result.asListOrEmpty();
-        StringBuilder printedOut = new StringBuilder();
-        for (ModelNode line : lines) {
-            printedOut.append(line.asString()).append("\n");
+        Assert.assertTrue(result.getType() == ModelType.OBJECT);
+
+        // Verify Artifact Changes
+        List<ModelNode> resultLst = result.get(InstMgrConstants.HISTORY_RESULT_DETAILED_ARTIFACT_CHANGES).asList();
+        Assert.assertEquals(3, resultLst.size());
+
+        for (ModelNode change : resultLst) {
+            String status = change.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_STATUS).asString();
+            if (status.equals(ArtifactChange.Status.UPDATED.name())) {
+
+                Assert.assertEquals("org.test.groupid1:org.test.artifact1.updated", change.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_NAME).asString());
+                Assert.assertEquals("1.0.0.Final", change.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_OLD_VERSION).asString());
+                Assert.assertEquals("1.0.1.Final", change.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_NEW_VERSION).asString());
+
+            } else if (status.equals(ArtifactChange.Status.REMOVED.name())) {
+
+                Assert.assertEquals("org.test.groupid1:org.test.artifact1.removed", change.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_NAME).asString());
+                Assert.assertEquals("1.0.0.Final", change.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_OLD_VERSION).asString());
+                Assert.assertFalse(change.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_NEW_VERSION).isDefined());
+
+            } else if (status.equals(ArtifactChange.Status.INSTALLED.name())) {
+
+                Assert.assertEquals("org.test.groupid1:org.test.artifact1.installed", change.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_NAME).asString());
+                Assert.assertFalse(change.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_OLD_VERSION).isDefined());
+                Assert.assertEquals("1.0.1.Final", change.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_NEW_VERSION).asString());
+
+            } else {
+                Assert.fail("Invalid status found");
+            }
         }
-        Assert.assertEquals(
-                "Artifact Updates:\n" +
-                        "org.test.groupid1:org.test.artifact1                              [] ==> 1.0.1.Final    \n" +
-                        "org.test.groupid1:org.test.artifact1                              1.0.0.Final     ==> []\n" +
-                        "org.test.groupid1:org.test.artifact1                              1.0.0.Final     ==> 1.0.1.Final    \n" +
-                        "\n" +
-                        "\n" +
-                        "Configuration changes:\n" +
-                        "[Added channel] channel-test-0:\n" +
-                        "\tManifest: [] ==> org.channelchange.groupid:org.channelchange.artifactid:1.0.0.Final\n" +
-                        "\tRepositories:\n" +
-                        "\t\t[] ==> id=id0::url=http://channelchange.com\n" +
-                        "\t\t[] ==> id=id1::url=file://channelchange\n" +
-                        "[Removed channel] channel-test-0:\n" +
-                        "\tManifest: org.channelchange.groupid:org.channelchange.artifactid:1.0.0.Final ==> []\n" +
-                        "\tRepositories:\n" +
-                        "\t\tid=id0::url=http://channelchange.com ==> []\n" +
-                        "\t\tid=id1::url=file://channelchange ==> []\n" +
-                        "[Updated channel] channel-test-0:\n" +
-                        "\tManifest: org.channelchange.groupid:org.channelchange.artifactid:1.0.0.Final ==> org.channelchange.groupid:org.channelchange.artifactid:1.0.1.Final\n" +
-                        "\tRepositories:\n" +
-                        "\t\tid=id0::url=http://channelchange.com ==> []\n" +
-                        "\t\tid=id1::url=file://channelchange ==> []\n" +
-                        "\t\t[] ==> id=id0::url=http://channelchange.com\n" +
-                        "\t\t[] ==> id=id1::url=file://channelchange\n",
-                printedOut.toString());
+
+        // Verify Channel Changes
+        resultLst = result.get(InstMgrConstants.HISTORY_RESULT_DETAILED_CHANNEL_CHANGES).asList();
+        Assert.assertEquals(3, resultLst.size());
+        for (ModelNode change : resultLst) {
+            String status = change.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_STATUS).asString();
+            if (status.equals(ChannelChange.Status.MODIFIED.name())) {
+
+                Assert.assertEquals("channel-test-0", change.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_NAME).asString());
+                Assert.assertEquals("org.channelchange.groupid:org.channelchange.artifactid:1.0.0.Final", change.get(InstMgrConstants.MANIFEST, InstMgrConstants.HISTORY_DETAILED_CHANNEL_OLD_MANIFEST).asString());
+                Assert.assertEquals("org.channelchange.groupid:org.channelchange.artifactid:1.0.1.Final", change.get(InstMgrConstants.MANIFEST, InstMgrConstants.HISTORY_DETAILED_CHANNEL_NEW_MANIFEST).asString());
+
+                List<ModelNode> repositories = change.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_REPOSITORIES).asList();
+                Assert.assertEquals(3, repositories.size());
+                for (ModelNode repository : repositories) {
+                    String oldRepo = repository.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_OLD_REPOSITORY).asString();
+                    if (oldRepo.equals("id=id0::url=http://channelchange.com")) {
+                        Assert.assertEquals("id=id0::url=http://channelchange-modified.com", repository.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_NEW_REPOSITORY).asString());
+                    } else if (oldRepo.equals("id=id1::url=file://channelchange")) {
+                        Assert.assertEquals("id=id1-modified::url=file://channelchange", repository.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_NEW_REPOSITORY).asString());
+                    } else if (oldRepo.equals("id=id1-added::url=file://channelchange-added")) {
+                        Assert.assertFalse(repository.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_NEW_REPOSITORY).isDefined());
+                    }
+                }
+
+            } else if (status.equals(ChannelChange.Status.REMOVED.name())) {
+
+                Assert.assertEquals("channel-test-0", change.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_NAME).asString());
+                Assert.assertEquals("org.channelchange.groupid:org.channelchange.artifactid:1.0.0.Final", change.get(InstMgrConstants.MANIFEST, InstMgrConstants.HISTORY_DETAILED_CHANNEL_OLD_MANIFEST).asString());
+                Assert.assertFalse(change.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_NEW_MANIFEST).isDefined());
+
+                List<ModelNode> repositories = change.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_REPOSITORIES).asList();
+                Assert.assertEquals(2, repositories.size());
+                for (ModelNode repository : repositories) {
+                    Assert.assertTrue(repository.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_OLD_REPOSITORY).isDefined());
+                    Assert.assertFalse(repository.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_NEW_REPOSITORY).isDefined());
+                }
+
+            } else if (status.equals(ChannelChange.Status.ADDED.name())) {
+
+                Assert.assertEquals("channel-test-0", change.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_NAME).asString());
+                Assert.assertFalse(change.get(InstMgrConstants.MANIFEST, InstMgrConstants.HISTORY_DETAILED_CHANNEL_OLD_MANIFEST).isDefined());
+                Assert.assertEquals("org.channelchange.groupid:org.channelchange.artifactid:1.0.0.Final", change.get(InstMgrConstants.MANIFEST, InstMgrConstants.HISTORY_DETAILED_CHANNEL_NEW_MANIFEST).asString());
+
+                List<ModelNode> repositories = change.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_REPOSITORIES).asList();
+                Assert.assertEquals(2, repositories.size());
+                for (ModelNode repository : repositories) {
+                    Assert.assertFalse(repository.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_OLD_REPOSITORY).isDefined());
+                    Assert.assertTrue(repository.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_NEW_REPOSITORY).isDefined());
+                }
+
+            } else {
+                Assert.fail("Invalid status found");
+            }
+        }
+
+
+//
+//        List<ModelNode> lines = result.asListOrEmpty();
+//        StringBuilder printedOut = new StringBuilder();
+//        for (ModelNode line : lines) {
+//            printedOut.append(line.asString()).append("\n");
+//        }
+//        Assert.assertEquals(
+//                "Artifact Updates:\n" +
+//                        "org.test.groupid1:org.test.artifact1                              [] ==> 1.0.1.Final    \n" +
+//                        "org.test.groupid1:org.test.artifact1                              1.0.0.Final     ==> []\n" +
+//                        "org.test.groupid1:org.test.artifact1                              1.0.0.Final     ==> 1.0.1.Final    \n" +
+//                        "\n" +
+//                        "\n" +
+//                        "Configuration changes:\n" +
+//                        "[Added channel] channel-test-0:\n" +
+//                        "\tManifest: [] ==> org.channelchange.groupid:org.channelchange.artifactid:1.0.0.Final\n" +
+//                        "\tRepositories:\n" +
+//                        "\t\t[] ==> id=id0::url=http://channelchange.com\n" +
+//                        "\t\t[] ==> id=id1::url=file://channelchange\n" +
+//                        "[Removed channel] channel-test-0:\n" +
+//                        "\tManifest: org.channelchange.groupid:org.channelchange.artifactid:1.0.0.Final ==> []\n" +
+//                        "\tRepositories:\n" +
+//                        "\t\tid=id0::url=http://channelchange.com ==> []\n" +
+//                        "\t\tid=id1::url=file://channelchange ==> []\n" +
+//                        "[Updated channel] channel-test-0:\n" +
+//                        "\tManifest: org.channelchange.groupid:org.channelchange.artifactid:1.0.0.Final ==> org.channelchange.groupid:org.channelchange.artifactid:1.0.1.Final\n" +
+//                        "\tRepositories:\n" +
+//                        "\t\tid=id0::url=http://channelchange.com ==> []\n" +
+//                        "\t\tid=id1::url=file://channelchange ==> []\n" +
+//                        "\t\t[] ==> id=id0::url=http://channelchange.com\n" +
+//                        "\t\t[] ==> id=id1::url=file://channelchange\n",
+//                printedOut.toString());
     }
 
     @Test

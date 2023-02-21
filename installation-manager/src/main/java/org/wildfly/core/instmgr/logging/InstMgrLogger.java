@@ -54,13 +54,11 @@ public interface InstMgrLogger extends BasicLogger {
     OperationFailedException unsupportedOperation(String asString);
 
     //
-    @LogMessage(level = WARN)
     @Message(id = 6, value = "Invalid status change found for the artifact: \"%s\"")
-    void unexpectedArtifactChange(String artifact);
+    RuntimeException unexpectedArtifactChange(String artifact);
 
-    @LogMessage(level = WARN)
     @Message(id = 7, value = "Invalid status change found for the configuration change: \"%s\"")
-    void unexpectedConfigurationChange(String channel);
+    RuntimeException unexpectedConfigurationChange(String channel);
 
     @Message(id = 8, value = "Channel name is mandatory")
     OperationFailedException missingChannelName();

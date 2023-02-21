@@ -73,21 +73,27 @@ public class TestInstallationManager implements InstallationManager {
         lstChannels.add(new Channel("channel-test-2", repoList));
 
 
-        // Changes Sample Data
+        // Changes Sample Data: Artifacts
         List<ArtifactChange> artifactChanges = new ArrayList<>();
-        ArtifactChange installed = new ArtifactChange("1.0.0.Final", "1.0.1.Final", "org.test.groupid1:org.test.artifact1", ArtifactChange.Status.INSTALLED);
-        ArtifactChange removed = new ArtifactChange("1.0.0.Final", "1.0.1.Final", "org.test.groupid1:org.test.artifact1", ArtifactChange.Status.REMOVED);
-        ArtifactChange updated = new ArtifactChange("1.0.0.Final", "1.0.1.Final", "org.test.groupid1:org.test.artifact1", ArtifactChange.Status.UPDATED);
+        ArtifactChange installed = new ArtifactChange("1.0.0.Final", "1.0.1.Final", "org.test.groupid1:org.test.artifact1.installed", ArtifactChange.Status.INSTALLED);
+        ArtifactChange removed = new ArtifactChange("1.0.0.Final", "1.0.1.Final", "org.test.groupid1:org.test.artifact1.removed", ArtifactChange.Status.REMOVED);
+        ArtifactChange updated = new ArtifactChange("1.0.0.Final", "1.0.1.Final", "org.test.groupid1:org.test.artifact1.updated", ArtifactChange.Status.UPDATED);
         artifactChanges.add(installed);
         artifactChanges.add(removed);
         artifactChanges.add(updated);
 
+        // Changes Sample Data: Channels
         List<ChannelChange> channelChanges  = new ArrayList<>();
         List<Repository> channelChangeBaseRepositories = new ArrayList<>();
         channelChangeBaseRepositories.add(new Repository("id0", "http://channelchange.com"));
         channelChangeBaseRepositories.add(new Repository("id1", "file://channelchange"));
         Channel channelChangeBase = new Channel("channel-test-0", channelChangeBaseRepositories, "org.channelchange.groupid:org.channelchange.artifactid:1.0.0.Final");
-        Channel channelChangeModified = new Channel("channel-test-0", channelChangeBaseRepositories, "org.channelchange.groupid:org.channelchange.artifactid:1.0.1.Final");
+
+        List<Repository> channelModifiedRepositories = new ArrayList<>();
+        channelModifiedRepositories.add(new Repository("id0", "http://channelchange-modified.com"));
+        channelModifiedRepositories.add(new Repository("id1-modified", "file://channelchange"));
+        channelModifiedRepositories.add(new Repository("id1-added", "file://channelchange-added"));
+        Channel channelChangeModified = new Channel("channel-test-0", channelModifiedRepositories, "org.channelchange.groupid:org.channelchange.artifactid:1.0.1.Final");
 
         ChannelChange cChangeAdded = new ChannelChange(null, channelChangeBase, ChannelChange.Status.ADDED);
         ChannelChange cChangeRemoved = new ChannelChange(channelChangeBase, null, ChannelChange.Status.REMOVED);

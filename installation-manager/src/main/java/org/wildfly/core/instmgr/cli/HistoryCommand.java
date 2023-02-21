@@ -30,6 +30,8 @@ import org.jboss.dmr.ModelNode;
 import org.wildfly.core.cli.command.aesh.CLICommandInvocation;
 import org.wildfly.core.instmgr.InstMgrConstants;
 import org.wildfly.core.instmgr.InstMgrHistoryHandler;
+import org.wildfly.installationmanager.ArtifactChange;
+import org.wildfly.installationmanager.ChannelChange;
 
 import java.util.List;
 
@@ -52,14 +54,72 @@ public class HistoryCommand extends AbstractInstMgrCommand {
         }
 
         ModelNode response = this.executeOp(ctx, this.host);
-        List<ModelNode> result = response.get(RESULT).asListOrEmpty();
+        ModelNode result = response.get(RESULT);
         if (revision != null) {
-            for (ModelNode resultMn : result) {
-                ctx.printLine(resultMn.asString());
+            List<ModelNode> artifactChanges = result.get(InstMgrConstants.HISTORY_RESULT_DETAILED_ARTIFACT_CHANGES).asListOrEmpty();
+            List<ModelNode> channelChanges = result.get(InstMgrConstants.HISTORY_RESULT_DETAILED_CHANNEL_CHANGES).asListOrEmpty();
+
+            if (!artifactChanges.isEmpty()) {
+                ctx.printLine("Artifact Updates:");
+                int maxLength = 0;
+                for (ModelNode artifactChange : artifactChanges) {
+                    String channelName = artifactChange.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_NAME).asString();
+                    maxLength = maxLength < channelName.length() ? channelName.length() : maxLength;
+                }
+                maxLength += 2;
+                for (ModelNode artifactChange : artifactChanges) {
+                    String status = artifactChange.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_STATUS).asString();
+                    String channelName = artifactChange.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_NAME).asString();
+                    String oldVersion = artifactChange.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_OLD_VERSION).asStringOrNull();
+                    String newVersion = artifactChange.get(InstMgrConstants.HISTORY_DETAILED_ARTIFACT_NEW_VERSION).asStringOrNull();
+
+                    if (status.equals(ArtifactChange.Status.UPDATED.name())) {
+                        ctx.printLine(String.format(" %1$-" + maxLength + "s %2$15s ==> %3$-15s", channelName, oldVersion, newVersion));
+                    } else if (status.equals(ArtifactChange.Status.REMOVED.name())) {
+                        ctx.printLine(String.format(" %1$-" + maxLength + "s %2$15s ==> []", channelName, oldVersion));
+                    } else if (status.equals(ArtifactChange.Status.INSTALLED.name())) {
+                        ctx.printLine(String.format(" %1$-" + maxLength + "s [] ==> %2$-15s", channelName, newVersion));
+                    }
+                }
+                ctx.printLine("");
             }
+
+            if (!channelChanges.isEmpty()) {
+                ctx.printLine("Configuration changes:");
+                for (ModelNode channelChange : channelChanges) {
+                    String status = channelChange.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_STATUS).asString();
+                    String channelName = channelChange.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_NAME).asString();
+
+                    if (status.equals(ChannelChange.Status.MODIFIED.name())) {
+                        ctx.printLine(String.format("[Updated channel] %s", channelName));
+                    } else if (status.equals(ChannelChange.Status.REMOVED.name())) {
+                        ctx.printLine(String.format("[Removed channel] %s", channelName));
+                    } else if (status.equals(ChannelChange.Status.ADDED.name())) {
+                        ctx.printLine(String.format("[Added channel] %s", channelName));
+                    }
+
+                    String oldManifest = channelChange.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_MANIFEST, InstMgrConstants.HISTORY_DETAILED_CHANNEL_OLD_MANIFEST).asStringOrNull();
+                    String newManifest = channelChange.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_MANIFEST, InstMgrConstants.HISTORY_DETAILED_CHANNEL_NEW_MANIFEST).asStringOrNull();
+                    oldManifest = oldManifest == null ? "[]" : oldManifest;
+                    newManifest = newManifest == null ? "[]" : newManifest;
+                    ctx.printLine(String.format("\tManifest:\t%s ==> %s", oldManifest, newManifest));
+
+                    ctx.printLine("\tRepositories:");
+                    List<ModelNode> repositories = channelChange.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_REPOSITORIES).asList();
+                    for (ModelNode repository : repositories) {
+                        String oldRepo = repository.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_OLD_REPOSITORY).asStringOrNull();
+                        String newRepo = repository.get(InstMgrConstants.HISTORY_DETAILED_CHANNEL_NEW_REPOSITORY).asStringOrNull();
+                        oldRepo = oldRepo == null ? "[]" : oldRepo;
+                        newRepo = newRepo == null ? "[]" : newRepo;
+                        ctx.printLine(String.format("\t\t%s ==> %s", oldRepo, newRepo));
+                    }
+                }
+            }
+
         } else {
-            for (ModelNode resultMn : result) {
-                ctx.printLine(String.format("[%s] %s - %s", resultMn.get(InstMgrConstants.HASH).asString(), resultMn.get(InstMgrConstants.TIMESTAMP).asString(), resultMn.get(InstMgrConstants.TYPE).asString()));
+            List<ModelNode> results = result.asListOrEmpty();
+            for (ModelNode resultMn : results) {
+                ctx.printLine(String.format("[%s] %s - %s", resultMn.get(InstMgrConstants.HISTORY_RESULT_HASH).asString(), resultMn.get(InstMgrConstants.HISTORY_RESULT_TIMESTAMP).asString(), resultMn.get(InstMgrConstants.HISTORY_RESULT_TYPE).asString()));
             }
         }
 

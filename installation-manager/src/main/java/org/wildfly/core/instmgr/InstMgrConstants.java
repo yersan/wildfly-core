@@ -42,7 +42,21 @@ public interface InstMgrConstants {
     int RETURN_CODE_NO_UPDATES = 2;
     int RETURN_CODE_UPDATES_WITHOUT_WORK_DIR = 1;
     int RETURN_CODE_UPDATES_WITH_WORK_DIR = 0;
-    String HASH = "hash";
-    String TIMESTAMP = "timestamp";
-    String TYPE = "type";
+    String HISTORY_RESULT_HASH = "hash";
+    String HISTORY_RESULT_TIMESTAMP = "timestamp";
+    String HISTORY_RESULT_TYPE = "type";
+    String HISTORY_RESULT_DETAILED_ARTIFACT_CHANGES = "artifact-changes";
+    String HISTORY_DETAILED_ARTIFACT_NAME = "name";
+    String HISTORY_DETAILED_ARTIFACT_OLD_VERSION = "old-version";
+    String HISTORY_DETAILED_ARTIFACT_NEW_VERSION = "new-version";
+    String HISTORY_DETAILED_ARTIFACT_STATUS = "status";
+    String HISTORY_DETAILED_CHANNEL_NAME = "channel-name";
+    String HISTORY_DETAILED_CHANNEL_STATUS = "status";
+    String HISTORY_DETAILED_CHANNEL_MANIFEST = "manifest";
+    String HISTORY_DETAILED_CHANNEL_OLD_MANIFEST = "manifest-old";
+    String HISTORY_DETAILED_CHANNEL_NEW_MANIFEST = "manifest-new";
+    String HISTORY_DETAILED_CHANNEL_REPOSITORIES = "repositories";
+    String HISTORY_DETAILED_CHANNEL_OLD_REPOSITORY = "repository-old";
+    String HISTORY_DETAILED_CHANNEL_NEW_REPOSITORY = "repository-new";
+    String HISTORY_RESULT_DETAILED_CHANNEL_CHANGES = "channel-changes";
 }
