@@ -22,14 +22,17 @@ import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ObjectListAttributeDefinition;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
+import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.operations.validation.ParameterValidator;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.wildfly.core.instmgr.logging.InstMgrLogger;
@@ -165,6 +168,43 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
 
         InstMgrPrepareRevertHandler revertHandler = new InstMgrPrepareRevertHandler(imService, imf);
         resourceRegistration.registerOperationHandler(InstMgrPrepareRevertHandler.DEFINITION, revertHandler);
+
+        DeleteHandler deleteHandler = new DeleteHandler(imService, imf);
+        resourceRegistration.registerOperationHandler(deleteHandler.DEFINITION, deleteHandler);
+    }
+
+    private class DeleteHandler extends AbstractInstMgrUpdateHandler {
+        public static final String OPERATION_NAME = "channel-delete";
+
+        public final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, InstMgrResolver.RESOLVER)
+                .addParameter(CHANNEL)
+                .withFlags(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
+                .setRuntimeOnly()
+                .build();
+
+        DeleteHandler(InstMgrService imService, InstallationManagerFactory imf) {
+            super(imService, imf);
+        }
+
+        @Override
+        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+            final String channel = CHANNEL.resolveValue(context, operation).asStringOrNull();
+            context.addStep(new OperationStepHandler() {
+                @Override
+                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                    try {
+                        Path serverHome = imService.getHomeDir();
+                        MavenOptions mavenOptions = new MavenOptions(null, false);
+                        InstallationManager installationManager = imf.create(serverHome, mavenOptions);
+
+                    } catch (IllegalArgumentException e) {
+                        throw new OperationFailedException(e);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }, OperationContext.Stage.RUNTIME);
+        }
     }
 
     @Override
