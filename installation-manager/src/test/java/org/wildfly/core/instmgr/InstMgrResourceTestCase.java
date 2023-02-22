@@ -555,6 +555,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         // verify we are using a repository pointing out to the maven zip file
         Assert.assertEquals(1, TestInstallationManager.findUpdatesRepositories.size());
         Repository mavenZipRepo = TestInstallationManager.findUpdatesRepositories.get(0);
+
         Assert.assertEquals("id0", mavenZipRepo.getId());
         Assert.assertTrue(mavenZipRepo.getUrl().toString().matches("file://(.)*list-updates-(.)*maven_root(.)*"));
         Assert.assertTrue(new File(new URL(mavenZipRepo.getUrl()).toURI()).isDirectory());
@@ -564,7 +565,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
 
     public static void zipDir(Path sourcePath, Path target) throws IOException {
         try (FileOutputStream fos = new FileOutputStream(target.toFile()); ZipOutputStream zos = new ZipOutputStream(fos)) {
-            Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
+            Files.walkFileTree(sourcePath, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
                     if (!sourcePath.equals(dir)) {

@@ -26,7 +26,6 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
-import org.jboss.as.controller.operations.validation.ParameterValidator;
 import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
