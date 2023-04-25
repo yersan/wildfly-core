@@ -866,9 +866,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
         ModelNode op = Util.createEmptyOperation(InstMgrCustomPatchHandler.OPERATION_NAME, pathElements);
 
-        ModelNode manifesMn = new ModelNode();
-        manifesMn.get(InstMgrConstants.MANIFEST_GAV).set("invalidgav");
-        op.get(InstMgrConstants.MANIFEST).set(manifesMn);
+        op.get(InstMgrConstants.MANIFEST).set("invalidgav");
         op.get(InstMgrConstants.CUSTOM_PATCH_FILE).set(0);
         OperationBuilder operationBuilder = OperationBuilder.create(op);
         operationBuilder.addFileAsAttachment(target);
@@ -878,38 +876,82 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         ModelNode failed = executeCheckForFailure(build);
         Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0024:"));
 
-
-        manifesMn = new ModelNode();
-        manifesMn.get(InstMgrConstants.MANIFEST_URL).set("---");
-        op.get(InstMgrConstants.MANIFEST).set(manifesMn);
+        op.get(InstMgrConstants.MANIFEST).set("groupId:artifactId:version");
         op.get(InstMgrConstants.CUSTOM_PATCH_FILE).set(0);
         operationBuilder = OperationBuilder.create(op);
         operationBuilder.addFileAsAttachment(target);
 
+        build = operationBuilder.build();
+
         failed = executeCheckForFailure(build);
-        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0025:"));
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0024:"));
     }
 
     @Test
     public void uploadAndRemoveCustomPatch() throws IOException, OperationFailedException {
-        InstMgrService instMgrService = (InstMgrService) this.recordedServices.get(InstMgrResourceDefinition.INSTALLATION_MANAGER_CAPABILITY.getCapabilityServiceName()).get();
-        Path customPatchDir = instMgrService.getCustomPatchDir();
+        TestInstallationManager.initialize();
+        String customPatchManifest = "groupId-patch1:artifactId-patch01";
+        createAndUploadCustomPatch(customPatchManifest);
+        removeCustomPatch(customPatchManifest);
+    }
+
+    @Test
+    public void uploadAndRemoveMultipleCustomPatches() throws IOException, OperationFailedException {
+        final InstMgrService instMgrService = (InstMgrService) this.recordedServices.get(InstMgrResourceDefinition.INSTALLATION_MANAGER_CAPABILITY.getCapabilityServiceName()).get();
+        TestInstallationManager.initialize();
+
+        String customPatchManifest1 = "groupId-patch1:artifactId-patch1";
+        String customPatchManifest2 = "groupId-patch2:artifactId-patch2";
+
+        createAndUploadCustomPatch(customPatchManifest1);
+        createAndUploadCustomPatch(customPatchManifest2);
+
+        removeCustomPatch(customPatchManifest2);
+
+        // check again customPatchManifest1 is still there
+        List<Channel> lstChannels = TestInstallationManager.lstChannels;
+        Path customPatchDir = instMgrService.getCustomPatchDir(customPatchManifest1);
+        String customPatchChannelName = InstMgrConstants.DEFAULT_CUSTOM_CHANNEL_NAME_PREFIX + customPatchManifest1.replace(":", "_");
+        boolean found = false;
+        for (Channel channel : lstChannels) {
+            if (channel.getName().equals(customPatchChannelName)) {
+                List<Repository> repositories = channel.getRepositories();
+                for (Repository repository : repositories) {
+                    repository.getUrl().toString().equals(customPatchDir.resolve(InstMgrConstants.MAVEN_REPO_DIR_NAME_IN_ZIP_FILES).toUri().toURL().toString());
+                    found = true;
+                }
+            }
+        }
+
+        Assert.assertTrue("Expected channel created for the custom patch no found in " + lstChannels, found);
+
+        removeCustomPatch("groupId-patch1:artifactId-patch01");
+    }
+
+    public void createAndUploadCustomPatch(String customPatchManifest) throws IOException, OperationFailedException {
+        final InstMgrService instMgrService = (InstMgrService) this.recordedServices.get(InstMgrResourceDefinition.INSTALLATION_MANAGER_CAPABILITY.getCapabilityServiceName()).get();
+
+        final String customPatchManifestGA = customPatchManifest;
+        final String internalCustomPatchManifestGA = customPatchManifestGA.replace(":", "_");
+        final String customPatchChannelName = InstMgrConstants.DEFAULT_CUSTOM_CHANNEL_NAME_PREFIX + internalCustomPatchManifestGA;
+
+        //The patch doesn't exist yet
+        Path customPatchDir = instMgrService.getCustomPatchDir(internalCustomPatchManifestGA);
         Assert.assertFalse(customPatchDir.resolve(InstMgrConstants.MAVEN_REPO_DIR_NAME_IN_ZIP_FILES).toFile().exists());
 
         Path target = TARGET_DIR.resolve("installation-manager.zip");
         File source = new File(getClass().getResource("test-repo").getFile());
         zipDir(source.toPath().toAbsolutePath(), target);
 
-        TestInstallationManager.initialize();
+        // The Channel for the custom patch doesn't exist yet
         List<Channel> lstChannels = TestInstallationManager.lstChannels;
-        Assert.assertFalse(lstChannels.stream().anyMatch(c -> c.getName().equals(InstMgrConstants.DEFAULT_CUSTOM_CHANNEL_NAME)));
+        Assert.assertFalse(lstChannels.stream().anyMatch(c -> c.getName().equals(customPatchChannelName)));
 
+        // Upload a single custom patch
         PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
         ModelNode op = Util.createEmptyOperation(InstMgrCustomPatchHandler.OPERATION_NAME, pathElements);
 
-        ModelNode manifestMn = new ModelNode();
-        manifestMn.get(InstMgrConstants.MANIFEST_GAV).set("group:artifact");
-        op.get(InstMgrConstants.MANIFEST).set(manifestMn);
+        op.get(InstMgrConstants.MANIFEST).set(customPatchManifestGA);
         op.get(InstMgrConstants.CUSTOM_PATCH_FILE).set(0);
         OperationBuilder operationBuilder = OperationBuilder.create(op);
         operationBuilder.addFileAsAttachment(target);
@@ -923,7 +965,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
 
         boolean found = false;
         for (Channel channel : lstChannels) {
-            if (channel.getName().equals(InstMgrConstants.DEFAULT_CUSTOM_CHANNEL_NAME)) {
+            if (channel.getName().equals(customPatchChannelName)) {
                 List<Repository> repositories = channel.getRepositories();
                 for (Repository repository : repositories) {
                     repository.getUrl().toString().equals(customPatchDir.resolve(InstMgrConstants.MAVEN_REPO_DIR_NAME_IN_ZIP_FILES).toUri().toURL().toString());
@@ -933,23 +975,32 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         }
 
         Assert.assertTrue("Expected channel created for the custom patch no found in " + lstChannels, found);
+    }
 
-        // Now delete it
-        op = Util.createEmptyOperation(InstMgrCleanHandler.OPERATION_NAME, pathElements);
-        op.get(InstMgrConstants.CUSTOM_PATCH).set(true);
+    public void removeCustomPatch(String customPatchManifest) throws OperationFailedException {
+        final InstMgrService instMgrService = (InstMgrService) this.recordedServices.get(InstMgrResourceDefinition.INSTALLATION_MANAGER_CAPABILITY.getCapabilityServiceName()).get();
+        final String customPatchManifestGA = customPatchManifest;
+        final String customPatchManifestGAOperationAttr = customPatchManifestGA.replace(":", "_");
+        final String customPatchChannelName = InstMgrConstants.DEFAULT_CUSTOM_CHANNEL_NAME_PREFIX + customPatchManifestGAOperationAttr;
+
+        Path customPatchDir = instMgrService.getCustomPatchDir(customPatchManifestGAOperationAttr);
+
+        PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
+        ModelNode op = Util.createEmptyOperation(InstMgrCleanHandler.OPERATION_NAME, pathElements);
+        op.get(InstMgrConstants.CLEAN_CUSTOM_PATCH_MANIFEST).set(customPatchManifestGA);
         executeForResult(op);
         Assert.assertFalse(customPatchDir.resolve(InstMgrConstants.MAVEN_REPO_DIR_NAME_IN_ZIP_FILES).toFile().exists());
 
-        found = false;
+        List<Channel> lstChannels = TestInstallationManager.lstChannels;
+        boolean found = false;
         for (Channel channel : lstChannels) {
-            if (channel.getName().equals(InstMgrConstants.DEFAULT_CUSTOM_CHANNEL_NAME)) {
+            if (channel.getName().equals(customPatchChannelName)) {
                 found = true;
                 break;
             }
         }
         Assert.assertFalse("Expected channel was not removed " + lstChannels, found);
     }
-
 
     private static void verifyListUpdatesResult(ModelNode response, boolean hasWorkDir) {
         List<ModelNode> results = response.get(InstMgrConstants.LIST_UPDATES_RESULT).asList();

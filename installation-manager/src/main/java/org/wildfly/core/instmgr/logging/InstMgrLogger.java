@@ -105,9 +105,10 @@ public interface InstMgrLogger extends BasicLogger {
     @Message(id = 23, value = "Could not find a path called '%s'")
     OperationFailedException pathEntryNotFound(String relativeToPath);
 
-    @Message(id = 24, value = "The GAV manifest '%s' is invalid.")
+    @Message(id = 24, value = "The manifest maven coordinates for '%s' are invalid. The expected maven coordinates for this manifest are GA (GroupId:ArtifactId).")
+    OperationFailedException invalidManifestGAOnly(String ga);
+
+    @Message(id = 25, value = "The manifest maven coordinates for '%s' are invalid. The expected maven coordinates for this manifest are GAV (GroupId:ArtifactId:Version) where Version is optional.")
     OperationFailedException invalidManifestGAV(String gav);
 
-    @Message(id = 25, value = "The URL manifest '%s' is invalid.")
-    OperationFailedException invalidManifestURL(String url);
 }
