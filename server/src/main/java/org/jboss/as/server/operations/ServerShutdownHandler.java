@@ -110,7 +110,6 @@ public class ServerShutdownHandler implements OperationStepHandler {
         // Verify the candidate server is prepared
         if (performInstallation) {
             // Cannot use the Installation Manager service, we will generate a circular reference via maven
-            // Maybe do it better by creating a specific module to hold the installation manager constants
             try (FileInputStream in = new FileInputStream(serverEnvironment.getHomeDir().toPath().resolve("bin").resolve("installation-manager.properties").toFile())) {
                 final Properties prop = new Properties();
                 prop.load(in);

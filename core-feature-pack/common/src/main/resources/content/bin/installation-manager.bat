@@ -28,7 +28,7 @@ if not exist "%PROPS_FILE%" (
 rem Read Script variable configuration
 for /F "usebackq tokens=1* eol=# delims==" %%G IN ("%PROPS_FILE%") do (set %%G=%%H)
 
-rem remove scape characters necessary to store values in a property file
+rem remove escape characters necessary to store values in a property file
 setlocal EnableDelayedExpansion
 set "INST_MGR_PREPARED_SERVER_DIR=!INST_MGR_PREPARED_SERVER_DIR:\:=:!"
 set "INST_MGR_PREPARED_SERVER_DIR=!INST_MGR_PREPARED_SERVER_DIR:\\=\!"
