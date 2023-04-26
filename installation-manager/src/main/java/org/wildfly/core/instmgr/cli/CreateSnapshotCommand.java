@@ -20,8 +20,6 @@ package org.wildfly.core.instmgr.cli;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 
-import java.io.File;
-
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
@@ -40,7 +38,7 @@ import org.wildfly.core.instmgr.InstMgrCreateSnapshotHandler;
 public class CreateSnapshotCommand extends AbstractInstMgrCommand {
 
     @Option(name = "path", required = true)
-    private File path;
+    private String path;
 
     @Option(name = "relative-to")
     private String relativeTo;
@@ -49,7 +47,7 @@ public class CreateSnapshotCommand extends AbstractInstMgrCommand {
     protected Operation buildOperation() {
         final ModelNode op = new ModelNode();
         op.get(OP).set(InstMgrCreateSnapshotHandler.DEFINITION.getName());
-        op.get(ModelDescriptionConstants.PATH).set(path.getPath());
+        op.get(ModelDescriptionConstants.PATH).set(path);
 
         if (relativeTo != null) {
             op.get(ModelDescriptionConstants.RELATIVE_TO).set(relativeTo);

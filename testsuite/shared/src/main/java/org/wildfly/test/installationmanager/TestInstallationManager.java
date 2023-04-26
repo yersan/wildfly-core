@@ -214,10 +214,14 @@ public class TestInstallationManager implements InstallationManager {
 
     @Override
     public Path createSnapshot(Path targetPath) throws Exception {
+        final Path result;
         if (targetPath.toString().endsWith(".zip")) {
-            return targetPath;
+            result = targetPath;
+        } else {
+            result = targetPath.resolve("generated.zip");
         }
-        return targetPath.resolve("generated.zip");
+        Files.createFile(result);
+        return result;
     }
 
     @Override

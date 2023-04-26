@@ -96,10 +96,10 @@ public interface InstMgrLogger extends BasicLogger {
     @Message(id = 20, value = "Channel with name '%s' cannot be found.")
     OperationFailedException channelNameNotFound(String channelName);
 
-    @Message(id = 21, value = "The path '%s' does not exit.")
+    @Message(id = 21, value = "The path '%s' does not exit on the target server file system.")
     OperationFailedException exportPathDoesNotExist(Path path);
 
-    @Message(id = 22, value = "The path '%s' is not writable.")
+    @Message(id = 22, value = "The path '%s' is not writable on the target server file system.")
     OperationFailedException exportPathIsNotWritable(Path path);
 
     @Message(id = 23, value = "Could not find a path called '%s'")

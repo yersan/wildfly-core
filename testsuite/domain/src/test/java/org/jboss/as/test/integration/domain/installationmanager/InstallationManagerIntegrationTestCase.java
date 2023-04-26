@@ -367,19 +367,53 @@ public class InstallationManagerIntegrationTestCase extends AbstractCliTestBase 
 
     @Test
     public void testCreateSnapShot() {
-        String exportPath = Paths.get(testSupport.getDomainPrimaryConfiguration().getJbossHome()).toString();
         String host = "primary";
-        cli.sendLine("installer clone-export --path=" + exportPath + " --host=" + host);
-        String output = cli.readOutput();
-        String expected = "Installation metadata was exported to [" + Paths.get(exportPath).resolve("generated.zip") + "]";
-        assertEquals(expected, output);
+        Path exportPath = Paths.get(testSupport.getDomainPrimaryConfiguration().getJbossHome());
+        Path expectedExport = exportPath.resolve("generated.zip");
+        try {
+            cli.sendLine("installer clone-export --path=" + exportPath + " --host=" + host);
+            String output = cli.readOutput();
+            String expected = "Installation metadata was exported to [" + expectedExport + "]";
+            assertEquals(expected, output);
+            assertTrue("The file with the created snapshot does not exit at " + expectedExport, expectedExport.toFile().exists());
+        } finally {
+            File expectedExportFile = expectedExport.toFile();
+            if (expectedExportFile.exists()) {
+                expectedExportFile.delete();
+            }
+        }
 
-        exportPath = Paths.get(testSupport.getDomainPrimaryConfiguration().getJbossHome()).resolve("test-export.zip").toString();
         host = "secondary";
-        cli.sendLine("installer clone-export --path=" + exportPath + " --host=" + host);
-        output = cli.readOutput();
-        expected = "Installation metadata was exported to [" + exportPath + "]";
-        assertEquals(expected, output);
+        exportPath = Paths.get(testSupport.getDomainPrimaryConfiguration().getJbossHome()).resolve("test-export.zip");
+        expectedExport = exportPath;
+        try {
+            cli.sendLine("installer clone-export --path=" + exportPath + " --host=" + host);
+            String output = cli.readOutput();
+            String expected = "Installation metadata was exported to [" + exportPath + "]";
+            assertEquals(expected, output);
+            assertTrue("The file with the created snapshot does not exit at " + expectedExport, expectedExport.toFile().exists());
+        } finally {
+            File expectedExportFile = expectedExport.toFile();
+            if (expectedExportFile.exists()) {
+                expectedExportFile.delete();
+            }
+        }
+
+        host = "primary";
+        String exportPathStr = "test-export.zip";
+        expectedExport = Paths.get(testSupport.getDomainPrimaryConfiguration().getDomainDirectory()).resolve("configuration").resolve("test-export.zip");
+        File expectedExportFile = expectedExport.toFile();
+        try {
+            cli.sendLine("installer clone-export --path=" + exportPathStr + " --host=" + host + " --relative-to=jboss.domain.config.dir");
+            String output = cli.readOutput();
+            String expected = "Installation metadata was exported to [" + expectedExport + "]";
+            assertEquals(expected, output);
+            assertTrue("The file with the created snapshot does not exit at " + expectedExport, expectedExportFile.exists());
+        } finally {
+            if (expectedExportFile.exists()) {
+                expectedExportFile.delete();
+            }
+        }
     }
 
 
