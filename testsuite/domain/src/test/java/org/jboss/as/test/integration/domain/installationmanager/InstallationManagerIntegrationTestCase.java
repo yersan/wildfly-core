@@ -541,7 +541,7 @@ public class InstallationManagerIntegrationTestCase extends AbstractCliTestBase 
             cli.sendLine("installer update --repositories=id0::http://localhost --maven-repo-file=" + target + " --host=" + host);
         });
 
-        String expectedMessage = "WFLYIM0015";
+        String expectedMessage = "WFLYIM0013:";
         String actualMessage = exception.getMessage();
         Assert.assertTrue(actualMessage.contains(expectedMessage));
     }
@@ -664,7 +664,7 @@ public class InstallationManagerIntegrationTestCase extends AbstractCliTestBase 
             cli.sendLine("installer revert --revision=dummy --repositories=id0::http://localhost --maven-repo-file=" + target + " --host=" + host);
         });
 
-        String expectedMessage = "WFLYIM0015";
+        String expectedMessage = "WFLYIM0013:";
         String actualMessage = exception.getMessage();
         Assert.assertTrue(actualMessage.contains(expectedMessage));
     }

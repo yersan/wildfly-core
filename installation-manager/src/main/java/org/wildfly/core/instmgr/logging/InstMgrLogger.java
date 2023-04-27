@@ -36,76 +36,76 @@ import org.jboss.logging.annotations.MessageLogger;
 public interface InstMgrLogger extends BasicLogger {
     InstMgrLogger ROOT_LOGGER = Logger.getMessageLogger(InstMgrLogger.class, " org.wildfly.core.installationmanager");
 
-    @Message(id = 1, value = "No known attribute %s")
+    @Message(id = 1, value = "No known attribute %s.")
     OperationFailedException unknownAttribute(String asString);
 
-    @Message(id = 4, value = "There is an installation prepared and ready to be applied. The current prepared installation can be discarded by using the 'clean' operation.")
+    @Message(id = 2, value = "There is an installation prepared and ready to be applied. The current prepared installation can be discarded by using the 'clean' operation.")
     OperationFailedException serverAlreadyPrepared();
 
-    @Message(id = 5, value = "Invalid status change found for the artifact: '%s'")
+    @Message(id = 3, value = "Invalid status change found for the artifact: '%s'")
     RuntimeException unexpectedArtifactChange(String artifact);
 
-    @Message(id = 6, value = "Invalid status change found for the configuration change: '%s'")
+    @Message(id = 4, value = "Invalid status change found for the configuration change: '%s'")
     RuntimeException unexpectedConfigurationChange(String channel);
 
-    @Message(id = 7, value = "Channel name is mandatory")
+    @Message(id = 5, value = "Channel name is mandatory.")
     OperationFailedException missingChannelName();
 
-    @Message(id = 8, value = "No repositories are defined in the '%s' channel.")
+    @Message(id = 6, value = "No repositories have been defined in the '%s' channel.")
     OperationFailedException noChannelRepositoriesDefined(String channelName);
 
-    @Message(id = 9, value = "The '%s' channel's repository does not have any defined URL.")
+    @Message(id = 7, value = "The '%s' repository in the channel does not have its URL defined.")
     OperationFailedException noChannelRepositoryURLDefined(String channelName);
 
-    @Message(id = 10, value = "The repository URL '%s' for '%s' channel is invalid.")
+    @Message(id = 8, value = "The repository URL '%s' for '%s' channel is invalid.")
     OperationFailedException invalidChannelRepositoryURL(String repoUrl, String channelName);
 
-    @Message(id = 11, value = "The '%s' channel's repository does not have any defined ID")
+    @Message(id = 9, value = "The '%s' repository in the channel does not have its ID defined.")
     OperationFailedException noChannelRepositoryIDDefined(String channelName);
 
-    @Message(id = 12, value = "The GAV manifest '%s' for '%s' channel is invalid.")
+    @Message(id = 10, value = "The manifest GAV coordinate '%s' for '%s' channel is invalid.")
     OperationFailedException invalidChannelManifestGAV(String gav, String channelName);
 
-    @Message(id = 13, value = "The URL manifest '%s' for '%s' channel is invalid.")
+    @Message(id = 11, value = "The manifest URL '%s' for '%s' channel is invalid.")
     OperationFailedException invalidChannelManifestURL(String url, String channelName);
 
-    @Message(id = 14, value = "'local-cache' cannot be used when 'no-resolve-local-cache' is enabled.")
+    @Message(id = 12, value = "You cannot use 'local-cache' option when 'no-resolve-local-cache' is enabled.")
     OperationFailedException localCacheWithNoResolveLocalCache();
 
-    @Message(id = 15, value = "You cannot use 'maven-repo-file' in conjunction with 'repositories' because they are mutually exclusive.")
+    @Message(id = 13, value = "You cannot use 'maven-repo-file' option with 'repositories' option because they are mutually exclusive.")
     OperationFailedException mavenRepoFileWithRepositories();
 
-    @Message(id = 16, value = "Repository does not have any defined URL.")
+    @Message(id = 14, value = "Repository does not have its URL defined.")
     OperationFailedException noRepositoryURLDefined();
 
-    @Message(id = 17, value = "Repository does not have any defined ID.")
+    @Message(id = 15, value = "Repository does not have  its ID defined.")
     OperationFailedException noRepositoryIDDefined();
 
-    @Message(id = 18, value = "Invalid format for the repository URL: '%s'")
+    @Message(id = 16, value = "Invalid format for the repository URL: '%s'")
     OperationFailedException invalidRepositoryURL(String repoUrl);
 
-    @Message(id = 19, value = "You cannot use 'work-dir' in conjunction with 'repositories' or 'maven-repo-file' because they are mutually exclusive.")
+    @Message(id = 17, value = "You cannot use 'work-dir' option with 'repositories' or 'maven-repo-file' options because they are mutually exclusive.")
     OperationFailedException workDirWithMavenRepoFileOrRepositories();
 
-    @Message(id = 20, value = "Channel with name '%s' cannot be found.")
+    @Message(id = 18, value = "Channel with name '%s' cannot be found.")
     OperationFailedException channelNameNotFound(String channelName);
 
-    @Message(id = 21, value = "The path '%s' does not exit on the target server file system.")
+    @Message(id = 19, value = "The path '%s' does not exit on the target server file system.")
     OperationFailedException exportPathDoesNotExist(Path path);
 
-    @Message(id = 22, value = "The path '%s' is not writable on the target server file system.")
+    @Message(id = 20, value = "The path '%s' is not writable on the target server file system. Check permissions on the target file system.")
     OperationFailedException exportPathIsNotWritable(Path path);
 
-    @Message(id = 23, value = "Could not find a path called '%s'")
+    @Message(id = 21, value = "Could not find a path called '%s'")
     OperationFailedException pathEntryNotFound(String relativeToPath);
 
-    @Message(id = 24, value = "The GAV manifest '%s' is invalid.")
+    @Message(id = 22, value = "The manifest GAV coordinate '%s' is invalid.")
     OperationFailedException invalidManifestGAV(String gav);
 
-    @Message(id = 25, value = "The URL manifest '%s' is invalid.")
+    @Message(id = 23, value = "The manifest URL '%s' is invalid.")
     OperationFailedException invalidManifestURL(String url);
 
-    @Message(id = 26, value = "%s")
+    @Message(id = 24, value = "%s")
     OperationFailedException invalidMavenRepoFile(String localizedMessage);
 
     ////////////////////////////////////////////////
@@ -114,6 +114,6 @@ public interface InstMgrLogger extends BasicLogger {
     @Message(id = Message.NONE, value = "Zip entry %s is outside of the target dir %s")
     ZipException zipEntryOutsideOfTarget(String entry, String target);
 
-    @Message(id = Message.NONE, value = "The Zip archive format is invalid. The '%s' directory cannot be found as a second-level entry within the unloaded Zip file.")
+    @Message(id = Message.NONE, value = "The structure of directories and files in the .zip file is invalid. The '%s' directory cannot be found as a second-level entry in the extracted .zip file.")
     ZipException invalidZipEntry(String directory);
 }

@@ -339,7 +339,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         op.get(NAME).set("channel-test-1");
 
         ModelNode failed = executeCheckForFailure(op);
-        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0020:"));
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0018:"));
     }
 
     @Test
@@ -524,7 +524,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.toString());
 
         ModelNode failed = executeCheckForFailure(op);
-        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0014:"));
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0012:"));
     }
 
     @Test
@@ -541,7 +541,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         op.get(InstMgrConstants.REPOSITORIES).set(repositories);
 
         ModelNode failed = executeCheckForFailure(op);
-        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0015:"));
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0013:"));
     }
 
     @Test
@@ -675,7 +675,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.toString());
 
         ModelNode failed = executeCheckForFailure(op);
-        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0014:"));
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0012:"));
     }
 
     @Test
@@ -692,7 +692,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         op.get(InstMgrConstants.REPOSITORIES).set(repositories);
 
         ModelNode failed = executeCheckForFailure(op);
-        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0015:"));
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0013:"));
     }
 
     @Test
@@ -703,7 +703,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         op.get(InstMgrConstants.LIST_UPDATES_WORK_DIR).set("/dummy");
 
         ModelNode failed = executeCheckForFailure(op);
-        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0019:"));
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0017:"));
 
 
         op = Util.createEmptyOperation(InstMgrPrepareUpdateHandler.OPERATION_NAME, pathElements);
@@ -716,7 +716,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         op.get(InstMgrConstants.LIST_UPDATES_WORK_DIR).set("/dummy");
 
         failed = executeCheckForFailure(op);
-        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0019:"));
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0017:"));
 
 
         op = Util.createEmptyOperation(InstMgrPrepareUpdateHandler.OPERATION_NAME, pathElements);
@@ -725,7 +725,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         op.get(InstMgrConstants.REPOSITORIES).set(repositories);
 
         failed = executeCheckForFailure(op);
-        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0019:"));
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0017:"));
     }
 
     @Test
@@ -799,7 +799,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.toString());
 
         ModelNode failed = executeCheckForFailure(op);
-        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0014:"));
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0012:"));
 
         op = Util.createEmptyOperation(InstMgrPrepareRevertHandler.OPERATION_NAME, pathElements);
         op.get(InstMgrConstants.REVISION).set("aaaabbbb");
@@ -827,7 +827,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         op.get(InstMgrConstants.REPOSITORIES).set(repositories);
 
         ModelNode failed = executeCheckForFailure(op);
-        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0015:"));
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0013:"));
     }
 
     @Test
@@ -876,7 +876,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         Operation build = operationBuilder.build();
 
         ModelNode failed = executeCheckForFailure(build);
-        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0024:"));
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0022:"));
 
 
         manifesMn = new ModelNode();
@@ -887,7 +887,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         operationBuilder.addFileAsAttachment(target);
 
         failed = executeCheckForFailure(build);
-        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0025:"));
+        Assert.assertTrue(failed.get(FAILURE_DESCRIPTION).asString(), failed.get(FAILURE_DESCRIPTION).asString().startsWith("WFLYIM0023:"));
     }
 
     @Test
