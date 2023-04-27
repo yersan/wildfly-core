@@ -149,6 +149,9 @@ class InstMgrResourceDefinition extends SimpleResourceDefinition {
     public void registerOperations(ManagementResourceRegistration resourceRegistration) {
         super.registerOperations(resourceRegistration);
 
+        InstMgrHistoryRevisionHandler historyRevisionHandler = new InstMgrHistoryRevisionHandler(imService, imf);
+        resourceRegistration.registerOperationHandler(InstMgrHistoryRevisionHandler.DEFINITION, historyRevisionHandler);
+
         InstMgrHistoryHandler historyHandler = new InstMgrHistoryHandler(imService, imf);
         resourceRegistration.registerOperationHandler(InstMgrHistoryHandler.DEFINITION, historyHandler);
 

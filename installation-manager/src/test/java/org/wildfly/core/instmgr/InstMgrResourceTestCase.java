@@ -362,7 +362,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
     @Test
     public void testRevisionDetails() throws Exception {
         PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
-        ModelNode op = Util.createEmptyOperation(InstMgrHistoryHandler.OPERATION_NAME, pathElements);
+        ModelNode op = Util.createEmptyOperation(InstMgrHistoryRevisionHandler.OPERATION_NAME, pathElements);
         op.get(InstMgrConstants.REVISION).set("dummy");
 
         ModelNode result = executeForResult(op);
