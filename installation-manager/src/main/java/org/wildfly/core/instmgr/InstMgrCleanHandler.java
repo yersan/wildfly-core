@@ -49,6 +49,7 @@ public class InstMgrCleanHandler extends InstMgrOperationStepHandler {
 
     protected static final AttributeDefinition CUSTOM_PATCH = SimpleAttributeDefinitionBuilder.create(InstMgrConstants.CUSTOM_PATCH, ModelType.BOOLEAN)
             .setRequired(false)
+            .setDefaultValue(ModelNode.FALSE)
             .setAlternatives(InstMgrConstants.LIST_UPDATES_WORK_DIR)
             .setStorageRuntime()
             .build();
@@ -66,10 +67,11 @@ public class InstMgrCleanHandler extends InstMgrOperationStepHandler {
     @Override
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
         final String listUpdatesWorkDir = LIST_UPDATES_WORK_DIR.resolveModelAttribute(context, operation).asStringOrNull();
-        final boolean customPatch = CUSTOM_PATCH.resolveModelAttribute(context, operation).asBoolean(false);
+        final boolean customPatch = CUSTOM_PATCH.resolveModelAttribute(context, operation).asBoolean();
         context.addStep(new OperationStepHandler() {
             @Override
             public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                context.acquireControllerLock();
                 try {
                     if (customPatch) {
                         final Path serverHome = imService.getHomeDir();
@@ -91,6 +93,9 @@ public class InstMgrCleanHandler extends InstMgrOperationStepHandler {
                             }
                         }
                     } else if (listUpdatesWorkDir != null) {
+                        // Notice listUpdatesWorkDir is just a key to locate the real path to be deleted.
+                        // The imService maintains a relationship between this key and the temporal directories created to unzip
+                        // files and other temporal work.
                         imService.deleteTempDir(listUpdatesWorkDir);
                     } else {
                         deleteDirIfExits(imService.getPreparedServerDir());

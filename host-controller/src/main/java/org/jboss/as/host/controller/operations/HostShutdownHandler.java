@@ -117,15 +117,16 @@ public class HostShutdownHandler implements OperationStepHandler {
         // Verify the candidate server is prepared
         if (performInstallation) {
             // Cannot use the Installation Manager constants, we will generate a circular reference via maven
+            final String productName = environment.getProductConfig().getProductName();
             try (FileInputStream in = new FileInputStream(environment.getHomeDir().toPath().resolve("bin").resolve("installation-manager.properties").toFile())) {
                 final Properties prop = new Properties();
                 prop.load(in);
                 String current = (String) prop.get("INST_MGR_STATUS");
                 if (current == null || !current.trim().equals("PREPARED")) {
-                    throw HostControllerLogger.ROOT_LOGGER.noServerInstallationPrepared();
+                    throw HostControllerLogger.ROOT_LOGGER.noServerInstallationPrepared(productName);
                 }
             } catch (Exception e) {
-                throw HostControllerLogger.ROOT_LOGGER.noServerInstallationPrepared();
+                throw HostControllerLogger.ROOT_LOGGER.noServerInstallationPrepared(productName);
             }
         }
 

@@ -18,8 +18,8 @@
 
 package org.wildfly.core.instmgr.logging;
 
-import java.io.IOException;
 import java.nio.file.Path;
+import java.util.zip.ZipException;
 
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.logging.BasicLogger;
@@ -38,12 +38,6 @@ public interface InstMgrLogger extends BasicLogger {
 
     @Message(id = 1, value = "No known attribute %s")
     OperationFailedException unknownAttribute(String asString);
-
-    @Message(id = 2, value = "Zip entry %s is outside of the target dir %s")
-    IOException zipEntryOutsideOfTarget(String entry, String target);
-
-    @Message(id = 3, value = "The Zip archive format is invalid. The '%s' directory cannot be found as a second-level entry within the unloaded Zip file.")
-    Exception invalidZipEntry(String directory);
 
     @Message(id = 4, value = "There is an installation prepared and ready to be applied. The current prepared installation can be discarded by using the 'clean' operation.")
     OperationFailedException serverAlreadyPrepared();
@@ -110,4 +104,16 @@ public interface InstMgrLogger extends BasicLogger {
 
     @Message(id = 25, value = "The URL manifest '%s' is invalid.")
     OperationFailedException invalidManifestURL(String url);
+
+    @Message(id = 26, value = "%s")
+    OperationFailedException invalidMavenRepoFile(String localizedMessage);
+
+    ////////////////////////////////////////////////
+    //Messages without IDs
+
+    @Message(id = Message.NONE, value = "Zip entry %s is outside of the target dir %s")
+    ZipException zipEntryOutsideOfTarget(String entry, String target);
+
+    @Message(id = Message.NONE, value = "The Zip archive format is invalid. The '%s' directory cannot be found as a second-level entry within the unloaded Zip file.")
+    ZipException invalidZipEntry(String directory);
 }

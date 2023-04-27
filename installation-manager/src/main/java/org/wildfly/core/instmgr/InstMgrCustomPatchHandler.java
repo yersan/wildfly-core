@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.zip.ZipException;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
@@ -38,7 +39,7 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
-import org.jboss.as.controller.operations.validation.ParameterValidator;
+import org.jboss.as.controller.operations.validation.ObjectTypeValidator;
 import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
@@ -101,6 +102,7 @@ public class InstMgrCustomPatchHandler extends InstMgrOperationStepHandler {
         context.addStep(new OperationStepHandler() {
             @Override
             public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                context.acquireControllerLock();
                 try {
                     final Path serverHome = imService.getHomeDir();
                     final Path baseTargetDir = imService.getCustomPatchDir();
@@ -141,6 +143,8 @@ public class InstMgrCustomPatchHandler extends InstMgrOperationStepHandler {
                         im.addChannel(customChannel);
                     }
                     context.getResult().set(customPatchPath.toString());
+                } catch (ZipException e) {
+                    throw InstMgrLogger.ROOT_LOGGER.invalidMavenRepoFile(e.getLocalizedMessage());
                 } catch (RuntimeException e) {
                     throw e;
                 } catch (Exception e) {
@@ -150,10 +154,16 @@ public class InstMgrCustomPatchHandler extends InstMgrOperationStepHandler {
         }, OperationContext.Stage.RUNTIME);
     }
 
-    private static class ManifestValidator implements ParameterValidator {
+    private static class ManifestValidator extends ObjectTypeValidator {
+
+        public ManifestValidator() {
+            super(false, MANIFEST_GAV, MANIFEST_URL);
+        }
 
         @Override
         public void validateParameter(String parameterName, ModelNode value) throws OperationFailedException {
+            super.validateParameter(parameterName, value);
+
             String gav = value.get(InstMgrConstants.MANIFEST_GAV).asStringOrNull();
             String url = value.get(InstMgrConstants.MANIFEST_URL).asStringOrNull();
 

@@ -24,9 +24,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -50,14 +51,12 @@ class InstMgrService implements Service {
     private final Supplier<PathManager> pathManagerSupplier;
     private final Consumer<InstMgrService> consumer;
     private PathManager pathManager;
-    private AtomicBoolean started = new AtomicBoolean(false);
+    private final AtomicBoolean started = new AtomicBoolean(false);
     private Path homeDir;
-    private Path propertiesPath;
     private Path customPatchPath;
     private Path prepareServerPath;
-    private HashMap<String, Path> tempDirs = new HashMap<>();
-    private InstMgrCandidateStatus candidateStatus;
-    final Object lock = new Object();
+    private final ConcurrentMap<String, Path> tempDirs = new ConcurrentHashMap<>();
+    private final InstMgrCandidateStatus candidateStatus;
 
     InstMgrService(Supplier<PathManager> pathManagerSupplier, Consumer<InstMgrService> consumer) {
         this.pathManagerSupplier = pathManagerSupplier;
@@ -78,7 +77,7 @@ class InstMgrService implements Service {
         this.customPatchPath = homeDir.resolve(InstMgrConstants.CUSTOM_PATCH_SUBPATH);
 
         // Properties file used to send information to the launch scripts
-        this.propertiesPath = homeDir.resolve("bin").resolve("installation-manager.properties");
+        Path propertiesPath = homeDir.resolve("bin").resolve("installation-manager.properties");
 
         this.candidateStatus.initialize(propertiesPath, prepareServerPath);
         try {
@@ -96,13 +95,13 @@ class InstMgrService implements Service {
 
     @Override
     public void stop(StopContext context) {
+        started.set(false);
         this.pathManager = null;
         try {
             deleteTempDirs();
         } catch (IOException e) {
             InstMgrLogger.ROOT_LOGGER.error(e);
         }
-        started.set(false);
         consumer.accept(null);
     }
 
