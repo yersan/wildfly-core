@@ -43,13 +43,12 @@ public class InstMgrCleanHandler extends InstMgrOperationStepHandler {
     static final String OPERATION_NAME = "clean";
     protected static final AttributeDefinition LIST_UPDATES_WORK_DIR = SimpleAttributeDefinitionBuilder.create(InstMgrConstants.LIST_UPDATES_WORK_DIR, ModelType.STRING)
             .setRequired(false)
-            .setAlternatives(InstMgrConstants.CUSTOM_PATCH)
+            .setAlternatives(InstMgrConstants.CLEAN_CUSTOM_PATCH_MANIFEST)
             .setStorageRuntime()
             .build();
 
-    protected static final AttributeDefinition CUSTOM_PATCH = SimpleAttributeDefinitionBuilder.create(InstMgrConstants.CUSTOM_PATCH, ModelType.BOOLEAN)
+    protected static final AttributeDefinition MANIFEST_GA = SimpleAttributeDefinitionBuilder.create(InstMgrConstants.CLEAN_CUSTOM_PATCH_MANIFEST, ModelType.STRING)
             .setRequired(false)
-            .setDefaultValue(ModelNode.FALSE)
             .setAlternatives(InstMgrConstants.LIST_UPDATES_WORK_DIR)
             .setStorageRuntime()
             .build();
@@ -57,7 +56,7 @@ public class InstMgrCleanHandler extends InstMgrOperationStepHandler {
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, InstMgrResolver.RESOLVER)
             .withFlags(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
             .addParameter(LIST_UPDATES_WORK_DIR)
-            .addParameter(CUSTOM_PATCH)
+            .addParameter(MANIFEST_GA)
             .setRuntimeOnly()
             .build();
 
@@ -68,15 +67,16 @@ public class InstMgrCleanHandler extends InstMgrOperationStepHandler {
     @Override
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
         final String listUpdatesWorkDir = LIST_UPDATES_WORK_DIR.resolveModelAttribute(context, operation).asStringOrNull();
-        final boolean customPatch = CUSTOM_PATCH.resolveModelAttribute(context, operation).asBoolean();
+        final String manifestGA = MANIFEST_GA.resolveModelAttribute(context, operation).asStringOrNull();
         context.addStep(new OperationStepHandler() {
             @Override
             public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
                 context.acquireControllerLock();
                 try {
-                    if (customPatch) {
+                    if (manifestGA != null) {
+                        final String translatedManifestGA =  manifestGA.replace(":", "_");
                         final Path serverHome = imService.getHomeDir();
-                        final Path baseTargetDir = imService.getCustomPatchDir();
+                        final Path baseTargetDir = imService.getCustomPatchDir(translatedManifestGA);
 
                         final MavenOptions mavenOptions = new MavenOptions(null, false);
                         final InstallationManager im = imf.create(serverHome, mavenOptions);
@@ -87,7 +87,7 @@ public class InstMgrCleanHandler extends InstMgrOperationStepHandler {
                         final Collection<Channel> exitingChannels = im.listChannels();
                         for (Channel channel : exitingChannels) {
                             String name = channel.getName();
-                            if (channel.getName().equals(InstMgrConstants.DEFAULT_CUSTOM_CHANNEL_NAME)) {
+                            if (channel.getName().equals(InstMgrConstants.DEFAULT_CUSTOM_CHANNEL_NAME_PREFIX + translatedManifestGA)) {
                                 im.removeChannel(name);
 
                                 break;

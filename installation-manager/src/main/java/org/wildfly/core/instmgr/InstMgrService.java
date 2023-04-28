@@ -159,9 +159,9 @@ class InstMgrService implements Service {
         return homeDir;
     }
 
-    Path getCustomPatchDir() throws IllegalStateException {
+    Path getCustomPatchDir(String manifestGav) throws IllegalStateException {
         checkStarted();
-        return customPatchPath;
+        return customPatchPath.resolve(manifestGav);
     }
 
     Path getPreparedServerDir() throws IllegalStateException {
