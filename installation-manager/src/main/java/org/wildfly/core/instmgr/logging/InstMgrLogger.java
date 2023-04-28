@@ -18,7 +18,6 @@
 
 package org.wildfly.core.instmgr.logging;
 
-import java.nio.file.Path;
 import java.util.zip.ZipException;
 
 import org.jboss.as.controller.OperationFailedException;
@@ -89,15 +88,6 @@ public interface InstMgrLogger extends BasicLogger {
 
     @Message(id = 18, value = "Channel with name '%s' cannot be found.")
     OperationFailedException channelNameNotFound(String channelName);
-
-    @Message(id = 19, value = "The path '%s' does not exit on the target server file system.")
-    OperationFailedException exportPathDoesNotExist(Path path);
-
-    @Message(id = 20, value = "The path '%s' is not writable on the target server file system. Check permissions on the target file system.")
-    OperationFailedException exportPathIsNotWritable(Path path);
-
-    @Message(id = 21, value = "Could not find a path called '%s'")
-    OperationFailedException pathEntryNotFound(String relativeToPath);
 
     @Message(id = 22, value = "The manifest GAV coordinate '%s' is invalid.")
     OperationFailedException invalidManifestGAV(String gav);

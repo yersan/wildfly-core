@@ -23,9 +23,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,6 +38,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.jboss.as.cli.Util;
@@ -140,7 +141,7 @@ public class InstallationManagerIntegrationTestCase extends AbstractCliTestBase 
 
     @Test
     public void requireHost() {
-        final List<String> commands = List.of("update", "clean", "revert", "history", "clone-export --path test",
+        final List<String> commands = List.of("update", "clean", "revert", "history",
                 "channel-list", "channel-add --channel-name test --manifest test --repositories test",
                 "channel-edit --channel-name test --manifest test --repositories test",
                 "channel-remove --channel-name test",
@@ -182,7 +183,7 @@ public class InstallationManagerIntegrationTestCase extends AbstractCliTestBase 
     }
 
     @Test
-    public void _a_listChannel() {
+    public void _a_listChannel() throws IOException {
         cli.sendLine("installer channel-list --host=primary");
         String output = cli.readOutput();
 
@@ -203,7 +204,7 @@ public class InstallationManagerIntegrationTestCase extends AbstractCliTestBase 
     }
 
     @Test
-    public void _b_addChannel() throws MalformedURLException {
+    public void _b_addChannel() throws IOException {
         String channelName = "test-primary";
         String manifestGavOrUrl = "group:artifact:primary-1.0.0.Final";
         String repoStr = "https://primary.com";
@@ -330,7 +331,7 @@ public class InstallationManagerIntegrationTestCase extends AbstractCliTestBase 
     }
 
     @Test
-    public void _f_testHistory() {
+    public void _f_testHistory() throws IOException {
         String host = "secondary";
         cli.sendLine("installer history --host=" + host);
         String output = cli.readOutput();
@@ -366,50 +367,29 @@ public class InstallationManagerIntegrationTestCase extends AbstractCliTestBase 
     }
 
     @Test
-    public void testCreateSnapShot() {
+    public void testCreateSnapShot() throws IOException {
         String host = "primary";
-        Path exportPath = Paths.get(testSupport.getDomainPrimaryConfiguration().getJbossHome());
-        Path expectedExport = exportPath.resolve("generated.zip");
+        Path exportPath = TARGET_DIR.normalize().toAbsolutePath().resolve("generated.zip");
         try {
-            cli.sendLine("installer clone-export --path=" + exportPath + " --host=" + host);
+            cli.sendLine("attachment save --operation=/host=" + host + "/core-service=installer:clone-export() --file=" + exportPath);
             String output = cli.readOutput();
-            String expected = "Installation metadata was exported to [" + expectedExport + "]";
+            String expected = "File saved to " + exportPath;
             assertEquals(expected, output);
-            assertTrue("The file with the created snapshot does not exit at " + expectedExport, expectedExport.toFile().exists());
-        } finally {
-            File expectedExportFile = expectedExport.toFile();
-            if (expectedExportFile.exists()) {
-                expectedExportFile.delete();
-            }
-        }
 
-        host = "secondary";
-        exportPath = Paths.get(testSupport.getDomainPrimaryConfiguration().getJbossHome()).resolve("test-export.zip");
-        expectedExport = exportPath;
-        try {
-            cli.sendLine("installer clone-export --path=" + exportPath + " --host=" + host);
-            String output = cli.readOutput();
-            String expected = "Installation metadata was exported to [" + exportPath + "]";
-            assertEquals(expected, output);
-            assertTrue("The file with the created snapshot does not exit at " + expectedExport, expectedExport.toFile().exists());
-        } finally {
-            File expectedExportFile = expectedExport.toFile();
-            if (expectedExportFile.exists()) {
-                expectedExportFile.delete();
+            boolean found = false;
+            try (ZipInputStream zis = new ZipInputStream(new FileInputStream(exportPath.toFile()))) {
+                ZipEntry entry;
+                while ((entry = zis.getNextEntry()) != null) {
+                    String entryName = entry.getName();
+                    if (entryName.startsWith("installation-manager-test-") && entryName.endsWith(".tmp")) {
+                        found = true;
+                        break;
+                    }
+                }
             }
-        }
-
-        host = "primary";
-        String exportPathStr = "test-export.zip";
-        expectedExport = Paths.get(testSupport.getDomainPrimaryConfiguration().getDomainDirectory()).resolve("configuration").resolve("test-export.zip");
-        File expectedExportFile = expectedExport.toFile();
-        try {
-            cli.sendLine("installer clone-export --path=" + exportPathStr + " --host=" + host + " --relative-to=jboss.domain.config.dir");
-            String output = cli.readOutput();
-            String expected = "Installation metadata was exported to [" + expectedExport + "]";
-            assertEquals(expected, output);
-            assertTrue("The file with the created snapshot does not exit at " + expectedExport, expectedExportFile.exists());
+            Assert.assertTrue("Cannot found the expected entry added by the TestInstallationManager.java in the clone export Zip result", found);
         } finally {
+            File expectedExportFile = exportPath.toFile();
             if (expectedExportFile.exists()) {
                 expectedExportFile.delete();
             }

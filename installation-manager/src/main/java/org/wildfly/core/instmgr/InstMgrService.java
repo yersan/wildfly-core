@@ -33,10 +33,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import org.jboss.as.controller.services.path.AbsolutePathService;
 import org.jboss.as.controller.services.path.PathManager;
 import org.jboss.logging.Logger;
-import org.jboss.modules.PathUtils;
 import org.jboss.msc.Service;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
@@ -55,6 +53,8 @@ class InstMgrService implements Service {
     private Path homeDir;
     private Path customPatchPath;
     private Path prepareServerPath;
+
+    private Path controllerTempDir;
     private final ConcurrentMap<String, Path> tempDirs = new ConcurrentHashMap<>();
     private final InstMgrCandidateStatus candidateStatus;
 
@@ -69,9 +69,10 @@ class InstMgrService implements Service {
         this.pathManager = pathManagerSupplier.get();
         this.homeDir = Path.of(this.pathManager.getPathEntry("jboss.home.dir").resolvePath());
 
+        this.controllerTempDir = Paths.get(pathManager.getPathEntry("jboss.controller.temp.dir").resolvePath());
+
         // Where we are going to store the prepared installations before applying them
-        this.prepareServerPath = Paths.get(pathManager.getPathEntry("jboss.controller.temp.dir").resolvePath())
-                .resolve(InstMgrConstants.PREPARED_SERVER_SUBPATH);
+        this.prepareServerPath = controllerTempDir.resolve(InstMgrConstants.PREPARED_SERVER_SUBPATH);
 
         // Where we are going to store the custom patch repositories
         this.customPatchPath = homeDir.resolve(InstMgrConstants.CUSTOM_PATCH_SUBPATH);
@@ -103,12 +104,6 @@ class InstMgrService implements Service {
             InstMgrLogger.ROOT_LOGGER.error(e);
         }
         consumer.accept(null);
-    }
-
-    Path resolvePath(String path, String relativeTo) {
-        checkStarted();
-        String relativeToPath = AbsolutePathService.isAbsoluteUnixOrWindowsPath(path) ? null : relativeTo;
-        return Paths.get(PathUtils.canonicalize(pathManager.resolveRelativePathEntry(path, relativeToPath))).normalize();
     }
 
     Path createTempDir(String workDirPrefix) throws IOException {
@@ -197,5 +192,10 @@ class InstMgrService implements Service {
 
     InstMgrCandidateStatus.Status getCandidateStatus() throws IOException {
         return this.candidateStatus.getStatus();
+    }
+
+    public Path getControllerTempDir() {
+        checkStarted();
+        return controllerTempDir;
     }
 }

@@ -18,15 +18,16 @@
 
 package org.wildfly.core.instmgr;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ATTACHED_STREAMS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILURE_DESCRIPTION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INCLUDE_RUNTIME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OPERATIONS;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PATH;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_DESCRIPTION_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RECURSIVE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESPONSE_HEADERS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
 
@@ -457,15 +458,9 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
     public void testCreateSnapShot() throws Exception {
         PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
         ModelNode op = Util.createEmptyOperation(InstMgrCreateSnapshotHandler.OPERATION_NAME, pathElements);
-        op.get(PATH).set(JBOSS_HOME.toString());
 
-        ModelNode result = executeForResult(op);
-        Assert.assertTrue(result.asString().contains(JBOSS_HOME.resolve("generated.zip").toString()));
-
-        op.get(PATH).set(JBOSS_HOME.resolve("customFile.zip").toString());
-
-        result = executeForResult(op);
-        Assert.assertTrue(result.asString().contains(JBOSS_HOME.resolve("customFile.zip").toString()));
+        ModelNode response = executeCheckNoFailure(op);
+        Assert.assertTrue("the response of the clone-export management operation did not return a stream in the response headers.", response.hasDefined(RESPONSE_HEADERS, ATTACHED_STREAMS));
     }
 
     @Test
