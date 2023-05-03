@@ -21,6 +21,8 @@ package org.wildfly.core.instmgr;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ATTACHED_STREAMS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FILESYSTEM_PATH;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -35,6 +37,7 @@ import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
+import org.jboss.as.controller.SimpleListAttributeDefinition;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.dmr.ModelNode;
@@ -52,11 +55,15 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
     static final String OPERATION_NAME = "prepare-updates";
 
     protected static final AttributeDefinition MAVEN_REPO_FILE = SimpleAttributeDefinitionBuilder.create(InstMgrConstants.MAVEN_REPO_FILE, ModelType.INT)
-            .setRequired(false)
             .setStorageRuntime()
-            .setRuntimeServiceNotRequired()
+            .setRequired(false)
             .addArbitraryDescriptor(FILESYSTEM_PATH, ModelNode.TRUE)
             .addArbitraryDescriptor(ATTACHED_STREAMS, ModelNode.TRUE)
+            .build();
+
+    protected static final AttributeDefinition MAVEN_REPO_FILES =  new SimpleListAttributeDefinition.Builder(InstMgrConstants.MAVEN_REPO_FILES, MAVEN_REPO_FILE)
+            .setStorageRuntime()
+            .setRequired(false)
             .setAlternatives(InstMgrConstants.LIST_UPDATES_WORK_DIR, InstMgrConstants.REPOSITORIES)
             .build();
 
@@ -64,14 +71,14 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
             .setRequired(false)
             .setStorageRuntime()
             .addArbitraryDescriptor(FILESYSTEM_PATH, ModelNode.TRUE)
-            .setAlternatives(InstMgrConstants.MAVEN_REPO_FILE, InstMgrConstants.REPOSITORIES)
+            .setAlternatives(InstMgrConstants.MAVEN_REPO_FILES, InstMgrConstants.REPOSITORIES)
             .build();
 
     protected static final AttributeDefinition REPOSITORIES = new ObjectListAttributeDefinition.Builder(InstMgrConstants.REPOSITORIES, REPOSITORY)
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
             .setRequired(false)
-            .setAlternatives(InstMgrConstants.LIST_UPDATES_WORK_DIR, InstMgrConstants.MAVEN_REPO_FILE)
+            .setAlternatives(InstMgrConstants.LIST_UPDATES_WORK_DIR, InstMgrConstants.MAVEN_REPO_FILES)
             .build();
 
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, InstMgrResolver.RESOLVER)
@@ -79,7 +86,7 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
             .addParameter(REPOSITORIES)
             .addParameter(LOCAL_CACHE)
             .addParameter(NO_RESOLVE_LOCAL_CACHE)
-            .addParameter(MAVEN_REPO_FILE)
+            .addParameter(MAVEN_REPO_FILES)
             .addParameter(LIST_UPDATES_WORK_DIR)
             .withFlags(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
             .setRuntimeOnly()
@@ -95,7 +102,7 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
         final String pathLocalRepo = LOCAL_CACHE.resolveModelAttribute(context, operation).asStringOrNull();
         final boolean noResolveLocalCache = NO_RESOLVE_LOCAL_CACHE.resolveModelAttribute(context, operation).asBoolean(false);
         final Path localRepository = pathLocalRepo != null ? Path.of(pathLocalRepo) : null;
-        final Integer mavenRepoFileIndex = MAVEN_REPO_FILE.resolveModelAttribute(context, operation).asIntOrNull();
+        final List<ModelNode> mavenRepoFileIndexes = MAVEN_REPO_FILES.resolveModelAttribute(context, operation).asListOrEmpty();
         final List<ModelNode> repositoriesMn = REPOSITORIES.resolveModelAttribute(context, operation).asListOrEmpty();
         final String listUpdatesWorkDir = LIST_UPDATES_WORK_DIR.resolveModelAttribute(context, operation).asStringOrNull();
 
@@ -103,11 +110,11 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
             throw InstMgrLogger.ROOT_LOGGER.localCacheWithNoResolveLocalCache();
         }
 
-        if (listUpdatesWorkDir != null && (!repositoriesMn.isEmpty() || mavenRepoFileIndex != null)) {
+        if (listUpdatesWorkDir != null && (!repositoriesMn.isEmpty() || !mavenRepoFileIndexes.isEmpty())) {
             throw InstMgrLogger.ROOT_LOGGER.workDirWithMavenRepoFileOrRepositories();
         }
 
-        if (mavenRepoFileIndex != null && !repositoriesMn.isEmpty()) {
+        if (!mavenRepoFileIndexes.isEmpty() && !repositoriesMn.isEmpty()) {
             throw InstMgrLogger.ROOT_LOGGER.mavenRepoFileWithRepositories();
         }
 
@@ -137,14 +144,28 @@ public class InstMgrPrepareUpdateHandler extends AbstractInstMgrUpdateHandler {
                         Path uploadedRepoZipRootDir = getUploadedMvnRepoRoot(mvnRepoWorkDir);
                         Repository uploadedMavenRepo = new Repository("id0", uploadedRepoZipRootDir.toUri().toString());
                         repositories = List.of(uploadedMavenRepo);
-
-                    } else if (mavenRepoFileIndex != null) {
+                    } else if (!mavenRepoFileIndexes.isEmpty()) {
                         // We are uploading a Maven Zip Repository, unzip it in a system temp directory
                         final Path prepareUpdateWorkDir = imService.createTempDir("prepare-updates-");
                         addCompleteStep(context, imService, prepareUpdateWorkDir.getFileName().toString());
 
-                        try (InputStream is = context.getAttachmentStream(mavenRepoFileIndex)) {
-                            unzip(is, prepareUpdateWorkDir);
+                        for (ModelNode indexMn : mavenRepoFileIndexes) {
+                            int index = indexMn.asInt();
+                            // save and unzip the file in the target dir
+                            // Using directly the Operation input stream unzipping without saving it previously to disk seems to be problematic
+                            try (InputStream is = context.getAttachmentStream(index)) {
+                                Path tempFile = Files.createTempFile(prepareUpdateWorkDir, "prepare-updates-offline-maven-repo-", ".zip");
+                                FileOutputStream outputStream = new FileOutputStream(tempFile.toFile());
+                                byte[] buffer = new byte[1024];
+
+                                int bytesRead;
+                                while ((bytesRead = is.read(buffer)) != -1) {
+                                    outputStream.write(buffer, 0, bytesRead);
+                                }
+                                try(FileInputStream fileIs = new FileInputStream(tempFile.toFile())) {
+                                    unzip(fileIs, prepareUpdateWorkDir);
+                                }
+                            }
                         }
                         Path uploadedRepoZipRootDir = getUploadedMvnRepoRoot(prepareUpdateWorkDir);
                         Repository uploadedMavenRepo = new Repository("id0", uploadedRepoZipRootDir.toUri().toString());

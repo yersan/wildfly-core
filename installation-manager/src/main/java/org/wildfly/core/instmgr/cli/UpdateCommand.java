@@ -22,6 +22,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Set;
 
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
@@ -55,8 +56,8 @@ public class UpdateCommand extends AbstractInstMgrCommand {
     private boolean noResolveLocalCache;
     @Option(name = "offline", hasValue = false)
     private boolean offline;
-    @Option(name = "maven-repo-file")
-    private File mavenRepoFile;
+    @OptionList(name = "maven-repo-files")
+    private List<File> mavenRepoFiles;
 
     @Option(converter = HeadersConverter.class, completer = HeadersCompleter.class)
     public ModelNode headers;
@@ -78,7 +79,7 @@ public class UpdateCommand extends AbstractInstMgrCommand {
                 .setNoResolveLocalCache(noResolveLocalCache)
                 .setLocalCache(localCache)
                 .setRepositories(repositories)
-                .setMavenRepoFile(mavenRepoFile)
+                .setMavenRepoFiles(mavenRepoFiles)
                 .setOffline(offline)
                 .setHeaders(headers);
 

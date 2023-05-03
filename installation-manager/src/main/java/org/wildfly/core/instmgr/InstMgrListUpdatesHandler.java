@@ -21,19 +21,25 @@ package org.wildfly.core.instmgr;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ATTACHED_STREAMS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FILESYSTEM_PATH;
 
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.zip.ZipException;
 
 import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.ListAttributeDefinition;
 import org.jboss.as.controller.ObjectListAttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
+import org.jboss.as.controller.SimpleListAttributeDefinition;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.dmr.ModelNode;
@@ -56,13 +62,18 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
             .setRequired(false)
             .addArbitraryDescriptor(FILESYSTEM_PATH, ModelNode.TRUE)
             .addArbitraryDescriptor(ATTACHED_STREAMS, ModelNode.TRUE)
+            .build();
+
+    protected static final AttributeDefinition MAVEN_REPO_FILES =  new SimpleListAttributeDefinition.Builder(InstMgrConstants.MAVEN_REPO_FILES, MAVEN_REPO_FILE)
+            .setStorageRuntime()
+            .setRequired(false)
             .setAlternatives(InstMgrConstants.REPOSITORIES)
             .build();
 
     protected static final AttributeDefinition REPOSITORIES = new ObjectListAttributeDefinition.Builder(InstMgrConstants.REPOSITORIES, REPOSITORY)
             .setStorageRuntime()
             .setRequired(false)
-            .setAlternatives(InstMgrConstants.MAVEN_REPO_FILE)
+            .setAlternatives(InstMgrConstants.MAVEN_REPO_FILES)
             .build();
 
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, InstMgrResolver.RESOLVER)
@@ -70,7 +81,7 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
             .addParameter(REPOSITORIES)
             .addParameter(LOCAL_CACHE)
             .addParameter(NO_RESOLVE_LOCAL_CACHE)
-            .addParameter(MAVEN_REPO_FILE)
+            .addParameter(MAVEN_REPO_FILES)
             .withFlags(OperationEntry.Flag.HOST_CONTROLLER_ONLY)
             .setRuntimeOnly()
             .build();
@@ -85,14 +96,14 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
         final String pathLocalRepo = LOCAL_CACHE.resolveModelAttribute(context, operation).asStringOrNull();
         final boolean noResolveLocalCache = NO_RESOLVE_LOCAL_CACHE.resolveModelAttribute(context, operation).asBoolean(false);
         final Path localRepository = pathLocalRepo != null ? Path.of(pathLocalRepo) : null;
-        final Integer mavenRepoFileIndex = MAVEN_REPO_FILE.resolveModelAttribute(context, operation).asIntOrNull();
+        final List<ModelNode> mavenRepoFileIndexes = MAVEN_REPO_FILES.resolveModelAttribute(context, operation).asListOrEmpty();
         final List<ModelNode> repositoriesMn = REPOSITORIES.resolveModelAttribute(context, operation).asListOrEmpty();
 
         if (pathLocalRepo != null && noResolveLocalCache) {
             throw InstMgrLogger.ROOT_LOGGER.localCacheWithNoResolveLocalCache();
         }
 
-        if (mavenRepoFileIndex != null && !repositoriesMn.isEmpty()) {
+        if (!mavenRepoFileIndexes.isEmpty() && !repositoriesMn.isEmpty()) {
             throw InstMgrLogger.ROOT_LOGGER.mavenRepoFileWithRepositories();
         }
 
@@ -120,10 +131,25 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
                     });
 
                     final List<Repository> repositories;
-                    if (mavenRepoFileIndex != null) {
-                        // save and unzip the file in the target dir for custom patches
-                        try (InputStream is = context.getAttachmentStream(mavenRepoFileIndex)) {
-                            unzip(is, listUpdatesWorkDir);
+                    if (!mavenRepoFileIndexes.isEmpty()) {
+                        for (ModelNode indexMn : mavenRepoFileIndexes) {
+                            int index = indexMn.asInt();
+
+                            // save and unzip the file in the target dir
+                            // Using directly the Operation input stream unzipping without saving it previously to disk seems to be problematic
+                            try (InputStream is = context.getAttachmentStream(index)) {
+                                Path tempFile = Files.createTempFile(listUpdatesWorkDir, "list-updates-offline-maven-repo-", ".zip");
+                                FileOutputStream outputStream = new FileOutputStream(tempFile.toFile());
+                                byte[] buffer = new byte[1024];
+
+                                int bytesRead;
+                                while ((bytesRead = is.read(buffer)) != -1) {
+                                    outputStream.write(buffer, 0, bytesRead);
+                                }
+                                try(FileInputStream fileIs = new FileInputStream(tempFile.toFile())) {
+                                    unzip(fileIs, listUpdatesWorkDir);
+                                }
+                            }
                         }
                         Path uploadedMvnRepoRoot = getUploadedMvnRepoRoot(listUpdatesWorkDir);
                         Repository uploadedMavenRepo = new Repository("id0", uploadedMvnRepoRoot.toUri().toString());
@@ -159,7 +185,7 @@ public class InstMgrListUpdatesHandler extends AbstractInstMgrUpdateHandler {
                             }
                             updatesMn.add(artifactChangeMn);
                         }
-                        if (mavenRepoFileIndex != null) {
+                        if (!mavenRepoFileIndexes.isEmpty()) {
                             resultValue.get(InstMgrConstants.LIST_UPDATES_RESULT).set(updatesMn);
                             resultValue.get(InstMgrConstants.LIST_UPDATES_WORK_DIR).set(listUpdatesWorkDir.getFileName().toString());
                         } else {
