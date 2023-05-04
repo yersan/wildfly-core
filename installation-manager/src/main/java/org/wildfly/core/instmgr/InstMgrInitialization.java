@@ -18,10 +18,12 @@
 
 package org.wildfly.core.instmgr;
 
+import static org.jboss.as.controller.AbstractControllerService.EXECUTOR_CAPABILITY;
 import static org.jboss.as.controller.AbstractControllerService.PATH_MANAGER_CAPABILITY;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
 
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -95,7 +97,9 @@ public final class InstMgrInitialization implements ModelControllerServiceInitia
         ServiceBuilder<?> serviceBuilder = target.addService(serviceName);
         Consumer<InstMgrService> consumer = serviceBuilder.provides(serviceName);
         Supplier<PathManager> pathManagerSupplier = serviceBuilder.requires(PATH_MANAGER_CAPABILITY.getCapabilityServiceName());
-        InstMgrService imService = new InstMgrService(pathManagerSupplier, consumer);
+        Supplier<ExecutorService> executorSupplier  = serviceBuilder.requires(EXECUTOR_CAPABILITY.getCapabilityServiceName());
+
+        InstMgrService imService = new InstMgrService(pathManagerSupplier, executorSupplier, consumer);
         serviceBuilder.setInstance(imService).setInitialMode(ServiceController.Mode.PASSIVE)
                 .install();
 

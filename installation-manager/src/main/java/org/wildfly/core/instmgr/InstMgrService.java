@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -48,6 +49,7 @@ class InstMgrService implements Service {
     private static final Logger LOG = Logger.getLogger(InstMgrService.class);
     private final Supplier<PathManager> pathManagerSupplier;
     private final Consumer<InstMgrService> consumer;
+    private final Supplier<ExecutorService> executorSupplier;
     private PathManager pathManager;
     private final AtomicBoolean started = new AtomicBoolean(false);
     private Path homeDir;
@@ -57,16 +59,19 @@ class InstMgrService implements Service {
     private Path controllerTempDir;
     private final ConcurrentMap<String, Path> tempDirs = new ConcurrentHashMap<>();
     private final InstMgrCandidateStatus candidateStatus;
+    private ExecutorService executor;
 
-    InstMgrService(Supplier<PathManager> pathManagerSupplier, Consumer<InstMgrService> consumer) {
+    InstMgrService(Supplier<PathManager> pathManagerSupplier, Supplier<ExecutorService> executorSupplier, Consumer<InstMgrService> consumer) {
         this.pathManagerSupplier = pathManagerSupplier;
         this.candidateStatus = new InstMgrCandidateStatus();
+        this.executorSupplier = executorSupplier;
         this.consumer = consumer;
     }
 
     @Override
     public void start(StartContext startContext) throws StartException {
         this.pathManager = pathManagerSupplier.get();
+        this.executor = executorSupplier.get();
         this.homeDir = Path.of(this.pathManager.getPathEntry("jboss.home.dir").resolvePath());
 
         this.controllerTempDir = Paths.get(pathManager.getPathEntry("jboss.controller.temp.dir").resolvePath());
@@ -194,8 +199,12 @@ class InstMgrService implements Service {
         return this.candidateStatus.getStatus();
     }
 
-    public Path getControllerTempDir() {
+    Path getControllerTempDir() {
         checkStarted();
         return controllerTempDir;
+    }
+
+    public ExecutorService getExecutor() {
+        return executor;
     }
 }
