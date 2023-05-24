@@ -43,9 +43,11 @@ import static org.jboss.as.server.deployment.scanner.CommonAttributes.SCAN_INTER
 
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 import java.util.Collections;
 import java.util.List;
 
+import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.parsing.ParseUtils;
 import org.jboss.as.controller.persistence.SubsystemMarshallingContext;
@@ -156,7 +158,7 @@ class DeploymentScannerParser_2_0 implements XMLStreamConstants, XMLElementReade
                     break;
                 }
                 case NAME: {
-                    name = DeploymentScannerDefinition.NAME.getParser().parse(DeploymentScannerDefinition.NAME,value,reader).asString();
+                    name = parse(DeploymentScannerDefinition.NAME,value,reader).asString();
                     break;
                 }
                 case RELATIVE_TO: {
@@ -206,4 +208,7 @@ class DeploymentScannerParser_2_0 implements XMLStreamConstants, XMLElementReade
         list.add(operation);
     }
 
+    private static ModelNode parse(AttributeDefinition ad, String value, XMLStreamReader reader) throws XMLStreamException {
+        return ad.getParser().parse(ad, value, reader);
+    }
 }

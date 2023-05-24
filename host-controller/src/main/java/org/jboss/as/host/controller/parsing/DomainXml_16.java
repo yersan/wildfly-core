@@ -67,7 +67,9 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
+import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.HashUtil;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
@@ -819,13 +821,13 @@ final class DomainXml_16 extends CommonXml implements ManagementXmlDelegate {
 
             final Attribute attribute = Attribute.forName(reader.getAttributeLocalName(i));
             if (attribute == Attribute.PROVIDER) {
-                ModelNode provider = AccessAuthorizationResourceDefinition.PROVIDER.getParser().parse(AccessAuthorizationResourceDefinition.PROVIDER, value, reader);
+                ModelNode provider = parse(AccessAuthorizationResourceDefinition.PROVIDER, value, reader);
                 ModelNode op = Util.getWriteAttributeOperation(accAuthzAddr,
                         AccessAuthorizationResourceDefinition.PROVIDER.getName(), provider);
 
                 operationsList.add(op);
             } else if (attribute == Attribute.USE_IDENTITY_ROLES) {
-                ModelNode useIdentityRoles = AccessAuthorizationResourceDefinition.USE_IDENTITY_ROLES.getParser().parse(AccessAuthorizationResourceDefinition.USE_IDENTITY_ROLES, value, reader);
+                ModelNode useIdentityRoles = parse(AccessAuthorizationResourceDefinition.USE_IDENTITY_ROLES, value, reader);
                 ModelNode op = Util.getWriteAttributeOperation(accAuthzAddr,
                         AccessAuthorizationResourceDefinition.USE_IDENTITY_ROLES.getName(), useIdentityRoles);
 

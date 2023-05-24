@@ -41,9 +41,12 @@ import java.util.EnumSet;
 import java.util.List;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
+import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.parsing.ParseUtils;
@@ -211,7 +214,7 @@ class RemotingSubsystem11Parser extends RemotingSubsystem10Parser implements XML
                     break;
                 }
                 case USERNAME: {
-                    username = RemoteOutboundConnectionResourceDefinition.USERNAME.getParser().parse(RemoteOutboundConnectionResourceDefinition.USERNAME, value, reader);
+                    username = parse(RemoteOutboundConnectionResourceDefinition.USERNAME, value, reader);
                     break;
                 }
                 case SECURITY_REALM: {
@@ -382,4 +385,7 @@ class RemotingSubsystem11Parser extends RemotingSubsystem10Parser implements XML
         return addOperation;
     }
 
+    protected static ModelNode parse(AttributeDefinition ad, String value, XMLStreamReader reader) throws XMLStreamException {
+        return ad.getParser().parse(ad, value, reader);
+    }
 }

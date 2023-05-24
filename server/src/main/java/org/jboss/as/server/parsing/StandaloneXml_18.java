@@ -174,13 +174,12 @@ final class StandaloneXml_18 extends CommonXml implements ManagementXmlDelegate 
                     final Attribute attribute = Attribute.forName(reader.getAttributeLocalName(i));
                     switch (attribute) {
                         case NAME: {
-                            serverName = ServerRootResourceDefinition.NAME.getParser().parse(ServerRootResourceDefinition.NAME, value, reader);
+                            serverName = parse(ServerRootResourceDefinition.NAME, value, reader);
                             break;
                         }
                         case ORGANIZATION: {
                             setOrganization(address, list,
-                                    ServerRootResourceDefinition.ORGANIZATION_IDENTIFIER.getParser()
-                                            .parse(ServerRootResourceDefinition.ORGANIZATION_IDENTIFIER, value, reader));
+                                    parse(ServerRootResourceDefinition.ORGANIZATION_IDENTIFIER, value, reader));
                             break;
                         }
                         default:
