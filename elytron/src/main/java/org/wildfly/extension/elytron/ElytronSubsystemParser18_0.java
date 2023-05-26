@@ -33,6 +33,11 @@ public class ElytronSubsystemParser18_0 extends ElytronSubsystemParser17_0 {
     }
 
     @Override
+    PersistentResourceXMLDescription getAuditLoggingParser() {
+        return new AuditLoggingParser().parser18_0;
+    }
+
+    @Override
     PersistentResourceXMLDescription getRealmParser() {
         return new RealmParser().realmParser_18;
     }

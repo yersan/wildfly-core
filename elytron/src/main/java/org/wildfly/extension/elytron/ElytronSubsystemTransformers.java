@@ -159,12 +159,28 @@ public final class ElytronSubsystemTransformers implements ExtensionTransformerR
 
     private static void from18(ChainedTransformationDescriptionBuilder chainedBuilder) {
         ResourceTransformationDescriptionBuilder builder = chainedBuilder.createBuilder(ELYTRON_18_0_0, ELYTRON_17_0_0);
+
+        builder.addChildResource(PathElement.pathElement(ElytronDescriptionConstants.FILE_AUDIT_LOG))
+        .getAttributeBuilder()
+        .addRejectCheck(RejectAttributeChecker.DEFINED, ElytronDescriptionConstants.ENCODING)
+        .setDiscard(DiscardAttributeChecker.UNDEFINED, AuditResourceDefinitions.ENCODING)
+        .end();
+        builder.addChildResource(PathElement.pathElement(ElytronDescriptionConstants.PERIODIC_ROTATING_FILE_AUDIT_LOG))
+        .getAttributeBuilder()
+        .addRejectCheck(RejectAttributeChecker.DEFINED, ElytronDescriptionConstants.ENCODING)
+        .setDiscard(DiscardAttributeChecker.UNDEFINED, AuditResourceDefinitions.ENCODING)
+        .end();
+        builder.addChildResource(PathElement.pathElement(ElytronDescriptionConstants.SIZE_ROTATING_FILE_AUDIT_LOG))
+        .getAttributeBuilder()
+        .addRejectCheck(RejectAttributeChecker.DEFINED, ElytronDescriptionConstants.ENCODING)
+        .setDiscard(DiscardAttributeChecker.UNDEFINED, AuditResourceDefinitions.ENCODING)
+        .end();
         builder.addChildResource(PathElement.pathElement(DISTRIBUTED_REALM))
-                .getAttributeBuilder()
-                .setDiscard(DiscardAttributeChecker.UNDEFINED, IGNORE_UNAVAILABLE_REALMS)
-                .setDiscard(DiscardAttributeChecker.UNDEFINED, EMIT_EVENTS)
-                .addRejectCheck(new RejectAttributeChecker.SimpleRejectAttributeChecker(ModelNode.TRUE), IGNORE_UNAVAILABLE_REALMS)
-                .addRejectCheck(RejectAttributeChecker.DEFINED, EMIT_EVENTS);
+        .getAttributeBuilder()
+        .setDiscard(DiscardAttributeChecker.UNDEFINED, IGNORE_UNAVAILABLE_REALMS)
+        .setDiscard(DiscardAttributeChecker.UNDEFINED, EMIT_EVENTS)
+        .addRejectCheck(new RejectAttributeChecker.SimpleRejectAttributeChecker(ModelNode.TRUE), IGNORE_UNAVAILABLE_REALMS)
+        .addRejectCheck(RejectAttributeChecker.DEFINED, EMIT_EVENTS);
     }
 
     private static void from17(ChainedTransformationDescriptionBuilder chainedBuilder) {
