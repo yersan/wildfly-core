@@ -22,7 +22,10 @@
 
 package org.jboss.as.cli.handlers;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
@@ -317,6 +320,13 @@ public class ShutdownHandler extends BaseOperationCommand {
      * @throws CommandLineException
      */
     protected boolean isLocalClientLaunch(CommandContext ctx) throws CommandLineException {
+        final String jbossHome = WildFlySecurityManager.getPropertyPrivileged("JBOSS_HOME", null);
+        final String clientMarkerData = WildFlySecurityManager.getPropertyPrivileged("CLIENT_MARKER", null);
+        if (jbossHome == null || clientMarkerData == null) {
+            // We have not been able to initialize the client marker value, so we assume the most restrictive case
+            return true;
+        }
+
         final ModelNode op = new ModelNode();
         final ParsedCommandLine args = ctx.getParsedCommandLine();
         final ModelControllerClient client = ctx.getModelControllerClient();
@@ -344,15 +354,24 @@ public class ShutdownHandler extends BaseOperationCommand {
             throw new CommandLineException("Failed to read attribute " + Util.HOME_DIR
                     + ": " + Util.getFailureDescription(response));
         }
+
         ModelNode result = response.get(Util.RESULT);
         if(!result.isDefined()) {
             throw new CommandLineException("The result is not defined for attribute " + Util.HOME_DIR + ": " + result);
         }
 
-        final String jbossHome = WildFlySecurityManager.getEnvPropertyPrivileged("JBOSS_HOME", null);
-        return jbossHome != null && Paths.get(jbossHome).normalize().toAbsolutePath().equals(
-                Paths.get(result.asString()).normalize().toAbsolutePath()
-        );
+        final Path remoteJbossHome = Paths.get(result.asString()).normalize().toAbsolutePath();
+        if (Paths.get(jbossHome).normalize().toAbsolutePath().equals(remoteJbossHome)) {
+            Path cliMarker = remoteJbossHome.resolve("bin").resolve("cli-marker");
+            try (BufferedReader reader = new BufferedReader(new FileReader(cliMarker.toFile()))) {
+                String line = reader.readLine();
+                return line != null && clientMarkerData.equals(line);
+            } catch (IOException e) {
+                return true;
+            }
+        } else {
+            return true;
+        }
     }
 
     protected void setBooleanArgument(final ParsedCommandLine args, final ModelNode op, ArgumentWithValue arg, String paramName)

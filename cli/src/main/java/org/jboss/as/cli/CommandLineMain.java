@@ -21,7 +21,12 @@
 */
 package org.jboss.as.cli;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Locale;
@@ -32,6 +37,7 @@ import org.jboss.as.cli.impl.CliLauncher;
 import org.jboss.logmanager.Configurator;
 import org.jboss.logmanager.LogContext;
 import org.jboss.logmanager.PropertyConfigurator;
+import org.wildfly.security.manager.WildFlySecurityManager;
 
 
 /**
@@ -41,6 +47,7 @@ import org.jboss.logmanager.PropertyConfigurator;
 public class CommandLineMain {
 
     public static void main(String[] args) throws Exception {
+        createClientMarker();
         configureLogManager(args);
         CliLauncher.main(args);
     }
@@ -150,5 +157,30 @@ public class CommandLineMain {
         properties.setProperty("formatter.PATTERN.pattern", "%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c] (%t) %s%e%n");
         properties.setProperty("formatter.PATTERN.properties", "pattern");
         return properties;
+    }
+
+    /**
+     * Creates a file marker under JBOSS_HOME/bin directory. This is used by the installation manager to understand from where we have 
+     * launched this are using a CLI client instance.
+     */
+    private static void createClientMarker() {
+        try {
+            final String jbossHome = WildFlySecurityManager.getPropertyPrivileged("JBOSS_HOME", null);
+            if (jbossHome != null) {
+                final Path cliMarkerPath = Paths.get(jbossHome).resolve("bin").resolve("cli-marker");
+                Files.deleteIfExists(cliMarkerPath);
+                Files.createFile(cliMarkerPath);
+
+                final File cliMarkerFile = cliMarkerPath.toFile();
+                cliMarkerFile.deleteOnExit();
+                final String data = String.valueOf(System.currentTimeMillis());
+                try (FileWriter writer = new FileWriter(cliMarkerFile, true)) {
+                    writer.write(data);
+                }
+                WildFlySecurityManager.setPropertyPrivileged("CLIENT_MARKER", data);
+            }
+        } catch (Throwable e) {
+            // explicitly ignore this.
+        }
     }
 }
