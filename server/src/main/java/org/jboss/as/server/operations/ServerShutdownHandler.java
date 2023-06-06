@@ -32,7 +32,11 @@ import static org.jboss.as.server.controller.resources.ServerRootResourceDefinit
 import static org.jboss.as.server.controller.resources.ServerRootResourceDefinition.TIMEOUT;
 import static org.jboss.as.server.controller.resources.ServerRootResourceDefinition.renameTimeoutToSuspendTimeout;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -186,6 +190,17 @@ public class ServerShutdownHandler implements OperationStepHandler {
                         }
                     }
                 });
+
+                // check the presence of a client marker and if so, returns its value
+                Path cliMarker = environment.getHomeDir().toPath().resolve("bin").resolve("cli-marker");
+                try (BufferedReader reader = new BufferedReader(new FileReader(cliMarker.toFile()))) {
+                    String line = reader.readLine();
+                    if (line != null) {
+                        context.getResult().set("cli-marker-value", line);
+                    }
+                } catch (IOException e) {
+                    // explicitly ignored
+                }
             }
         }, OperationContext.Stage.RUNTIME);
     }

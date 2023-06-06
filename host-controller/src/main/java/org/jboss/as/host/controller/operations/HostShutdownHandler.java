@@ -24,7 +24,11 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_CONFIG;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SHUTDOWN;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -176,6 +180,16 @@ public class HostShutdownHandler implements OperationStepHandler {
                         }
                     }
                 });
+                // check the presence of a client marker and if so, returns its value
+                Path cliMarker = environment.getHomeDir().toPath().resolve("bin").resolve("cli-marker");
+                try (BufferedReader reader = new BufferedReader(new FileReader(cliMarker.toFile()))) {
+                    String line = reader.readLine();
+                    if (line != null) {
+                        context.getResult().set("cli-marker-value", line);
+                    }
+                } catch (IOException e) {
+                    // explicitly ignored
+                }
             }
         }, OperationContext.Stage.RUNTIME);
     }

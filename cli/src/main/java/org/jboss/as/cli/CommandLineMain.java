@@ -165,7 +165,7 @@ public class CommandLineMain {
      */
     private static void createClientMarker() {
         try {
-            final String jbossHome = WildFlySecurityManager.getPropertyPrivileged("JBOSS_HOME", null);
+            final String jbossHome = WildFlySecurityManager.getEnvPropertyPrivileged("JBOSS_HOME", null);
             if (jbossHome != null) {
                 final Path cliMarkerPath = Paths.get(jbossHome).resolve("bin").resolve("cli-marker");
                 Files.deleteIfExists(cliMarkerPath);
