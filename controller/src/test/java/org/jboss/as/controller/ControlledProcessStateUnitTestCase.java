@@ -77,4 +77,206 @@ public class ControlledProcessStateUnitTestCase {
 
     }
 
+    @Test
+    public void testRestartRequiredRequiresRestart_OnStarting() {
+
+        ControlledProcessState state = new ControlledProcessState(true);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRestartRequired();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+
+        // Now simulate a :reload
+        state.setStopping();
+        state.setStarting();
+        state.setRunning();
+
+        // Validate the RESTART_REQUIRED state still pertains
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+
+    }
+
+    @Test
+    public void test_restartRequired_OnStarting() {
+        ControlledProcessState state = new ControlledProcessState(true);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRestartRequired();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+    }
+
+    @Test
+    public void test_revert_restartRequired_OnStarting() {
+        ControlledProcessState state = new ControlledProcessState(true);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        Object stamp = state.setRestartRequired();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.revertRestartRequired(stamp);
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RUNNING, state.getState());
+    }
+
+    @Test
+    public void test_revert_restartRequired_OnStarting_OnRunning() {
+        ControlledProcessState state = new ControlledProcessState(true);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        Object stamp = state.setRestartRequired();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+        state.revertRestartRequired(stamp);
+        Assert.assertEquals(ControlledProcessState.State.RUNNING, state.getState());
+    }
+
+    @Test
+    public void test_reloadRequired_OnStarting() {
+        ControlledProcessState state = new ControlledProcessState(true);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setReloadRequired();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RELOAD_REQUIRED, state.getState());
+
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RELOAD_REQUIRED, state.getState());
+    }
+
+    @Test
+    public void test_revert_reloadRequired_OnStarting() {
+        ControlledProcessState state = new ControlledProcessState(true);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        Object stamp = state.setReloadRequired();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.revertReloadRequired(stamp);
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RUNNING, state.getState());
+    }
+
+    @Test
+    public void test_revert_reloadRequired_OnStarting_OnRunning() {
+        ControlledProcessState state = new ControlledProcessState(true);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        Object stamp = state.setReloadRequired();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RELOAD_REQUIRED, state.getState());
+        state.revertReloadRequired(stamp);
+        Assert.assertEquals(ControlledProcessState.State.RUNNING, state.getState());
+    }
+
+    @Test
+    public void test_reloadRequired_notSupported_OnStarting() {
+        ControlledProcessState state = new ControlledProcessState(false);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setReloadRequired();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+    }
+
+    @Test
+    public void test_revert_reloadRequired_notSupported_OnStarting() {
+        ControlledProcessState state = new ControlledProcessState(false);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        Object stamp = state.setReloadRequired();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.revertReloadRequired(stamp);
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RUNNING, state.getState());
+    }
+
+    @Test
+    public void test_revert_reloadRequired__notSupported_OnStarting_OnRunning() {
+        ControlledProcessState state = new ControlledProcessState(false);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        Object stamp = state.setReloadRequired();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+        state.revertReloadRequired(stamp);
+        Assert.assertEquals(ControlledProcessState.State.RUNNING, state.getState());
+    }
+
+    @Test
+    public void testNormalStartStop() {
+        ControlledProcessState state = new ControlledProcessState(true);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RUNNING, state.getState());
+        state.setStopping();
+        Assert.assertEquals(ControlledProcessState.State.STOPPING, state.getState());
+        state.setStopped();
+        Assert.assertEquals(ControlledProcessState.State.STOPPED, state.getState());
+    }
+
+    @Test
+    public void test_reloadRequired_OnRestartRequired() {
+        ControlledProcessState state = new ControlledProcessState(true);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RUNNING, state.getState());
+        state.setRestartRequired();
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+        state.setReloadRequired();
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+    }
+
+    @Test
+    public void test_reloadRequired_OnRestartRequired_OnStarting() {
+        ControlledProcessState state = new ControlledProcessState(true);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRestartRequired();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setReloadRequired();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+    }
+
+    @Test
+    public void test_reloadRequired_OnRestartRequired_OnStarting_OnRunning() {
+        ControlledProcessState state = new ControlledProcessState(true);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRestartRequired();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+        state.setReloadRequired();
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+    }
+
+    @Test
+    public void test_reloadRequired_OnRestartRequired_OnRunning() {
+        ControlledProcessState state = new ControlledProcessState(true);
+        state.setStarting();
+        Assert.assertEquals(ControlledProcessState.State.STARTING, state.getState());
+        state.setRunning();
+        Assert.assertEquals(ControlledProcessState.State.RUNNING, state.getState());
+        state.setRestartRequired();
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+        state.setReloadRequired();
+        Assert.assertEquals(ControlledProcessState.State.RESTART_REQUIRED, state.getState());
+    }
 }
