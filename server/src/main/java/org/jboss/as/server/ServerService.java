@@ -451,6 +451,18 @@ public final class ServerService extends AbstractControllerService {
     }
 
     protected void finishBoot(boolean suspend) throws ConfigurationPersistenceException {
+        if ("server-one".equals(configuration.getServerEnvironment().getServerName())) {
+            System.out.println("Waiting server for finishing the booting up");
+            int timeout = Integer.parseInt(System.getProperty("TIMEOUT", "0"));
+            for (int i=0; i <timeout; i++) {
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
         super.finishBoot();
         if (!suspend) {
             suspendController.resume();

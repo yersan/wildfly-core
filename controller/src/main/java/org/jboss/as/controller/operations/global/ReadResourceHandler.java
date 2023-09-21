@@ -49,6 +49,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.jboss.as.controller.AttributeDefinition;
@@ -280,6 +281,17 @@ public class ReadResourceHandler extends GlobalOperationHandlers.AbstractMultiTa
                         }
                         if (getChild) {
                             nonExistentChildTypes.remove(childType);
+                            if (childReg.getPathAddress().getLastElement().getKey().equals("server")) {
+                                System.out.println("Waiting reading recursive");
+                                int timeout = Integer.parseInt(System.getProperty("TIMEOUT", "0"));
+                                for (int i=0; i <timeout; i++) {
+                                    try {
+                                        TimeUnit.SECONDS.sleep(1);
+                                    } catch (InterruptedException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                }
+                            }
                             // WFCORE-76
                             GlobalOperationHandlers.setNextRecursive(context, operation, rrOp);
                             rrOp.get(ModelDescriptionConstants.PROXIES).set(proxies);
