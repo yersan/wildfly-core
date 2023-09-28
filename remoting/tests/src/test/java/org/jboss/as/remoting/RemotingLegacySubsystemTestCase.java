@@ -49,7 +49,6 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceTarget;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.wildfly.extension.io.IOServices;
 import org.wildfly.extension.io.WorkerService;
@@ -133,7 +132,6 @@ public class RemotingLegacySubsystemTestCase extends AbstractRemotingSubsystemBa
     }
 
     @Test
-    @Ignore("https://issues.redhat.com/browse/WFCORE-5386")
     public void testSubsystemWithConnectorPropertyChange() throws Exception {
         KernelServices services = createKernelServicesBuilder(createRuntimeAdditionalInitialization(false))
                 .setSubsystemXmlResource("remoting-with-connector.xml")
