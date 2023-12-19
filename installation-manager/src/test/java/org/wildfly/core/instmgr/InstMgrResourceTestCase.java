@@ -482,7 +482,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
         ModelNode op = Util.createEmptyOperation(InstMgrListUpdatesHandler.OPERATION_NAME, pathElements);
         op.get(InstMgrConstants.OFFLINE).set(true);
-        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(true);
+        op.get(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE).set(false);
 
         ModelNode response = executeForResult(op);
         verifyListUpdatesResult(response, false);
@@ -493,7 +493,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
 
         op = Util.createEmptyOperation(InstMgrListUpdatesHandler.OPERATION_NAME, pathElements);
         op.get(InstMgrConstants.OFFLINE).set(false);
-        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(false);
+        op.get(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE).set(true);
 
         response = executeForResult(op);
         verifyListUpdatesResult(response, false);
@@ -525,11 +525,11 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
     }
 
     @Test
-    public void listUpdatesCannotUseLocalCacheWithNoResolveLocalCache() throws OperationFailedException {
+    public void listUpdatesCannotUseLocalCacheWithUseDefaultLocalCache() throws OperationFailedException {
         PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
         Path localCache = Paths.get("dummy").resolve("something");
         ModelNode op = Util.createEmptyOperation(InstMgrListUpdatesHandler.OPERATION_NAME, pathElements);
-        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(true);
+        op.get(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE).set(true);
         op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.toString());
 
         ModelNode failed = executeCheckForFailure(op);
@@ -538,6 +538,15 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
                 getCauseLogFailure(failed.get(FAILURE_DESCRIPTION).asString(), expectedCode),
                 failed.get(FAILURE_DESCRIPTION).asString().startsWith(expectedCode)
         );
+
+        op = Util.createEmptyOperation(InstMgrListUpdatesHandler.OPERATION_NAME, pathElements);
+        op.get(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE).set(false);
+        op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.toString());
+
+        executeForResult(op);
+
+        Assert.assertFalse(TestInstallationManagerFactory.mavenOptions.isOffline());
+        Assert.assertEquals(localCache, TestInstallationManagerFactory.mavenOptions.getLocalRepository());
     }
 
     @Test
@@ -717,7 +726,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
         PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
         ModelNode op = Util.createEmptyOperation(InstMgrPrepareUpdateHandler.OPERATION_NAME, pathElements);
         op.get(InstMgrConstants.OFFLINE).set(true);
-        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(true);
+        op.get(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE).set(false);
 
         ModelNode response = executeForResult(op);
         Assert.assertEquals(instMgrService.getPreparedServerDir().toString(), response.asString());
@@ -731,7 +740,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
 
         op = Util.createEmptyOperation(InstMgrPrepareUpdateHandler.OPERATION_NAME, pathElements);
         op.get(InstMgrConstants.OFFLINE).set(false);
-        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(false);
+        op.get(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE).set(true);
 
         response = executeForResult(op);
         Assert.assertEquals(instMgrService.getPreparedServerDir().toString(), response.asString());
@@ -769,11 +778,11 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
     }
 
     @Test
-    public void prepareUpdatesCannotUseLocalCacheWithNoResolveLocalCache() throws OperationFailedException {
+    public void prepareUpdatesCannotUseLocalCacheWithUseDefaultLocalCache() throws OperationFailedException {
         PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
         Path localCache = Paths.get("dummy").resolve("something");
         ModelNode op = Util.createEmptyOperation(InstMgrPrepareUpdateHandler.OPERATION_NAME, pathElements);
-        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(true);
+        op.get(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE).set(true);
         op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.toString());
 
         ModelNode failed = executeCheckForFailure(op);
@@ -782,6 +791,15 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
                 getCauseLogFailure(failed.get(FAILURE_DESCRIPTION).asString(), expectedCode),
                 failed.get(FAILURE_DESCRIPTION).asString().startsWith(expectedCode)
         );
+
+        op = Util.createEmptyOperation(InstMgrPrepareUpdateHandler.OPERATION_NAME, pathElements);
+        op.get(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE).set(false);
+        op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.toString());
+
+        executeForResult(op);
+
+        Assert.assertFalse(TestInstallationManagerFactory.mavenOptions.isOffline());
+        Assert.assertEquals(localCache, TestInstallationManagerFactory.mavenOptions.getLocalRepository());
     }
 
     @Test
@@ -1000,12 +1018,12 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
     }
 
     @Test
-    public void prepareRevertCannotUseLocalCacheWithNoResolveLocalCache() throws OperationFailedException {
+    public void prepareRevertCannotUseLocalCacheWithUseDefaultLocalCache() throws OperationFailedException {
         PathAddress pathElements = PathAddress.pathAddress(CORE_SERVICE, InstMgrConstants.TOOL_NAME);
         Path localCache = Paths.get("dummy").resolve("something");
         ModelNode op = Util.createEmptyOperation(InstMgrPrepareRevertHandler.OPERATION_NAME, pathElements);
         op.get(InstMgrConstants.REVISION).set("aaaabbbb");
-        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(true);
+        op.get(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE).set(true);
         op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.toString());
 
         ModelNode failed = executeCheckForFailure(op);
@@ -1017,7 +1035,7 @@ public class InstMgrResourceTestCase extends AbstractControllerTestBase {
 
         op = Util.createEmptyOperation(InstMgrPrepareRevertHandler.OPERATION_NAME, pathElements);
         op.get(InstMgrConstants.REVISION).set("aaaabbbb");
-        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(false);
+        op.get(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE).set(false);
         op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.toString());
 
         executeForResult(op);

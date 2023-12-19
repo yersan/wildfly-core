@@ -25,7 +25,7 @@ public class PrepareUpdateAction extends AbstractInstMgrCommand {
     private final List<File> mavenRepoFiles;
     private final List<String> repositories;
     private final Path localCache;
-    private final boolean noResolveLocalCache;
+    private final boolean useDefaultLocalCache;
 
     private final Path listUpdatesWorkDir;
 
@@ -37,7 +37,7 @@ public class PrepareUpdateAction extends AbstractInstMgrCommand {
         this.mavenRepoFiles = builder.mavenRepoFiles;
         this.repositories = builder.repositories;
         this.localCache = builder.localCache;
-        this.noResolveLocalCache = builder.noResolveLocalCache;
+        this.useDefaultLocalCache = builder.useDefaultLocalCache;
         this.listUpdatesWorkDir = builder.listUpdatesWorkDir;
         this.offline = builder.offline;
         this.headers = builder.headers;
@@ -65,7 +65,7 @@ public class PrepareUpdateAction extends AbstractInstMgrCommand {
             op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.normalize().toAbsolutePath().toString());
         }
 
-        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(noResolveLocalCache);
+        op.get(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE).set(useDefaultLocalCache);
         op.get(InstMgrConstants.OFFLINE).set(offline);
 
         if (listUpdatesWorkDir != null) {
@@ -86,13 +86,13 @@ public class PrepareUpdateAction extends AbstractInstMgrCommand {
         private List<String> repositories;
         private Path localCache;
 
-        private boolean noResolveLocalCache;
+        private boolean useDefaultLocalCache;
         private Path listUpdatesWorkDir;
 
         public Builder() {
             this.repositories = new ArrayList<>();
             this.offline = false;
-            this.noResolveLocalCache = false;
+            this.useDefaultLocalCache = false;
             this.mavenRepoFiles = new ArrayList<>();
         }
 
@@ -115,8 +115,8 @@ public class PrepareUpdateAction extends AbstractInstMgrCommand {
             return this;
         }
 
-        public Builder setNoResolveLocalCache(boolean noResolveLocalCache) {
-            this.noResolveLocalCache = noResolveLocalCache;
+        public Builder setUseDefaultLocalCache(boolean useDefaultLocalCache) {
+            this.useDefaultLocalCache = useDefaultLocalCache;
             return this;
         }
 

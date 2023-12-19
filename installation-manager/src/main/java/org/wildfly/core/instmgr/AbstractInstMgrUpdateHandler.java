@@ -63,10 +63,10 @@ abstract class AbstractInstMgrUpdateHandler extends InstMgrOperationStepHandler 
             .addArbitraryDescriptor(FILESYSTEM_PATH, ModelNode.TRUE)
             .setMinSize(1)
             .setRequired(false)
-            .setAlternatives(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE)
+            .setAlternatives(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE)
             .build();
 
-    protected static final AttributeDefinition NO_RESOLVE_LOCAL_CACHE = SimpleAttributeDefinitionBuilder.create(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE, ModelType.BOOLEAN)
+    protected static final AttributeDefinition USE_DEFAULT_LOCAL_CACHE = SimpleAttributeDefinitionBuilder.create(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE, ModelType.BOOLEAN)
             .setStorageRuntime()
             .setRuntimeServiceNotRequired()
             .setDefaultValue(ModelNode.FALSE)

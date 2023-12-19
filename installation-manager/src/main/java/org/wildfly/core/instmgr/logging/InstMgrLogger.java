@@ -51,8 +51,8 @@ public interface InstMgrLogger extends BasicLogger {
     @Message(id = 10, value = "The manifest URL '%s' for '%s' channel is invalid.")
     OperationFailedException invalidChannelManifestURL(String url, String channelName);
 
-    @Message(id = 11, value = "You cannot use the 'local-cache' option when the 'no-resolve-local-cache' option is enabled.")
-    OperationFailedException localCacheWithNoResolveLocalCache();
+    @Message(id = 11, value = "You cannot use the 'local-cache' option when the 'use-default-local-cache' option is enabled.")
+    OperationFailedException localCacheWithUseDefaultLocalCache();
 
     @Message(id = 12, value = "You cannot use the 'maven-repo-file' option with the 'repositories' option because they are mutually exclusive.")
     OperationFailedException mavenRepoFileWithRepositories();

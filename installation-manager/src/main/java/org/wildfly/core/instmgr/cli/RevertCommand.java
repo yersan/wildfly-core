@@ -33,8 +33,8 @@ public class RevertCommand extends AbstractInstMgrCommand {
     private List<String> repositories;
     @Option(name = "local-cache")
     private File localCache;
-    @Option(name = "no-resolve-local-cache", hasValue = false)
-    private boolean noResolveLocalCache;
+    @Option(name = "use-default-local-cache", hasValue = false)
+    private boolean useDefaultLocalCache;
     @Option(name = "offline", hasValue = false)
     private boolean offline;
     @OptionList(name = "maven-repo-files")
@@ -83,7 +83,7 @@ public class RevertCommand extends AbstractInstMgrCommand {
             op.get(InstMgrConstants.LOCAL_CACHE).set(localCache.toPath().normalize().toAbsolutePath().toString());
         }
 
-        op.get(InstMgrConstants.NO_RESOLVE_LOCAL_CACHE).set(noResolveLocalCache);
+        op.get(InstMgrConstants.USE_DEFAULT_LOCAL_CACHE).set(useDefaultLocalCache);
         op.get(InstMgrConstants.OFFLINE).set(offline);
 
         if (revision != null) {

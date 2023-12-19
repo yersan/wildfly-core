@@ -38,8 +38,8 @@ public class UpdateCommand extends AbstractInstMgrCommand {
     private List<String> repositories;
     @Option(name = "local-cache")
     private File localCache;
-    @Option(name = "no-resolve-local-cache", hasValue = false)
-    private boolean noResolveLocalCache;
+    @Option(name = "use-default-local-cache", hasValue = false)
+    private boolean useDefaultLocalCache;
     @Option(name = "offline", hasValue = false)
     private boolean offline;
     @OptionList(name = "maven-repo-files")
@@ -62,7 +62,7 @@ public class UpdateCommand extends AbstractInstMgrCommand {
         }
 
         ListUpdatesAction.Builder listUpdatesCmdBuilder = new ListUpdatesAction.Builder()
-                .setNoResolveLocalCache(noResolveLocalCache)
+                .setUseDefaultLocalCache(useDefaultLocalCache)
                 .setLocalCache(localCache)
                 .setRepositories(repositories)
                 .setMavenRepoFiles(mavenRepoFiles)
@@ -119,7 +119,7 @@ public class UpdateCommand extends AbstractInstMgrCommand {
                 commandInvocation.println("\nThe new installation is being prepared ...\n");
                 // trigger an prepare-update
                 PrepareUpdateAction.Builder prepareUpdateActionBuilder = new PrepareUpdateAction.Builder()
-                        .setNoResolveLocalCache(noResolveLocalCache)
+                        .setUseDefaultLocalCache(useDefaultLocalCache)
                         .setLocalCache(localCache)
                         .setRepositories(repositories)
                         .setOffline(offline)
