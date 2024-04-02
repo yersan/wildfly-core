@@ -66,6 +66,7 @@ public class ProductConfig implements Serializable {
                 Module module = loader.loadModule(productConfProps.productModuleId);
 
                 manifestStream = module.getClassLoader().getResourceAsStream("META-INF/MANIFEST.MF");
+                assert manifestStream != null;
                 Manifest manifest = null;
                 if (manifestStream != null) {
                     manifest = new Manifest(manifestStream);
