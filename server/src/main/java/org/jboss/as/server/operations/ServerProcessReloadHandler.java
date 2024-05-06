@@ -61,7 +61,12 @@ public class ServerProcessReloadHandler extends ServerEnvironmentAwareProcessRel
             .setAlternatives(ModelDescriptionConstants.ADMIN_ONLY)
             .setDefaultValue(new ModelNode(StartMode.NORMAL.toString())).build();
 
-    private static final AttributeDefinition[] STANDARD_ATTRIBUTES = new AttributeDefinition[] {ADMIN_ONLY, USE_CURRENT_SERVER_CONFIG, SERVER_CONFIG, START_MODE};
+    protected static final AttributeDefinition STABILITY = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.STABILITY, ModelType.STRING, true)
+            .setStability(Stability.PREVIEW)
+            .setValidator(EnumValidator.create(Stability.class))
+            .build();
+
+    private static final AttributeDefinition[] STANDARD_ATTRIBUTES = new AttributeDefinition[] {ADMIN_ONLY, USE_CURRENT_SERVER_CONFIG, SERVER_CONFIG, START_MODE, STABILITY};
 
 
     private static final OperationDefinition STANDARD_DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, ServerDescriptions.getResourceDescriptionResolver("server"))
@@ -74,8 +79,8 @@ public class ServerProcessReloadHandler extends ServerEnvironmentAwareProcessRel
 
     private static final String ENHANCED_OPERATION_NAME = ModelDescriptionConstants.RELOAD_ENHANCED;
 
-    protected static final AttributeDefinition STABILITY = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.STABILITY, ModelType.STRING, true)
-            .setValidator(EnumValidator.create(Stability.class)).build();
+
+
     private static final AttributeDefinition[] ENHANCED_ATTRIBUTES = new AttributeDefinition[] {ADMIN_ONLY, USE_CURRENT_SERVER_CONFIG, SERVER_CONFIG, START_MODE, STABILITY};
     private static final OperationDefinition ENHANCED_DEFINITION = new SimpleOperationDefinitionBuilder(ENHANCED_OPERATION_NAME, ServerDescriptions.getResourceDescriptionResolver("server"))
                                                                 .setStability(Stability.COMMUNITY)
@@ -119,7 +124,7 @@ public class ServerProcessReloadHandler extends ServerEnvironmentAwareProcessRel
         final boolean useCurrentConfig = unmanaged && USE_CURRENT_SERVER_CONFIG.resolveModelAttribute(context, operation).asBoolean(true);
         final String startMode = START_MODE.resolveModelAttribute(context, operation).asString();
 
-        final Stability stability;
+        final Stability stability ;
         if (additionalAttributes.contains(ModelDescriptionConstants.STABILITY) && operation.hasDefined(ModelDescriptionConstants.STABILITY)) {
             String val = STABILITY.resolveModelAttribute(context, operation).asString();
             stability = Stability.fromString(val);
