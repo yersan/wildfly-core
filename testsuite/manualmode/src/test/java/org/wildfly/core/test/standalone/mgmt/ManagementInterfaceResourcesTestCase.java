@@ -7,11 +7,13 @@ package org.wildfly.core.test.standalone.mgmt;
 
 import static org.jboss.as.test.shared.TimeoutUtil.adjust;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.net.Socket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -54,25 +56,35 @@ public class ManagementInterfaceResourcesTestCase {
         runTest(60000, () -> {
             String mgmtAddress = controller.getClient().getMgmtAddress();
             int mgmtPort = controller.getClient().getMgmtPort();
-//            LOG.info("Target address: " + targetAddress);
+            LOG.info(mgmtAddress + ":" + mgmtPort);
             LOG.info(TestSuiteEnvironment.getServerAddress() + ":" + TestSuiteEnvironment.getServerPort());
             SocketAddress targetAddress = new InetSocketAddress(TestSuiteEnvironment.getServerAddress(), TestSuiteEnvironment.getServerPort());
 
 
+            int failedConnections = 0;
             int socketsOpened = 0;
             boolean oneFailed = false;
             Socket[] sockets = new Socket[9];
-            for (int i = 0 ; i < 9 ; i++) {
+            for (int i = 0 ; i < 9 ; ) {
                 LOG.info("Opening socket " + i + " socketsOpened=" + socketsOpened);
                 try {
                     sockets[i] = new Socket();
                     sockets[i].connect(targetAddress, 5000);
 
                     socketsOpened++;
-                } catch (IOException e) {
-                    LOG.log(Level.SEVERE, "Exception opening a socket", e);
+                    i++;
+                } catch (SocketTimeoutException stoe) {
+                    LOG.log(Level.SEVERE, "Probably an expected Socket timeout", stoe);
                     assertTrue("Less sockets than low watermark opened.", socketsOpened > 3);
                     oneFailed = true;
+                    i++;
+                } catch (IOException ioe) {
+                    // A connection error, try again creating a new socket for the same position
+                    failedConnections++;
+                    LOG.log(Level.SEVERE, "Connection error for the Socket at position " + i, ioe);
+                }
+                if (failedConnections > 5) {
+                    fail("Failed connections exceeded 5, aborting test.");
                 }
             }
             assertTrue("Opening of one socket was expected to fail.", oneFailed);
@@ -91,27 +103,39 @@ public class ManagementInterfaceResourcesTestCase {
 
     @Test
     public void testTimeout() throws Exception {
-        runTest(5000, () -> {
+        runTest(10000, () -> {
             String mgmtAddress = controller.getClient().getMgmtAddress();
             int mgmtPort = controller.getClient().getMgmtPort();
             SocketAddress targetAddress = new InetSocketAddress(mgmtAddress, mgmtPort);
 
+            int failedConnections = 0;
             int socketsOpened = 0;
             boolean oneFailed = false;
             Socket[] sockets = new Socket[9];
-            for (int i = 0 ; i < 9 ; i++) {
+            for (int i = 0 ; i < 9 ;) {
+                LOG.info("Opening socket " + i + " socketsOpened=" + socketsOpened);
                 try {
                     sockets[i] = new Socket();
-                    sockets[i].connect(targetAddress, 1000);
+                    sockets[i].connect(targetAddress, 5000);
                     socketsOpened++;
-                } catch (IOException e) {
+                    i++;
+                } catch (SocketTimeoutException stoe) {
+                    LOG.log(Level.SEVERE, "Probably an expected Socket timeout", stoe);
                     assertTrue("Less sockets than low watermark opened.", socketsOpened > 3);
                     oneFailed = true;
+                    i++;
+                } catch (IOException ioe) {
+                    // A connection error, try again creating a new socket for the same position
+                    failedConnections++;
+                    LOG.log(Level.SEVERE, "Connection error for the Socket at position " + i, ioe);
+                }
+                if (failedConnections > 5) {
+                    fail("Failed connections exceeded 5, aborting test.");
                 }
             }
             assertTrue("Opening of one socket was expected to fail.", oneFailed);
 
-            Thread.sleep(adjust(5000)); // We also had 1000ms on the bad socket so we know we are past the timeout.
+            Thread.sleep(adjust(10000)); // We also had 5000ms for each bad socket that triggered a timeout.
 
             Socket goodSocket = new Socket();
             // This needs to be longer than 500ms to give the server time to respond to the closed connections.
