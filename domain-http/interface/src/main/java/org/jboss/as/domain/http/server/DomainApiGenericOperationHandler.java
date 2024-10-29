@@ -188,6 +188,7 @@ class DomainApiGenericOperationHandler implements HttpHandler {
 
     private InputStream convertToStream(FormData.FormValue op) throws IOException {
         if (op.isFile()) {
+            assert false;
             return Files.newInputStream(op.getPath());
         } else {
             return new ByteArrayInputStream(op.getValue().getBytes(StandardCharsets.UTF_8));

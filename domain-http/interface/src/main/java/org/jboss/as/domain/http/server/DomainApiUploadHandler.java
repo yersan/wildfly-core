@@ -54,6 +54,7 @@ class DomainApiUploadHandler implements HttpHandler {
             FormValue value = data.getFirst(fieldName);
             if (value.isFile()) {
                 ModelNode response = null;
+                assert false;
                 InputStream in = new BufferedInputStream(new FileInputStream(value.getPath().toFile()));
                 try {
                     final ModelNode dmr = new ModelNode();
