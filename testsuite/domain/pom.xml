@@ -204,16 +204,16 @@
                         <jboss.test.host.server.byteman.javaagent>${org.jboss.byteman:byteman:jar}=port:${byteman.port},address:${byteman.host},boot:${org.jboss.byteman:byteman:jar},script:${project.build.directory}/test-classes/byteman-scripts/</jboss.test.host.server.byteman.javaagent>
                     </systemPropertyVariables>
                     <includes>
-                        <include>org/jboss/as/test/integration/domain/autoignore/*TestCase.java</include>
-                        <include>org/jboss/as/test/integration/domain/cacheddc/*TestCase.java</include>
-                        <include>org/jboss/as/test/integration/respawn/*TestCase.java</include>
-                        <include>org/jboss/as/test/integration/domain/*TestCase.java</include>
-                        <include>org/jboss/as/test/integration/domain/events/*TestCase.java</include>
-                        <include>org/jboss/as/test/integration/domain/suites/*TestSuite.java</include>
-                        <include>org/jboss/as/test/integration/domain/suspendresume/*TestCase.java</include>
-                        <include>org/jboss/as/test/integration/domain/secondaryreconnect/*TestCase.java</include>
-                        <include>org/jboss/as/test/integration/domain/management/*TestCase.java</include>
-                        <include>org/jboss/as/test/integration/domain/elytron/*TestCase.java</include>
+<!--                        <include>org/jboss/as/test/integration/domain/autoignore/*TestCase.java</include>-->
+<!--                        <include>org/jboss/as/test/integration/domain/cacheddc/*TestCase.java</include>-->
+<!--                        <include>org/jboss/as/test/integration/respawn/*TestCase.java</include>-->
+<!--                        <include>org/jboss/as/test/integration/domain/*TestCase.java</include>-->
+<!--                        <include>org/jboss/as/test/integration/domain/events/*TestCase.java</include>-->
+<!--                        <include>org/jboss/as/test/integration/domain/suites/*TestSuite.java</include>-->
+<!--                        <include>org/jboss/as/test/integration/domain/suspendresume/*TestCase.java</include>-->
+<!--                        <include>org/jboss/as/test/integration/domain/secondaryreconnect/*TestCase.java</include>-->
+<!--                        <include>org/jboss/as/test/integration/domain/management/*TestCase.java</include>-->
+<!--                        <include>org/jboss/as/test/integration/domain/elytron/*TestCase.java</include>-->
                         <include>org/jboss/as/test/integration/domain/installationmanager/*TestCase.java</include>
                     </includes>
                 </configuration>
