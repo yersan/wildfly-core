@@ -18,6 +18,7 @@ import org.jboss.as.controller.capability.registry.RuntimeCapabilityRegistry;
 import org.jboss.as.controller.extension.ExtensionRegistry;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.model.test.ModelTestControllerVersion;
 import org.jboss.as.model.test.ModelTestModelDescriptionValidator.AttributeOrParameterArbitraryDescriptorValidator;
 import org.jboss.as.subsystem.test.ModelDescriptionValidator.ValidationConfiguration;
 import org.jboss.as.version.Stability;
@@ -76,6 +77,10 @@ public class AdditionalInitialization extends AdditionalParsers implements Featu
             this(schema.getStability());
         }
 
+        public ManagementAdditionalInitialization(ModelTestControllerVersion version) {
+            this(version.getStability());
+        }
+
         public ManagementAdditionalInitialization(Stability stability) {
             this.stability = stability;
         }
@@ -110,6 +115,16 @@ public class AdditionalInitialization extends AdditionalParsers implements Featu
         }
     }
 
+    /**
+     * Creates a {@link org.jboss.as.subsystem.test.AdditionalInitialization.ManagementAdditionalInitialization} with
+     * the given {@link org.jboss.as.model.test.ModelTestControllerVersion version} stability level.
+     *
+     * @param version ModelTestController version
+     * @return the additional initialization
+     */
+    public static AdditionalInitialization fromModelTestControllerVersion(ModelTestControllerVersion version) {
+        return new ManagementAdditionalInitialization(version);
+    }
 
     /**
      * Creates a {@link org.jboss.as.subsystem.test.AdditionalInitialization.ManagementAdditionalInitialization} with
@@ -129,6 +144,7 @@ public class AdditionalInitialization extends AdditionalParsers implements Featu
      * the given {@link org.jboss.as.controller.capability.RuntimeCapability capabilities} registered, making it
      * possible for subsystems under test to require them. No runtime API will be available, but that should not
      * be needed for a {@link org.jboss.as.controller.RunningMode#ADMIN_ONLY} test.
+     *
      * @param schema a subsystem schema
      * @param capabilities the capabilities
      * @return the additional initialization
@@ -146,7 +162,7 @@ public class AdditionalInitialization extends AdditionalParsers implements Featu
      * @param capabilities the capabilities
      * @return the additional initialization
      */
-    public static <S extends SubsystemSchema<S>> AdditionalInitialization withCapabilities(Stability stability, String... capabilities) {
+    public static AdditionalInitialization withCapabilities(Stability stability, String... capabilities) {
         return new ManagementAdditionalInitialization(stability) {
             @Override
             protected void initializeExtraSubystemsAndModel(ExtensionRegistry extensionRegistry, Resource rootResource, ManagementResourceRegistration rootRegistration, RuntimeCapabilityRegistry capabilityRegistry) {
