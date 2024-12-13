@@ -44,6 +44,8 @@ import org.jboss.as.server.ServerEnvironment.LaunchType;
 import org.jboss.as.server.controller.resources.ServerDeploymentResourceDefinition;
 import org.jboss.as.subsystem.test.ControllerInitializer.TestControllerAccessor;
 import org.jboss.as.version.ProductConfig;
+import org.jboss.as.version.Stability;
+import org.jboss.as.version.Version;
 import org.jboss.dmr.ModelNode;
 import org.jboss.vfs.VirtualFile;
 
@@ -59,6 +61,7 @@ class TestModelControllerService extends ModelTestModelControllerService impleme
     private final RunningModeControl runningModeControl;
     private final ContentRepository contentRepository = new MockContentRepository();
     private final boolean registerTransformers;
+    private final Stability stability;
 
     protected TestModelControllerService(final Extension mainExtension, final ControllerInitializer controllerInitializer,
                                             final AdditionalInitialization additionalInit, final RunningModeControl runningModeControl,
@@ -68,6 +71,7 @@ class TestModelControllerService extends ModelTestModelControllerService impleme
            super(additionalInit.getProcessType(), additionalInit.getStability(), runningModeControl, extensionRegistry.getTransformerRegistry(), persister, validateOpsFilter,
                    ResourceDefinition.builder(ResourceRegistration.of(null, additionalInit.getStability()), NonResolvingResourceDescriptionResolver.INSTANCE).build(),
                    expressionResolver, new ControlledProcessState(true),capabilityRegistry);
+           this.stability = additionalInit.getStability();
            this.mainExtension = mainExtension;
            this.additionalInit = additionalInit;
            this.controllerInitializer = controllerInitializer;
@@ -145,7 +149,6 @@ class TestModelControllerService extends ModelTestModelControllerService impleme
 
     @Override
     public ServerEnvironment getServerEnvironment() {
-        ProductConfig productConfig = new ProductConfig(null, null, null);
         Properties props = new Properties();
         File home = new File("target/jbossas");
         delete(home);
@@ -167,8 +170,9 @@ class TestModelControllerService extends ModelTestModelControllerService impleme
             throw new RuntimeException(e);
         }
         props.put(ServerEnvironment.JBOSS_SERVER_DEFAULT_CONFIG, "standalone.xml");
-        props.put(ProcessEnvironment.STABILITY, this.additionalInit.getStability().toString());
+        props.put(ProcessEnvironment.STABILITY, this.stability.toString());
 
+        ProductConfig productConfig = new ProductConfig("Standalone-under-test", Version.AS_VERSION, "main", this.stability);
         return new ServerEnvironment(null, props, new HashMap<>(), "standalone.xml", null, LaunchType.STANDALONE, runningModeControl.getRunningMode(), productConfig, false);
     }
 

@@ -14,21 +14,22 @@ import org.jboss.as.core.model.bridge.impl.ClassLoaderObjectConverterImpl;
 import org.jboss.as.core.model.bridge.impl.LegacyControllerKernelServicesProxy;
 import org.jboss.as.core.model.test.LegacyModelInitializerEntry;
 import org.jboss.as.model.test.ModelTestOperationValidatorFilter;
+import org.jboss.as.version.Stability;
 import org.jboss.dmr.ModelNode;
 
 /**
- *
  * @author <a href="kabir.khan@jboss.com">Kabir Khan</a>
  */
 public class ScopedKernelServicesBootstrap {
+    Stability stability;
     ClassLoader legacyChildFirstClassLoader;
     ClassLoaderObjectConverter objectConverter;
 
-    public ScopedKernelServicesBootstrap(ClassLoader legacyChildFirstClassLoader) {
+    public ScopedKernelServicesBootstrap(ClassLoader legacyChildFirstClassLoader, Stability stability) {
         this.legacyChildFirstClassLoader = legacyChildFirstClassLoader;
         this.objectConverter = new ClassLoaderObjectConverterImpl(this.getClass().getClassLoader(), legacyChildFirstClassLoader);
+        this.stability = stability;
     }
-
 
     public LegacyControllerKernelServicesProxy createKernelServices(List<ModelNode> bootOperations, ModelTestOperationValidatorFilter validateOpsFilter, ModelVersion legacyModelVersion, List<LegacyModelInitializerEntry> modelInitializerEntries) throws Exception {
 
@@ -36,36 +37,75 @@ public class ScopedKernelServicesBootstrap {
         return new LegacyControllerKernelServicesProxy(legacyChildFirstClassLoader, childClassLoaderKernelServices, objectConverter);
     }
 
-    private Object createChildClassLoaderKernelServices(List<ModelNode> bootOperations, ModelTestOperationValidatorFilter validateOpsFilter, ModelVersion legacyModelVersion, List<LegacyModelInitializerEntry> modelInitializerEntries){
+    private Object createChildClassLoaderKernelServices(List<ModelNode> bootOperations, ModelTestOperationValidatorFilter validateOpsFilter, ModelVersion legacyModelVersion, List<LegacyModelInitializerEntry> modelInitializerEntries) {
         try {
-            Class<?> clazz = legacyChildFirstClassLoader.loadClass(ChildFirstClassLoaderKernelServicesFactory.class.getName());
+            if (!Stability.DEFAULT.equals(stability)) {
+                Class<?> clazz = legacyChildFirstClassLoader.loadClass(ChildFirstClassLoaderKernelServicesFactory.class.getName());
 
-            Method m = clazz.getMethod("create",
-                    List.class,
-                    legacyChildFirstClassLoader.loadClass(ModelTestOperationValidatorFilter.class.getName()),
-                    legacyChildFirstClassLoader.loadClass(ModelVersion.class.getName()),
-                    List.class);
+                Method m = clazz.getMethod("create",
+                        List.class,
+                        legacyChildFirstClassLoader.loadClass(ModelTestOperationValidatorFilter.class.getName()),
+                        legacyChildFirstClassLoader.loadClass(ModelVersion.class.getName()),
+                        List.class,
+                        String.class);
 
-            List<Object> convertedBootOps = new ArrayList<Object>();
-            for (int i = 0 ; i < bootOperations.size() ; i++) {
-                ModelNode node = bootOperations.get(i);
-                if (node != null) {
-                    convertedBootOps.add(objectConverter.convertModelNodeToChildCl(node));
-                }
+                List<Object> convertedBootOps = getConvertedBootOps(bootOperations);
+                List<Object> convertedModelInitializerEntries = convertModelInitializer(modelInitializerEntries);
+
+                Object convertedValidationFilter = objectConverter.convertValidateOperationsFilterToChildCl(validateOpsFilter);
+                Object convertedLegacyModelVersion = objectConverter.convertModelVersionToChildCl(legacyModelVersion);
+
+                return m.invoke(null,
+                        convertedBootOps,
+                        convertedValidationFilter,
+                        convertedLegacyModelVersion,
+                        convertedModelInitializerEntries,
+                        stability.name());
+            } else {
+                Class<?> clazz = legacyChildFirstClassLoader.loadClass(ChildFirstClassLoaderKernelServicesFactory.class.getName());
+
+                Method m = clazz.getMethod("create",
+                        List.class,
+                        legacyChildFirstClassLoader.loadClass(ModelTestOperationValidatorFilter.class.getName()),
+                        legacyChildFirstClassLoader.loadClass(ModelVersion.class.getName()),
+                        List.class);
+
+                List<Object> convertedBootOps = getConvertedBootOps(bootOperations);
+                List<Object> convertedModelInitializerEntries = convertModelInitializer(modelInitializerEntries);
+
+                Object convertedValidationFilter = objectConverter.convertValidateOperationsFilterToChildCl(validateOpsFilter);
+                Object convertedLegacyModelVersion = objectConverter.convertModelVersionToChildCl(legacyModelVersion);
+
+                return m.invoke(null,
+                        convertedBootOps,
+                        convertedValidationFilter,
+                        convertedLegacyModelVersion,
+                        convertedModelInitializerEntries);
             }
-
-            List<Object> convertedModelInitializerEntries = null;
-            if (modelInitializerEntries != null) {
-                convertedModelInitializerEntries = new ArrayList<Object>();
-                for (LegacyModelInitializerEntry entry : modelInitializerEntries) {
-                    convertedModelInitializerEntries.add(objectConverter.convertLegacyModelInitializerEntryToChildCl(entry));
-                }
-            }
-
-            return m.invoke(null, convertedBootOps, objectConverter.convertValidateOperationsFilterToChildCl(validateOpsFilter), objectConverter.convertModelVersionToChildCl(legacyModelVersion), convertedModelInitializerEntries);
-
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
+
+    private List<Object> convertModelInitializer(List<LegacyModelInitializerEntry> modelInitializerEntries) {
+        List<Object> converted = null;
+        if (modelInitializerEntries != null) {
+            converted = new ArrayList<>();
+            for (LegacyModelInitializerEntry entry : modelInitializerEntries) {
+                converted.add(objectConverter.convertLegacyModelInitializerEntryToChildCl(entry));
+            }
+        }
+        return converted;
+    }
+
+    private List<Object> getConvertedBootOps(List<ModelNode> bootOperations) {
+        List<Object> converted = new ArrayList<>();
+        for (ModelNode node : bootOperations) {
+            if (node != null) {
+                converted.add(objectConverter.convertModelNodeToChildCl(node));
+            }
+        }
+        return converted;
+    }
 }
+
