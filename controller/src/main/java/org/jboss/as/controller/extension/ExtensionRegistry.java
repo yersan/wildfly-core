@@ -233,7 +233,7 @@ public final class ExtensionRegistry implements FeatureRegistry {
     private final JmxAuthorizer authorizer;
     private final Supplier<SecurityIdentity> securityIdentitySupplier;
     private final ConcurrentHashMap<String, SubsystemInformation> subsystemsInfo = new ConcurrentHashMap<>();
-    private volatile TransformerRegistry transformerRegistry = TransformerRegistry.Factory.create();
+    private volatile TransformerRegistry transformerRegistry = TransformerRegistry.Factory.create(Stability.COMMUNITY);
     private final RuntimeHostControllerInfoAccessor hostControllerInfoAccessor;
 
     private ExtensionRegistry(Builder builder) {
