@@ -84,7 +84,7 @@ import org.jboss.as.controller.transform.description.ChainedTransformationDescri
 import org.jboss.as.controller.transform.description.DiscardAttributeChecker;
 import org.jboss.as.controller.transform.description.RejectAttributeChecker;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
-import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
+import org.jboss.as.version.Stability;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.wildfly.security.password.interfaces.ScramDigestPassword;
@@ -104,7 +104,7 @@ public final class ElytronSubsystemTransformers implements ExtensionTransformerR
 
     @Override
     public void registerTransformers(SubsystemTransformerRegistration registration) {
-        ChainedTransformationDescriptionBuilder chainedBuilder = TransformationDescriptionBuilder.Factory.createChainedSubystemInstance(registration.getCurrentSubsystemVersion());
+        ChainedTransformationDescriptionBuilder chainedBuilder = registration.createChainedTransformationDescriptionBuilder();
 
         // 19.0.0 (WildFly 32) to 18.0.0 (WildFly 29)
         from19(chainedBuilder);
@@ -152,7 +152,10 @@ public final class ElytronSubsystemTransformers implements ExtensionTransformerR
     private static void from19(ChainedTransformationDescriptionBuilder chainedBuilder) {
         ResourceTransformationDescriptionBuilder builder = chainedBuilder.createBuilder(ELYTRON_19_0_0, ELYTRON_18_0_0);
 
-        builder.rejectChildResource(PathElement.pathElement(ElytronDescriptionConstants.DYNAMIC_CLIENT_SSL_CONTEXT));
+        // TODO The ResourceRegistration of this resource should be defined in 1 place, not 3 (i.e. ResourceDefinition, PersistentResourceXMLDescription, and here)
+        if (builder.getStability().enables(Stability.COMMUNITY)) {
+            builder.rejectChildResource(PathElement.pathElement(ElytronDescriptionConstants.DYNAMIC_CLIENT_SSL_CONTEXT));
+        }
     }
 
     private static void from18(ChainedTransformationDescriptionBuilder chainedBuilder) {
