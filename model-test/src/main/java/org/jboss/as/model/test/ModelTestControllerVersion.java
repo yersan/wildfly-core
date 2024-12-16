@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.jboss.as.controller.FeatureRegistry;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.version.Stability;
 import org.wildfly.legacy.version.LegacyVersions;
@@ -16,7 +17,7 @@ import org.wildfly.legacy.version.LegacyVersions;
 /**
  * Represents the versions of the legacy controllers that are available for testing.
  */
-public enum ModelTestControllerVersion {
+public enum ModelTestControllerVersion implements FeatureRegistry {
     // Release version under test
     MASTER (CurrentVersion.VERSION, false, null, "master" ),
 
