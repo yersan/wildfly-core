@@ -4,6 +4,9 @@
   -->
 
 <subsystem xmlns="urn:wildfly:elytron:community:18.0">
+    <authentication-client>
+        <authentication-context name="myAC" />
+    </authentication-client>
     <tls>
         <dynamic-client-ssl-contexts>
             <dynamic-client-ssl-context name="dynamicClientSSLContext" authentication-context="myAC"/>

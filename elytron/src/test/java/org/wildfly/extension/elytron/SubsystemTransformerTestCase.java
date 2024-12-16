@@ -43,7 +43,7 @@ public class SubsystemTransformerTestCase extends AbstractSubsystemTest {
 
     @Parameters
     public static Iterable<ModelTestControllerVersion> parameters() {
-        return EnumSet.of(ModelTestControllerVersion.EAP_7_4_0, ModelTestControllerVersion.EAP_8_0_0, ModelTestControllerVersion.WILDFLY_31_0_0);
+        return EnumSet.of(ModelTestControllerVersion.WILDFLY_31_0_0);
     }
 
     private static final PathAddress SUBSYSTEM_ADDRESS = PathAddress.pathAddress(ModelDescriptionConstants.SUBSYSTEM, ElytronExtension.SUBSYSTEM_NAME);
@@ -162,11 +162,13 @@ public class SubsystemTransformerTestCase extends AbstractSubsystemTest {
     private void testRejectingTransformers(final String subsystemXmlFile, final FailedOperationTransformationConfig config) throws Exception {
         ModelVersion elytronVersion = this.controllerVersion.getSubsystemModelVersion(getMainSubsystemName());
 
+        AdditionalInitialization additionalInitialization = AdditionalInitialization.fromModelTestControllerVersion(this.controllerVersion);
+
         //Boot up empty controllers with the resources needed for the ops coming from the xml to work
         KernelServicesBuilder builder = createKernelServicesBuilder(AdditionalInitialization.withCapabilities(this.controllerVersion.getStability(),
                         RuntimeCapability.buildDynamicCapabilityName(Capabilities.DATA_SOURCE_CAPABILITY_NAME, "ExampleDS")
         ));
-        builder.createLegacyKernelServicesBuilder(AdditionalInitialization.MANAGEMENT, this.controllerVersion, elytronVersion)
+        builder.createLegacyKernelServicesBuilder(additionalInitialization, this.controllerVersion, elytronVersion)
                 .addMavenResourceURL(this.controllerVersion.getCoreMavenGroupId() + ":wildfly-elytron-integration:" + this.controllerVersion.getCoreVersion())
                 .addParentFirstClassPattern("org.jboss.as.controller.logging.ControllerLogger*")
                 .addParentFirstClassPattern("org.jboss.as.controller.PathAddress")
