@@ -1,0 +1,12 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<subsystem xmlns="urn:wildfly:elytron:community:18.0">
+    <tls>
+        <dynamic-client-ssl-contexts>
+            <dynamic-client-ssl-context name="dynamicClientSSLContext" authentication-context="myAC"/>
+        </dynamic-client-ssl-contexts>
+    </tls>
+</subsystem>
