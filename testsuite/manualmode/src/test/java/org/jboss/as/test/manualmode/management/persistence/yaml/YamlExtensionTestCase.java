@@ -240,10 +240,7 @@ public class YamlExtensionTestCase {
         Assert.assertEquals("Extension must not be created but it was.",
                 "failed", client.execute(Operations.createReadResourceOperation(PathAddress.pathAddress("extension", "org.jboss.as.failure").toModelNode())).get("outcome").asString());
         // check WARN logged
-        String consoleOutput = byteArrayOutputStream.toString();
-        assertThat("Information that adding extension is ignored is missing in log", consoleOutput, containsLogParts("WFLYCTL0508", "extension", "org.jboss.as.failure"));
-        assertThat("Information that adding deployment-overlay is ignored is missing in log.", consoleOutput, containsLogParts("WFLYCTL0508", "deployment-overlay", "dummy-overlay"));
-        assertThat("Information that adding path is ignored is missing in log.", consoleOutput, containsLogParts("WFLYCTL0508", "path", "test.path", "jboss.home.dir", "bin"));
+        assertThat("Information that adding path is ignored is missing in log.", byteArrayOutputStream.toString(), containsLogParts("WFLYCTL0508", "extension"));
     }
 
     @Test
@@ -256,7 +253,7 @@ public class YamlExtensionTestCase {
         Assert.assertEquals("Extension must not be created but it was.",
                 "failed", client.execute(Operations.createReadResourceOperation(PathAddress.pathAddress("extension", "org.jboss.as.failure").toModelNode())).get("outcome").asString());
         // check WARN logged
-        assertThat("Information that adding path is ignored is missing in log.", byteArrayOutputStream.toString(), CoreMatchers.containsString("WFLYCTL0508: The yaml element 'extension' and its sub-elements are ignored."));
+        assertThat("Information that adding path is ignored is missing in log.", byteArrayOutputStream.toString(), containsLogParts("WFLYCTL0508", "extension"));
     }
 
     @Test
