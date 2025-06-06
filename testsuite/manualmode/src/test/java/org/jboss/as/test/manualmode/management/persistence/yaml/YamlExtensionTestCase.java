@@ -691,4 +691,32 @@ public class YamlExtensionTestCase {
     private static String removeWhiteSpaces(String line) {
         return Pattern.compile("(^\\s*$\\r?\\n)+", Pattern.MULTILINE).matcher(line.stripTrailing()).replaceAll("");
     }
+
+    /**
+     * Hamcrest matcher to assert that a log string contains all required parts (message ID and dynamic substrings) in order.
+     * Usage: assertThat(log, containsLogParts("WFLYCTL0013", "undefine-attribute", "WFLYCTL0201", "asfds"));
+     */
+    private static org.hamcrest.Matcher<String> containsLogParts(String... parts) {
+        StringBuilder regex = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) regex.append(".*");
+            regex.append(java.util.regex.Pattern.quote(parts[i]));
+        }
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex.toString(), java.util.regex.Pattern.DOTALL);
+        return new org.hamcrest.TypeSafeMatcher<String>() {
+            @Override
+            public void describeTo(org.hamcrest.Description description) {
+                description.appendText("a string containing log parts in order: ")
+                           .appendValueList("[", ", ", "]", parts);
+            }
+            @Override
+            protected boolean matchesSafely(String item) {
+                return pattern.matcher(item).find();
+            }
+            @Override
+            protected void describeMismatchSafely(String item, org.hamcrest.Description mismatchDescription) {
+                mismatchDescription.appendText("was ").appendValue(item);
+            }
+        };
+    }
 }
