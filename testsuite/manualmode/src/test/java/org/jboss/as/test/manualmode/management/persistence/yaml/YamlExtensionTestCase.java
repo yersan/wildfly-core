@@ -390,8 +390,9 @@ public class YamlExtensionTestCase {
     public void testReplacingResourceByEmptyResourceLogsWarning() {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         container.startYamlExtension(new PrintStream(byteArrayOutputStream), new Path[]{testReplacingByEmptyResourceYaml});
-        String expectedConsoleOutput = "WARN  [org.jboss.as.controller.management-operation] (Controller Boot Thread) WFLYCTL0490: A YAML resource has been defined for the address /subsystem=logging/periodic-rotating-file-handler=FILE without any attribute. No actions will be taken.";
-        assertThat("If resource exists and is replaced by empty resource then warning must be logged. But there is none.", byteArrayOutputStream.toString(), CoreMatchers.containsString(expectedConsoleOutput));
+        assertThat("If resource exists and is replaced by empty resource then warning must be logged. But there is none.",
+            byteArrayOutputStream.toString(),
+            containsLogParts("WFLYCTL0490", "/subsystem=logging/periodic-rotating-file-handler=FILE", "No actions will be taken"));
     }
 
     @Test
