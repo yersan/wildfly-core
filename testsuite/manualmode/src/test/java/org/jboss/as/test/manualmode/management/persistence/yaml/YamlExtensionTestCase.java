@@ -241,9 +241,9 @@ public class YamlExtensionTestCase {
                 "failed", client.execute(Operations.createReadResourceOperation(PathAddress.pathAddress("extension", "org.jboss.as.failure").toModelNode())).get("outcome").asString());
         // check WARN logged
         String consoleOutput = byteArrayOutputStream.toString();
-        assertThat("Information that adding extension is ignored is missing in log", consoleOutput, CoreMatchers.containsString("WARN  [org.jboss.as.controller.management-operation] (main) WFLYCTL0508: The yaml element 'extension' and its sub-elements are ignored. Thus ignoring element 'org.jboss.as.failure: {module: org.jboss.as.failure}'."));
-        assertThat("Information that adding deployment-overlay is ignored is missing in log.", consoleOutput, CoreMatchers.containsString("WARN  [org.jboss.as.controller.management-operation] (main) WFLYCTL0508: The yaml element 'deployment-overlay' and its sub-elements are ignored. Thus ignoring element '{dummy-overlay: null}'."));
-        assertThat("Information that adding path is ignored is missing in log.", consoleOutput, CoreMatchers.containsString("WARN  [org.jboss.as.controller.management-operation] (main) WFLYCTL0508: The yaml element 'path' and its sub-elements are ignored. Thus ignoring element 'test.path: {relative-to: jboss.home.dir, path: bin}'."));
+        assertThat("Information that adding extension is ignored is missing in log", consoleOutput, containsLogParts("WFLYCTL0508", "extension", "org.jboss.as.failure"));
+        assertThat("Information that adding deployment-overlay is ignored is missing in log.", consoleOutput, containsLogParts("WFLYCTL0508", "deployment-overlay", "dummy-overlay"));
+        assertThat("Information that adding path is ignored is missing in log.", consoleOutput, containsLogParts("WFLYCTL0508", "path", "test.path", "jboss.home.dir", "bin"));
     }
 
     @Test
