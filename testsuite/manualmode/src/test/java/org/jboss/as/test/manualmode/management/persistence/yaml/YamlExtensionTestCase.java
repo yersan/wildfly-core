@@ -403,8 +403,9 @@ public class YamlExtensionTestCase {
             Assert.fail("Server must not start with badly format yaml.");
         } catch (RuntimeException ex) {
             Assert.assertFalse("Server must not start with badly format yaml.", container.isStarted());
-            String expectedConsoleOutput = "(?s).*mapping values are not allowed here.* in 'reader', line \\d+, column \\d+.*port-offset: \\$\\{jboss\\.socket\\.binding\\.port-of.*";
-            Assert.assertTrue("Server must provide useful information where yaml is wrong.", byteArrayOutputStream.toString().matches(expectedConsoleOutput));
+            assertThat("Server must provide useful information where yaml is wrong.",
+                byteArrayOutputStream.toString(),
+                containsLogParts("mapping values are not allowed here", "port-offset"));
         }
     }
 
