@@ -417,9 +417,9 @@ public class YamlExtensionTestCase {
             Assert.fail("Server must not start with non-existent attribute.");
         } catch (RuntimeException ex) {
             Assert.assertFalse("Server must not start with non-existent attribute.", container.isStarted());
-            String expectedConsoleOutput = "ERROR [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0055: Caught exception during boot: java.lang.IllegalArgumentException: "
-                    + "WFLYCTL0509: No attribute called 'non-existent-attribute' is defined at address '/socket-binding-group=standard-sockets'.";
-            assertThat("Server log must contain ERROR with information which attribute is wrong.", byteArrayOutputStream.toString(), CoreMatchers.containsString(expectedConsoleOutput));
+            assertThat("Server log must contain ERROR with information which attribute is wrong.",
+                byteArrayOutputStream.toString(),
+                containsLogParts("WFLYSRV0055", "WFLYCTL0509", "non-existent-attribute", "/socket-binding-group=standard-sockets"));
         }
     }
 
