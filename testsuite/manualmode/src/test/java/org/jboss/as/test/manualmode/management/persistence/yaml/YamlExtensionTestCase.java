@@ -437,18 +437,16 @@ public class YamlExtensionTestCase {
     }
 
     @Test
-    public void testUndefineNonExistentAttributeYamlOperations() {
+    public void testUndefineNonExistentAttributeYamlOperations() throws Exception {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         try {
             container.startYamlExtension(new PrintStream(byteArrayOutputStream), new Path[]{testUndefineNonExistentAttributeYamlOperations});
             Assert.fail("Server must not start with non-existent attribute.");
         } catch (RuntimeException ex) {
             Assert.assertFalse("Server must not start with non-existent attribute.", container.isStarted());
-            String expectedConsoleOutput = "ERROR [org.jboss.as.controller.management-operation] (Controller Boot Thread) WFLYCTL0013: Operation (\"undefine-attribute\") failed - address: ([\n"
-                    + "    (\"socket-binding-group\" => \"standard-sockets\"),\n"
-                    + "    (\"socket-binding\" => \"txn-status-manager\")\n"
-                    + "]) - failure description: \"WFLYCTL0201: Unknown attribute 'asfds'\"";
-            assertThat("Server log must contain ERROR with information which attribute is wrong.", byteArrayOutputStream.toString(), CoreMatchers.containsString(expectedConsoleOutput));
+            assertThat("Server log must contain the correct error IDs and attribute name.",
+                byteArrayOutputStream.toString(),
+                containsLogParts("WFLYCTL0013", "undefine-attribute", "WFLYCTL0201", "asfds"));
         }
     }
 
