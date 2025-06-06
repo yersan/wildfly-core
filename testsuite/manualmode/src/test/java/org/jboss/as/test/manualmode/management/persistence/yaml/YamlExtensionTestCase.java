@@ -476,8 +476,9 @@ public class YamlExtensionTestCase {
             container.startYamlExtension(new PrintStream(byteArrayOutputStream), new Path[]{testListAddOperationToStringFails});
             Assert.fail("Server must not start.");
         } catch (Exception ex) {
-            String expectedConsoleOutput = "ERROR [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0055: Caught exception during boot: java.lang.IllegalArgumentException: WFLYCTL0510: No operation list-add can be executed for attribute called 'level' is defined at address '/subsystem=logging/root-logger=ROOT'.";
-            assertThat("Server log must contain ERROR with information what was wrong.", byteArrayOutputStream.toString(), CoreMatchers.containsString(expectedConsoleOutput));
+            assertThat("Server log must contain ERROR with information what was wrong.",
+                byteArrayOutputStream.toString(),
+                containsLogParts("WFLYSRV0055", "WFLYCTL0510", "list-add", "level", "/subsystem=logging/root-logger=ROOT"));
         }
     }
 
@@ -488,8 +489,9 @@ public class YamlExtensionTestCase {
             container.startYamlExtension(new PrintStream(byteArrayOutputStream), new Path[]{testListAddOperationToNonExistentResourceFails});
             Assert.fail("Server must not start.");
         } catch (Exception ex) {
-            String expectedConsoleOutput = "ERROR [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0055: Caught exception during boot: java.lang.IllegalArgumentException: WFLYCTL0510: No operation list-add can be executed for attribute called 'NON-EXISTENT' is defined at address '/subsystem=logging/root-logger=NON-EXISTENT'.";
-            assertThat("Server log must contain ERROR with information what was wrong.", byteArrayOutputStream.toString(), CoreMatchers.containsString(expectedConsoleOutput));
+            assertThat("Server log must contain ERROR with information what was wrong.",
+                byteArrayOutputStream.toString(),
+                containsLogParts("WFLYSRV0055", "WFLYCTL0510", "list-add", "NON-EXISTENT", "/subsystem=logging/root-logger=NON-EXISTENT"));
         }
     }
 
