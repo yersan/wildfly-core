@@ -397,18 +397,22 @@ class FileSystemDeploymentService implements DeploymentScanner, NotificationHand
      * of constructor injection to allow DeploymentScannerService to set it on the boot-time scanner */
     void setProcessStateNotifier(ProcessStateNotifier notifier) {
         assert this.processStateNotifier == null;
+        DeploymentScannerLogger.ROOT_LOGGER.info("setProcessStateNotifier registered for this scanner");
         this.processStateNotifier = notifier;
         if (notifier != null) {
             this.propertyChangeListener = new PropertyChangeListener() {
                 @Override
                 public void propertyChange(PropertyChangeEvent evt) {
                     if (ControlledProcessState.State.RUNNING == evt.getNewValue()) {
+                        DeploymentScannerLogger.ROOT_LOGGER.debug("Received RUNNING notification");
                         synchronized (FileSystemDeploymentService.this) {
                             if (scanEnabled) {
+                                DeploymentScannerLogger.ROOT_LOGGER.debug("Submit UndeployScanRunnable()");
                                 undeployScanTask = scheduledExecutor.submit(new UndeployScanRunnable());
                             }
                         }
                     } else if (ControlledProcessState.State.STOPPING == evt.getNewValue()) {
+                        DeploymentScannerLogger.ROOT_LOGGER.debug("Received STOPPING notification");
                         //let's prevent the starting of a new scan
                         synchronized (FileSystemDeploymentService.this) {
                             scanEnabled = false;
@@ -533,7 +537,7 @@ class FileSystemDeploymentService implements DeploymentScanner, NotificationHand
      * This method isn't private solely to allow a unit test in the same package to call it.
      */
     void forcedUndeployScan() {
-
+        ROOT_LOGGER.debug("Trying to acquire the scan lock " + this);
         if (acquireScanLock()) {
             try {
                 ROOT_LOGGER.tracef("Performing a post-boot forced undeploy scan for scan directory %s", deploymentDir.getAbsolutePath());
@@ -568,6 +572,7 @@ class FileSystemDeploymentService implements DeploymentScanner, NotificationHand
                 releaseScanLock();
             }
         }
+        ROOT_LOGGER.debug("Trying to acquire the scan lock " + this + " DONE");
     }
 
     private boolean acquireScanLock() {
@@ -790,6 +795,7 @@ class FileSystemDeploymentService implements DeploymentScanner, NotificationHand
         @Override
         public void run() {
             if(rollbackOnRuntimeFailure) {
+                ROOT_LOGGER.info("Forced rollbackOnRuntimeFailure");
                 forcedUndeployScan();
             }
             processStateNotifier.removePropertyChangeListener(propertyChangeListener);
