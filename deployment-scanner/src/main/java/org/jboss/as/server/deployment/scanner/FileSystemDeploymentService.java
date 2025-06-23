@@ -706,7 +706,9 @@ class FileSystemDeploymentService implements DeploymentScanner, NotificationHand
                 first = false;
                 final ModelNode results;
                 try {
-                    final Future<ModelNode> futureResults = deploymentOperations.deploy(getCompositeUpdate(updates), scheduledExecutor);
+                    ModelNode compositeUpdate = getCompositeUpdate(updates);
+                    ROOT_LOGGER.tracef("Executing Operation [%s] from deployment scanner task", compositeUpdate);
+                    final Future<ModelNode> futureResults = deploymentOperations.deploy(compositeUpdate, scheduledExecutor);
                     try {
                         results = futureResults.get(deploymentTimeout, TimeUnit.SECONDS);
                     } catch (TimeoutException e) {
@@ -732,7 +734,8 @@ class FileSystemDeploymentService implements DeploymentScanner, NotificationHand
                         }
                         break;
                     }
-                } catch(RejectedExecutionException ex) { //The executor was closed and no task could be submitted.
+                } catch(RejectedExecutionException ex) {//The executor was closed and no task could be submitted.
+                    ROOT_LOGGER.error("Operation was rejected by the executor. It will not be tried again", ex);
                     for (ScannerTask task : scannerTasks) {
                         task.removeInProgressMarker();
                     }
@@ -750,6 +753,7 @@ class FileSystemDeploymentService implements DeploymentScanner, NotificationHand
                         if (outcome.isDefined() && SUCCESS.equals(outcome.asString()) && handleCompositeResult(result, failureDesc)){
                             task.handleSuccessResult();
                         } else if (outcome.isDefined() && CANCELLED.equals(outcome.asString())) {
+                            ROOT_LOGGER.debugf("Operation [%s] was cancelled and oneOffScan is [%b], if this is not a oneOffScan, it will be tried again, otherwise no action will be taken.", updates.get(i), oneOffScan);
                             toRetry.add(updates.get(i));
                             retryTasks.add(task);
                         } else {
