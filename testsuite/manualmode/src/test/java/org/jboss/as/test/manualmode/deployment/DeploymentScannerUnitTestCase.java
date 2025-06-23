@@ -327,6 +327,15 @@ public class DeploymentScannerUnitTestCase extends AbstractDeploymentScannerBase
             ModelNode result = client.execute(op);
             assertEquals("Unexpected outcome of setting the test deployment logger to debug: " + op, SUCCESS, result.get(OUTCOME).asString());
             ok = true;
+
+            op = Util.createAddOperation(PathAddress.pathAddress(PathElement.pathElement(SUBSYSTEM, "logging"), PathElement.pathElement("logger", "org.jboss.as.controller.management-operation")));
+            op.get("category").set("org.jboss.as.controller.management-operation");
+            op.get("level").set("TRACE");
+            op.get("handlers").setEmptyList().add("CONSOLE_TRACE");
+            op.get("use-parent-handlers").set(false);
+            result = client.execute(op);
+            assertEquals("Unexpected outcome of setting the test deployment logger to debug: " + op, SUCCESS, result.get(OUTCOME).asString());
+
         } finally {
             if (!ok) {
                 ModelNode removeOp = Util.createRemoveOperation(getScannerLoggerResourcePath());
