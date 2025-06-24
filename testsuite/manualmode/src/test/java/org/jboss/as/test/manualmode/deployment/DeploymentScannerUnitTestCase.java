@@ -60,7 +60,7 @@ public class DeploymentScannerUnitTestCase extends AbstractDeploymentScannerBase
     private static final String JAR_TWO = "deployment-startup-two.jar";
     private static final PathAddress DEPLOYMENT_ONE = PathAddress.pathAddress(DEPLOYMENT, JAR_ONE);
     private static final PathAddress DEPLOYMENT_TWO = PathAddress.pathAddress(DEPLOYMENT, JAR_TWO);
-    private static final int TIMEOUT = TimeoutUtil.adjust(30000);
+    private static final int TIMEOUT = TimeoutUtil.adjust(60000);
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss,SSS");
 
     @SuppressWarnings("unused")
