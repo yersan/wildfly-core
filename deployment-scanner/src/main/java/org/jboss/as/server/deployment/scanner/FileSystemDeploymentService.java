@@ -53,6 +53,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
@@ -707,8 +708,9 @@ class FileSystemDeploymentService implements DeploymentScanner, NotificationHand
                 final ModelNode results;
                 try {
                     ModelNode compositeUpdate = getCompositeUpdate(updates);
-                    ROOT_LOGGER.tracef("Executing Operation [%s] from deployment scanner task", compositeUpdate);
+                    ROOT_LOGGER.tracef("Executing Operation [%s] from deployment scanner task. Active tasks [%d]: ", compositeUpdate, ((ThreadPoolExecutor)scheduledExecutor).getActiveCount());
                     final Future<ModelNode> futureResults = deploymentOperations.deploy(compositeUpdate, scheduledExecutor);
+                    ROOT_LOGGER.tracef("Executing Operation [%s] Submitted. Active tasks [%d]: ", compositeUpdate, ((ThreadPoolExecutor)scheduledExecutor).getActiveCount());
                     try {
                         results = futureResults.get(deploymentTimeout, TimeUnit.SECONDS);
                     } catch (TimeoutException e) {
