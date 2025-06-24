@@ -88,7 +88,7 @@ public class DeploymentScannerUnitTestCase extends AbstractDeploymentScannerBase
                     // Wait until deployed ...
                     long timeout = System.currentTimeMillis() + TIMEOUT;
                     while (!(exists(client, DEPLOYMENT_ONE) && exists(client, DEPLOYMENT_TWO)) && System.currentTimeMillis() < timeout) {
-                        TimeUnit.MILLISECONDS.sleep(TimeoutUtil.adjust(500));
+                        TimeUnit.SECONDS.sleep(TimeoutUtil.adjust(1));
                     }
                     Assert.assertTrue(exists(client, DEPLOYMENT_ONE));
                     Assert.assertEquals("OK", deploymentState(client, DEPLOYMENT_ONE));
@@ -110,7 +110,7 @@ public class DeploymentScannerUnitTestCase extends AbstractDeploymentScannerBase
                     // Wait until started ...
                     timeout = System.currentTimeMillis() + TIMEOUT;
                     while (!isRunning(client) && System.currentTimeMillis() < timeout) {
-                        TimeUnit.MILLISECONDS.sleep(TimeoutUtil.adjust(500));
+                        TimeUnit.SECONDS.sleep(TimeoutUtil.adjust(1));
                     }
 
                     Assert.assertTrue(Files.exists(oneDeployed));
@@ -121,7 +121,7 @@ public class DeploymentScannerUnitTestCase extends AbstractDeploymentScannerBase
 
                     timeout = System.currentTimeMillis() + TIMEOUT;
                     do {
-                        TimeUnit.MILLISECONDS.sleep(TimeoutUtil.adjust(500));
+                        TimeUnit.SECONDS.sleep(TimeoutUtil.adjust(1));
                     } while (exists(client, DEPLOYMENT_TWO) && System.currentTimeMillis() < timeout);
                     Assert.assertFalse("Deployment two should not exist at " + TIME_FORMATTER.format(LocalDateTime.now()), exists(client, DEPLOYMENT_TWO));
                     ModelNode disableScanner = Util.getWriteAttributeOperation(PathAddress.parseCLIStyleAddress("/subsystem=deployment-scanner/scanner=testScanner"), "scan-interval", 300000);
@@ -137,7 +137,7 @@ public class DeploymentScannerUnitTestCase extends AbstractDeploymentScannerBase
                     timeout = System.currentTimeMillis() + TIMEOUT;
 
                     while (Files.exists(oneDeployed) && System.currentTimeMillis() < timeout) {
-                        TimeUnit.MILLISECONDS.sleep(TimeoutUtil.adjust(500));
+                        TimeUnit.SECONDS.sleep(TimeoutUtil.adjust(1));
                     }
                     Assert.assertFalse(Files.exists(oneDeployed));
                 } finally {
@@ -363,7 +363,7 @@ public class DeploymentScannerUnitTestCase extends AbstractDeploymentScannerBase
     private void waitFor(String message, ExceptionWrappingSupplier<Boolean> condition) throws Exception {
         long timeout = System.currentTimeMillis() + TimeoutUtil.adjust(TIMEOUT);
         do {
-            TimeUnit.MILLISECONDS.sleep(TimeoutUtil.adjust(500));
+            TimeUnit.SECONDS.sleep(TimeoutUtil.adjust(1));
         } while (!condition.get() && System.currentTimeMillis() < timeout);
 
         Assert.assertTrue(message, condition.get());
