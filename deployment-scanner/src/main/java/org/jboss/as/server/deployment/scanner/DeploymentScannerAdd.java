@@ -219,7 +219,7 @@ class DeploymentScannerAdd implements OperationStepHandler {
                 return new JBossThreadFactory(ThreadGroupHolder.THREAD_GROUP, Boolean.FALSE, null, "%G - %t", null, null);
             }
         });
-        return Executors.newScheduledThreadPool(2, threadFactory);
+        return Executors.newScheduledThreadPool(3, threadFactory);
     }
 
     static void performRuntime(final OperationContext context, ModelNode operation, ModelNode model,
