@@ -983,12 +983,14 @@ class ModelControllerImpl implements ModelController {
                 }
 
                 ImmutableManagementResourceRegistration child = managementModel.get().getRootResourceRegistration().getSubModel(address);
-                Map<String, AttributeAccess> attributes = child.getAttributes(PathAddress.EMPTY_ADDRESS);
-                for (Map.Entry<String, AttributeAccess> entry : attributes.entrySet()) {
-                    String attributeName = entry.getKey();
-                    AttributeAccess value = entry.getValue();
-                    for (AccessConstraintDefinition accessConstraint : value.getAttributeDefinition().getAccessConstraints()) {
-                        ControllerLogger.ROOT_LOGGER.info("Attribute " + attributeName + " access constraint " + accessConstraint);
+                if ( child != null ) {
+                    Map<String, AttributeAccess> attributes = child.getAttributes(PathAddress.EMPTY_ADDRESS);
+                    for (Map.Entry<String, AttributeAccess> entry : attributes.entrySet()) {
+                        String attributeName = entry.getKey();
+                        AttributeAccess value = entry.getValue();
+                        for (AccessConstraintDefinition accessConstraint : value.getAttributeDefinition().getAccessConstraints()) {
+                            ControllerLogger.ROOT_LOGGER.info("Attribute " + attributeName + " access constraint " + accessConstraint);
+                        }
                     }
                 }
             } else {
