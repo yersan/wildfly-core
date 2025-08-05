@@ -52,6 +52,7 @@ import java.util.function.Supplier;
 
 import org.jboss.as.controller.OperationContext.RollbackHandler;
 import org.jboss.as.controller.access.Authorizer;
+import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.audit.AuditLogger;
 import org.jboss.as.controller.audit.ManagedAuditLogger;
 import org.jboss.as.controller.capability.registry.RuntimeCapabilityRegistry;
@@ -69,6 +70,7 @@ import org.jboss.as.controller.operations.global.ReadResourceHandler;
 import org.jboss.as.controller.persistence.ConfigurationExtension;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
 import org.jboss.as.controller.persistence.ConfigurationPersister;
+import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.DelegatingResource;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
@@ -978,6 +980,16 @@ class ModelControllerImpl implements ModelController {
                     context.getFailureDescription().set(ControllerLogger.ROOT_LOGGER.noHandlerForOperation(operationName, address));
                 } else {
                     context.addModelStep(stepOperation.getOperationDefinition(), stepOperation.getOperationHandler(), false);
+                }
+
+                ImmutableManagementResourceRegistration child = managementModel.get().getRootResourceRegistration().getSubModel(address);
+                Map<String, AttributeAccess> attributes = child.getAttributes(PathAddress.EMPTY_ADDRESS);
+                for (Map.Entry<String, AttributeAccess> entry : attributes.entrySet()) {
+                    String attributeName = entry.getKey();
+                    AttributeAccess value = entry.getValue();
+                    for (AccessConstraintDefinition accessConstraint : value.getAttributeDefinition().getAccessConstraints()) {
+                        ControllerLogger.ROOT_LOGGER.info("Attribute " + attributeName + " access constraint " + accessConstraint);
+                    }
                 }
             } else {
 

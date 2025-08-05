@@ -350,6 +350,7 @@ abstract class AbstractOperationContext implements OperationContext, AutoCloseab
         }
 
         if (!executing && stage == Stage.MODEL) {
+
             recordControllerOperation(operation);
             if (initialResponse == null) {
                 initialResponse = response;
@@ -659,6 +660,7 @@ abstract class AbstractOperationContext implements OperationContext, AutoCloseab
             try {
                 AccessAuditContext accessContext = SecurityActions.currentAccessAuditContext();
                 SecurityIdentity identity = getSecurityIdentity();
+
                 auditLogger.log(
                         isReadOnly(),
                         resultAction,
@@ -668,6 +670,7 @@ abstract class AbstractOperationContext implements OperationContext, AutoCloseab
                         accessContext == null ? null : accessContext.getRemoteAddress(),
                         getModel(),
                         controllerOperations);
+
                 auditLogged = true;
             } catch (Exception e) {
                 ControllerLogger.MGMT_OP_LOGGER.failedToUpdateAuditLog(e);
