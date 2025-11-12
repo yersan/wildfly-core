@@ -128,36 +128,15 @@ public class UnresolvedExpressionSecurityManagerTestCase {
                 reloadOp.get("admin-only").set(false);
         assertTrue("Failed to \"fail\" reload server",
                 Operations.isSuccessfulOutcome(this.client.execute(reloadOp)));
-        container.stop();
-
-    }
-
-    private void verifyBootFailureInLogs() throws Exception {
-        boolean foundExpressionError =
-                LoggingUtil.hasLogMessage(this.client, handlerName, CANNOT_RESOLVE_EXPRESSION_ID);
-
-        assertTrue("Expected expression resolution error (" + CANNOT_RESOLVE_EXPRESSION_ID + ") in "
-                + LOG_FILE_NAME, foundExpressionError);
-        // when security manager is disabled, boot failure is not expected
-        boolean bootFailed =
-                LoggingUtil.hasLogMessage(this.client, handlerName,
-                        SECMGR_SUBSYSTEM_BOOT_FAILED_ID);
-        if (AssumeTestGroupUtil.isSecurityManagerDisabled()) {
-            assertTrue("Did not expect server shutdown (" + SECMGR_SUBSYSTEM_BOOT_FAILED_ID
-                    + ") in " + LOG_FILE_NAME, !bootFailed);
-            return;
-        }
-        assertTrue("Expected server shutdown (" + SECMGR_SUBSYSTEM_BOOT_FAILED_ID + ") in "
-                + LOG_FILE_NAME, bootFailed);
     }
 
     private void cleanupSecurityManagerSubsystem(boolean isMaximumPermissions) throws Exception {
         if (container.isStarted()) {
-            ServerReload.executeReloadAndWaitForCompletion(this.client, true);
-        } else {
-            container.startInAdminMode();
-            // this.client = TestSuiteEnvironment.getModelControllerClient();
+            container.stop();
         }
+
+        container.startInAdminMode();
+        this.client = TestSuiteEnvironment.getModelControllerClient();
         ModelNode address = Operations.createAddress("subsystem", "security-manager",
                 "deployment-permissions", "default");
         if (isMaximumPermissions) {
@@ -180,6 +159,24 @@ public class UnresolvedExpressionSecurityManagerTestCase {
         ModelNode result = this.client.execute(undefineMinPerms);
         assertTrue("Failed to undefine minimum-permissions in the security-manager subsystem: "
                 + result, Operations.isSuccessfulOutcome(result));
+    }
+
+    private void verifyBootFailureInLogs() throws Exception {
+        boolean foundExpressionError =
+                LoggingUtil.hasLogMessage(this.client, handlerName, CANNOT_RESOLVE_EXPRESSION_ID);
+
+        assertTrue("Expected expression resolution error (" + CANNOT_RESOLVE_EXPRESSION_ID + ") in "
+                + LOG_FILE_NAME, foundExpressionError);
+        // when security manager is disabled, boot failure is not expected
+        boolean bootFailed = LoggingUtil.hasLogMessage(this.client, handlerName,
+                SECMGR_SUBSYSTEM_BOOT_FAILED_ID);
+        if (AssumeTestGroupUtil.isSecurityManagerDisabled()) {
+            assertTrue("Did not expect server shutdown (" + SECMGR_SUBSYSTEM_BOOT_FAILED_ID
+                    + ") in " + LOG_FILE_NAME, !bootFailed);
+            return;
+        }
+        assertTrue("Expected server shutdown (" + SECMGR_SUBSYSTEM_BOOT_FAILED_ID + ") in "
+                + LOG_FILE_NAME, bootFailed);
     }
 
     private static class LogHandlerSetup extends TestLogHandlerSetupTask {
