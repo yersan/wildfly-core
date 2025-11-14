@@ -270,7 +270,7 @@ public class Server {
                 }
 
                 if (configDir != null) {
-                    commandBuilder.addJavaOption("-Djboss.server.config.dir="+configDir.toString());
+                    commandBuilder.addJavaOption("-Djboss.server.config.dir="+configDir);
                 }
 
                 //we are testing, of course we want assertions and set-up some other defaults
@@ -347,6 +347,8 @@ public class Server {
                     process.destroy();
                     process.waitFor();
                 }
+
+                log.infof("Process Exit code was %d", process.exitValue());
 
                 process = null;
             }
