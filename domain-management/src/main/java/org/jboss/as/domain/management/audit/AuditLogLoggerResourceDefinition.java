@@ -47,7 +47,7 @@ public class AuditLogLoggerResourceDefinition extends SimpleResourceDefinition {
         .setAllowExpression(true)
         .setDefaultValue(ModelNode.TRUE).build();
 
-    public static final SimpleAttributeDefinition ENABLE_REDACTION = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.ENABLE_REDACTION, ModelType.BOOLEAN, true)
+    public static final SimpleAttributeDefinition REDACTED = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.REDACTED, ModelType.BOOLEAN, true)
             .setAllowExpression(true)
             .setStability(Stability.COMMUNITY)
             .setDefaultValue(ModelNode.TRUE)
@@ -61,7 +61,7 @@ public class AuditLogLoggerResourceDefinition extends SimpleResourceDefinition {
             .setAllowExpression(true)
             .setDefaultValue(ModelNode.TRUE).build();
 
-    static final List<SimpleAttributeDefinition> ATTRIBUTE_DEFINITIONS = Arrays.asList(LOG_BOOT, LOG_READ_ONLY, ENABLED, ENABLE_REDACTION);
+    static final List<SimpleAttributeDefinition> ATTRIBUTE_DEFINITIONS = Arrays.asList(LOG_BOOT, LOG_READ_ONLY, ENABLED, REDACTED);
 
     private final ManagedAuditLogger auditLogger;
 
@@ -87,7 +87,7 @@ public class AuditLogLoggerResourceDefinition extends SimpleResourceDefinition {
 
         resourceRegistration.registerReadWriteAttribute(LOG_READ_ONLY, null, new AuditLogReadOnlyWriteAttributeHandler(auditLogger));
         resourceRegistration.registerReadWriteAttribute(ENABLED, null, new AuditLogEnabledWriteAttributeHandler(auditLogger));
-        resourceRegistration.registerReadWriteAttribute(ENABLE_REDACTION, null, new AuditLogMaskOpParamWriteAttributeHandler(auditLogger));
+        resourceRegistration.registerReadWriteAttribute(REDACTED, null, new AuditLogMaskOpParamWriteAttributeHandler(auditLogger));
     }
 
     @Override
@@ -139,7 +139,7 @@ public class AuditLogLoggerResourceDefinition extends SimpleResourceDefinition {
 
                         auditLoggerProvider.setLogBoot(AuditLogLoggerResourceDefinition.LOG_BOOT.resolveModelAttribute(context, model).asBoolean());
                         auditLoggerProvider.setLogReadOnly(AuditLogLoggerResourceDefinition.LOG_READ_ONLY.resolveModelAttribute(context, model).asBoolean());
-                        auditLoggerProvider.setRedacted(AuditLogLoggerResourceDefinition.ENABLE_REDACTION.resolveModelAttribute(context, model).asBoolean());
+                        auditLoggerProvider.setRedacted(AuditLogLoggerResourceDefinition.REDACTED.resolveModelAttribute(context, model).asBoolean());
                         boolean enabled = AuditLogLoggerResourceDefinition.ENABLED.resolveModelAttribute(context, model).asBoolean();
                         final AuditLogger.Status status = enabled ? AuditLogger.Status.LOGGING : AuditLogger.Status.DISABLED;
                         context.completeStep((OperationContext.ResultAction resultAction, OperationContext context1, ModelNode operation1) -> {
