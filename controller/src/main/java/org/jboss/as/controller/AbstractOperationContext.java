@@ -5,6 +5,7 @@
 
 package org.jboss.as.controller;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADDRESS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ALLOW_RESOURCE_SERVICE_RESTART;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ATTRIBUTE_VALUE_WRITTEN_NOTIFICATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CANCELLED;
@@ -39,6 +40,9 @@ import static org.jboss.as.controller.logging.ControllerLogger.MGMT_OP_LOGGER;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,6 +51,7 @@ import java.util.Deque;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -159,7 +164,7 @@ abstract class AbstractOperationContext implements OperationContext, AutoCloseab
     ModelNode initialOperation;
 
     /** Operations that were added by the controller, before execution started */
-    private final List<ModelNode> controllerOperations = new ArrayList<ModelNode>(2);
+    private final List<RecordedOperation> controllerOperations = new ArrayList<>(2);
     private boolean auditLogged;
     private final AuditLogger auditLogger;
     private final ModelControllerImpl controller;
@@ -475,7 +480,7 @@ abstract class AbstractOperationContext implements OperationContext, AutoCloseab
             }
         } catch (RuntimeException e) {
             handleUncaughtException(e);
-            ControllerLogger.MGMT_OP_LOGGER.unexpectedOperationExecutionException(e, controllerOperations);
+            ControllerLogger.MGMT_OP_LOGGER.unexpectedOperationExecutionException(e, filterControllerOperations(true));
         } finally {
             // On failure close any attached response streams
             if (resultAction != ResultAction.KEEP && !isBooting()) {
@@ -667,7 +672,8 @@ abstract class AbstractOperationContext implements OperationContext, AutoCloseab
                         accessContext == null ? null : accessContext.getAccessMechanism(),
                         accessContext == null ? null : accessContext.getRemoteAddress(),
                         getModel(),
-                        controllerOperations);
+                        filterControllerOperations(false),
+                        filterControllerOperations(true));
                 auditLogged = true;
             } catch (Exception e) {
                 ControllerLogger.MGMT_OP_LOGGER.failedToUpdateAuditLog(e);
@@ -677,10 +683,27 @@ abstract class AbstractOperationContext implements OperationContext, AutoCloseab
 
     /**
      * Record an operation added before execution began (i.e. added by the controller and not by a step)
+     *
      * @param operation the operation
      */
     private void recordControllerOperation(ModelNode operation) {
-        controllerOperations.add(operation.clone()); // clone so we don't log op nodes mutated during execution
+        ModelNode opClone = operation.clone();
+        ModelNode opRedactedClone = opClone.clone();
+
+        ImmutableManagementResourceRegistration mrr = getRootResourceRegistration();
+        OperationEntry operationEntry = mrr.getOperationEntry(PathAddress.pathAddress(opRedactedClone.get(ADDRESS)), opClone.get(OP).asString());
+        if (operationEntry != null) {
+            for (AttributeDefinition parameter : operationEntry.getOperationDefinition().getParameters()) {
+                if (parameter.getFlags() != null && parameter.getFlags().contains(AttributeAccess.Flag.REDACTABLE)) {
+                    if (opRedactedClone.hasDefined(parameter.getName())) {
+                        ModelNode current = opRedactedClone.get(parameter.getName());
+                        String strValue = current.asString();
+                        opRedactedClone.get(parameter.getName()).set(sha256(strValue));
+                    }
+                }
+            }
+        }
+        controllerOperations.add(new RecordedOperation(opClone, opRedactedClone)); // clone so we don't log op nodes mutated during execution
     }
 
     void recordWriteLock() {
@@ -697,7 +720,7 @@ abstract class AbstractOperationContext implements OperationContext, AutoCloseab
                         accessContext == null ? null : accessContext.getDomainUuid(),
                         accessContext == null ? null : accessContext.getAccessMechanism(),
                         accessContext == null ? null : accessContext.getRemoteAddress(),
-                        controllerOperations));
+                        filterControllerOperations(configurationChangesCollector.isRedacted())));
             } catch (Exception e) {
                 ControllerLogger.MGMT_OP_LOGGER.failedToUpdateAuditLog(e);
             }
@@ -839,7 +862,7 @@ abstract class AbstractOperationContext implements OperationContext, AutoCloseab
             if (!initialResponse.hasDefined(FAILURE_DESCRIPTION)) {
                 initialResponse.get(FAILURE_DESCRIPTION).set(ControllerLogger.MGMT_OP_LOGGER.unexpectedOperationExecutionFailureDescription(e));
             }
-            ControllerLogger.MGMT_OP_LOGGER.unexpectedOperationExecutionException(e, controllerOperations);
+            ControllerLogger.MGMT_OP_LOGGER.unexpectedOperationExecutionException(e, filterControllerOperations(true));
         }
         return result;
     }
@@ -1819,6 +1842,29 @@ abstract class AbstractOperationContext implements OperationContext, AutoCloseab
         @Override
         public void close() throws IOException {
             StreamUtils.safeClose(stream);
+        }
+    }
+
+    private record RecordedOperation(ModelNode op, ModelNode redactedOp){
+        @Override
+        public String toString() {
+            return redactedOp.toString();
+        }
+    }
+
+    private List<ModelNode> filterControllerOperations(boolean redacted) {
+        return controllerOperations.stream().map( ro -> redacted ? ro.redactedOp : ro.op).toList();
+    }
+
+    private String sha256(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedHash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(encodedHash);
+        } catch (NoSuchAlgorithmException e) {
+            // SHA-256 should be guaranteed to be available in Java environments,
+            // but in case of an error, provides a fallback
+            return "*".repeat(Math.min(input.length(), 6));
         }
     }
 }

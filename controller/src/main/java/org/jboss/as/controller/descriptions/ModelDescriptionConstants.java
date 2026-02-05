@@ -162,6 +162,7 @@ public class ModelDescriptionConstants {
     public static final String DUMP_SERVICES = "dump-services";
     public static final String EMPTY = "empty";
     public static final String ENABLE = "enable";
+    public static final String ENABLE_REDACTION = "enable-redaction";
     public static final String ENABLED = "enabled";
     public static final String ENABLE_AUTO_START = "enabled-auto-start";
     public static final String ENABLED_CIPHER_SUITES = "enabled-cipher-suites";
@@ -505,6 +506,7 @@ public class ModelDescriptionConstants {
     public static final String SUSPEND_TIMEOUT = "suspend-timeout";
     public static final String OPERATION_REQUIRES_RELOAD = "operation-requires-reload";
     public static final String OPERATION_REQUIRES_RESTART = "operation-requires-restart";
+    public static final String REDACTED = "redacted";
     public static final String RELOAD_SERVERS = "reload-servers";
     public static final String REMOVE_CONTENT = "remove-content";
     public static final String RESTART_SERVERS = "restart-servers";

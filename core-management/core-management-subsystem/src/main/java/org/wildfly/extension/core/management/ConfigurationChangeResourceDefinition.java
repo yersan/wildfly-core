@@ -56,6 +56,12 @@ public class ConfigurationChangeResourceDefinition extends PersistentResourceDef
             ModelDescriptionConstants.MAX_HISTORY, ModelType.INT, true)
             .setDefaultValue(new ModelNode(10))
             .build();
+
+    public static final SimpleAttributeDefinition REDACTED = SimpleAttributeDefinitionBuilder.create(
+                    ModelDescriptionConstants.REDACTED, ModelType.BOOLEAN, true)
+            .setDefaultValue(ModelNode.TRUE)
+            .build();
+
     public static final PathElement PATH = PathElement.pathElement(SERVICE, CONFIGURATION_CHANGES);
     public static final String OPERATION_NAME = "list-changes";
 
@@ -97,7 +103,9 @@ public class ConfigurationChangeResourceDefinition extends PersistentResourceDef
             super.performRuntime(context, operation, resource);
             context.getServiceTarget().addService(CONFIGURATION_CHANGES_CAPABILITY.getCapabilityServiceName()).install();
             ModelNode maxHistory = MAX_HISTORY.resolveModelAttribute(context, operation);
+            ModelNode redacted = REDACTED.resolveModelAttribute(context, operation);
             ConfigurationChangesCollector.INSTANCE.setMaxHistory(maxHistory.asInt());
+            ConfigurationChangesCollector.INSTANCE.setRedacted(redacted.asBoolean());
         }
 
         @Override
