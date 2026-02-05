@@ -50,6 +50,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.IdentityHashMap;
@@ -688,22 +689,24 @@ abstract class AbstractOperationContext implements OperationContext, AutoCloseab
      */
     private void recordControllerOperation(ModelNode operation) {
         ModelNode opClone = operation.clone();
-        ModelNode opRedactedClone = opClone.clone();
+        Map<String, String> redactions = Collections.emptyMap();
 
         ImmutableManagementResourceRegistration mrr = getRootResourceRegistration();
-        OperationEntry operationEntry = mrr.getOperationEntry(PathAddress.pathAddress(opRedactedClone.get(ADDRESS)), opClone.get(OP).asString());
+        OperationEntry operationEntry = mrr.getOperationEntry(PathAddress.pathAddress(opClone.get(ADDRESS)), opClone.get(OP).asString());
         if (operationEntry != null) {
             for (AttributeDefinition parameter : operationEntry.getOperationDefinition().getParameters()) {
                 if (parameter.getFlags() != null && parameter.getFlags().contains(AttributeAccess.Flag.REDACTABLE)) {
-                    if (opRedactedClone.hasDefined(parameter.getName())) {
-                        ModelNode current = opRedactedClone.get(parameter.getName());
-                        String strValue = current.asString();
-                        opRedactedClone.get(parameter.getName()).set(sha256(strValue));
+                    if (opClone.hasDefined(parameter.getName())) {
+                        if (redactions.isEmpty()) {
+                            redactions = new HashMap<>();
+                        }
+                        String strValue = opClone.get(parameter.getName()).asString();
+                        redactions.put(parameter.getName(), sha256(strValue));
                     }
                 }
             }
         }
-        controllerOperations.add(new RecordedOperation(opClone, opRedactedClone)); // clone so we don't log op nodes mutated during execution
+        controllerOperations.add(new RecordedOperation(opClone, redactions));
     }
 
     void recordWriteLock() {
@@ -1845,15 +1848,25 @@ abstract class AbstractOperationContext implements OperationContext, AutoCloseab
         }
     }
 
-    private record RecordedOperation(ModelNode op, ModelNode redactedOp){
+    private record RecordedOperation(ModelNode op, Map<String, String> redactions) {
+
+        ModelNode getRedactedOp() {
+            if (redactions.isEmpty()) {
+                return op;
+            }
+            ModelNode redacted = op.clone();
+            redactions.forEach((key, value) -> redacted.get(key).set(value));
+            return redacted;
+        }
+
         @Override
         public String toString() {
-            return redactedOp.toString();
+            return getRedactedOp().toString();
         }
     }
 
     private List<ModelNode> filterControllerOperations(boolean redacted) {
-        return controllerOperations.stream().map( ro -> redacted ? ro.redactedOp : ro.op).toList();
+        return controllerOperations.stream().map(ro -> redacted ? ro.getRedactedOp() : ro.op).toList();
     }
 
     private String sha256(String input) {
