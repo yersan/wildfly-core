@@ -459,6 +459,7 @@ abstract class AbstractOperationContext implements OperationContext, AutoCloseab
         if (modifiedResourcesForModelValidation != null) {
             modifiedResourcesForModelValidation.clear();
         }
+        this.controllerOperations.clear();
     }
 
     /**
