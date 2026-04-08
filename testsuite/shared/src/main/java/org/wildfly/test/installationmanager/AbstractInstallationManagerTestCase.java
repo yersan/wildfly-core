@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -252,7 +251,7 @@ public abstract class AbstractInstallationManagerTestCase extends AbstractCliTes
             String output = cli.readOutput();
 
             String[] lines = output.split("\n");
-            assertEquals(4, lines.length);
+            assertEquals(10, lines.length);
 
             Set<String> expectedChangeKeys = TestInstallationManager.history.keySet();
             Set<String> expectedVersionsWithoutDescription = TestInstallationManager.nullDescriptionMV.stream()
@@ -260,38 +259,41 @@ public abstract class AbstractInstallationManagerTestCase extends AbstractCliTes
                     .collect(Collectors.toSet());
             List<String> expectedVersionsWithDescriptions = TestInstallationManager.descriptionMV.stream().map(ManifestVersion::getDescription).toList();
 
-            Set<String> actualResults = new HashSet<>(Arrays.asList(lines));
-            for (String actualResult : actualResults) {
-                for (Iterator<String> it = expectedChangeKeys.iterator(); it.hasNext(); ) {
-                    String expectedChangeKey = it.next();
-                    if (actualResult.contains(expectedChangeKey)) {
-                        switch (expectedChangeKey) {
-                            case "update": {
-                                for (String expected : expectedVersionsWithoutDescription) {
-                                    assertTrue(actualResult.contains(expected));
-                                }
-                                break;
+            Map<String, String> actualResults = expectedChangeKeys.stream()
+            .collect(Collectors.toMap(
+                key -> key,
+                key -> Arrays.asList(lines).stream()
+                    .filter(phrase -> phrase.contains(key))
+                    .collect(Collectors.joining(" "))
+            ));
+
+            for (Iterator<String> it = expectedChangeKeys.iterator(); it.hasNext(); ) {
+                String expectedChangeKey = it.next();
+                String actualResult = actualResults.get(expectedChangeKey);
+                    switch (expectedChangeKey) {
+                        case "update": {
+                            for (String expected : expectedVersionsWithoutDescription) {
+                                assertTrue(actualResult.contains(expected));
                             }
-                            case "install": {
-                                for (String expected : expectedVersionsWithDescriptions) {
-                                    assertTrue(actualResult.contains(expected));
-                                }
-                                break;
+                            break;
+                        }
+                        case "install": {
+                            for (String expected : expectedVersionsWithDescriptions) {
+                                assertTrue(actualResult.contains(expected));
                             }
-                            case "rollback":
-                            case "config_change": {
-                                for (String expected : expectedVersionsWithDescriptions) {
-                                    assertFalse(actualResult.contains(expected));
-                                }
-                                for (String expected : expectedVersionsWithoutDescription) {
-                                    assertFalse(actualResult.contains(expected));
-                                }
+                            break;
+                        }
+                        case "rollback":
+                        case "config_change": {
+                            for (String expected : expectedVersionsWithDescriptions) {
+                                assertFalse(actualResult.contains(expected));
+                            }
+                            for (String expected : expectedVersionsWithoutDescription) {
+                                assertFalse(actualResult.contains(expected));
                             }
                         }
-                        it.remove();
-                        break;
                     }
-                }
+                    it.remove();
             }
             Assert.assertTrue(Arrays.asList(lines).toString(), expectedChangeKeys.isEmpty());
         }
