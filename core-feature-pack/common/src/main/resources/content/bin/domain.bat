@@ -78,10 +78,10 @@ if /i "%RESOLVED_JBOSS_HOME%" NEQ "%SANITIZED_JBOSS_HOME%" (
 )
 
 rem Read an optional configuration file - skip for version/help commands
+if not "%SKIP_CONF%" == "true" if "x%DOMAIN_CONF%" == "x" (
+   set "DOMAIN_CONF=%DIRNAME%domain.conf.bat"
+)
 if not "%SKIP_CONF%" == "true" (
-   if "x%DOMAIN_CONF%" == "x" (
-      set "DOMAIN_CONF=%DIRNAME%domain.conf.bat"
-   )
    if exist "%DOMAIN_CONF%" (
       echo Calling "%DOMAIN_CONF%"
       call "%DOMAIN_CONF%" %*
