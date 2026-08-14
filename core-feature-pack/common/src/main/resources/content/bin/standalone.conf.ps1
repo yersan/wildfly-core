@@ -33,17 +33,10 @@ if (-Not(test-path env:JBOSS_MODULES_SYSTEM_PKGS )) {
 
 #$PRESERVE_JAVA_OPTS=$true
 
-$JAVA_OPTS = @()
-
-if (Test-Path env:JAVA_OPTS) {
-    $opts = $env:JAVA_OPTS
-    ForEach ($opt in $opts.split()) {
-        $JAVA_OPTS += $opt
-    }
-}
+$JAVA_OPTS = Get-Java-Opts
 
 # Set default values if none have been set by the user
-if ((!$JAVA_OPTS) -or (!$PRESERVE_JAVA_OPTS)) {
+if (!$JAVA_OPTS) {
 
     if (-Not(test-path env:JBOSS_JAVA_SIZING)) {
         $env:JBOSS_JAVA_SIZING = "-Xms64M -Xmx512M"
@@ -87,6 +80,8 @@ if ((!$JAVA_OPTS) -or (!$PRESERVE_JAVA_OPTS)) {
     # Uncomment the following line to disable jdk.serialFilter settings
     #
     # $DISABLE_JDK_SERIAL_FILTER=$true
+} else {
+    Write-Host "JAVA_OPTS already set in environment; overriding default settings with values: $env:JAVA_OPTS"
 }
 
 # Uncomment this to run with a security manager enabled
